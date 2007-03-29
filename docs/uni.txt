@@ -1,0 +1,288 @@
+Europe A
+
+-----------
+
+0 Austria 
+1 Belgium 
+2 Bulgaria 
+3 Croatia 
+4 Czech 
+5 Denmark 
+6 England 
+7 Finland 
+8 France 
+9 Germany 
+10 Greece 
+11 Hungary 
+12 Ireland 
+13 Italy 
+14 Latvia 
+15 Holland 
+16 Northern Ireland 
+17 Norway 
+18 Poland 
+19 Portugal 
+
+
+Europe B
+
+-----------
+
+20 Romania 
+21 Russia 
+22 Scotland 
+23 Serbia and Montenegro 
+24 Slovakia 
+25 Slovenia 
+26 Spain 
+27 Sweden 
+28 Switzerland 
+29 Turkey 
+30 Ukraine 
+31 Wales 
+
+
+Africa
+
+---------
+
+32 Cameroon 
+33 Cote d´lvoire 
+34 Morocco 
+35 Nigeria 
+36 Senegal 
+37 South Africa 
+38 Tunisia 
+
+
+America
+
+----------
+
+39 Costa Rica 
+40 Mexico 
+41 USA 
+42 Argentina 
+43 Brazil 
+44 Chile 
+45 Colombia 
+46 Ecuador 
+47 Paraguay 
+48 Peru 
+49 Uruguay 
+50 Venezuela 
+
+
+Asia/Oceania
+
+---------------
+
+51 China 
+52 Iran 
+53 Japan 
+54 Saudi Arabia 
+55 South Korea 
+56 Australia 
+
+
+Classic
+
+----------
+
+57 Argentina 
+58 Brazil 
+59 England 
+60 France 
+61 Germany 
+62 Italy 
+63 Holland 
+
+
+C L U B T E A M S
+
+
+
+England
+
+----------
+
+64 Arsenal Arsenal FC* 
+65 West Midlands Village Aston Villa FC 
+66 West Midlands City Birmingham City FC 
+67 Lancashire Blackburn Rovers FC 
+68 Middlebrook Bolton Wanderers FC 
+69 South East London Reds Charlton Athletic FC 
+70 Chelsea Chelsea FC* 
+71 Merseyside Blue Everton FC 
+72 West London White Fulham FC 
+73 Merseyside Red Liverpool FC 
+74 Man Blue Manchester City FC 
+75 Man Red Manchester United FC 
+76 Teesside Middlesbrough FC 
+77 Tyneside Newcastle United FC 
+78 Pompy Portsmouth FC 
+79 Wearside Sunderland FC 
+80 North East London Tottenham Hotspur FC 
+81 West Midlands Stripes West Bromwich Albion FC 
+82 East London West Ham United FC 
+83 Lancashire Athletic Wigan Athletic FC 
+
+
+France
+
+---------
+
+84 Corse Sud AC Ajaccio 
+85 Azur AS Monaco FC 
+86 Bourgogne AJ Auxerre 
+87 Aquitaine FC Girondins de Bordeaux 
+88 Sarthe Le Mans UC 72 
+89 Pas de Calais LOSC Lille Métropole 
+90 Rhone Olympique Lyonnais 
+91 Moselle FC Metz 
+92 Meurthe-et-Moselle AS Nancy-Lorraine 
+93 Loire Océan FC Nantes Atlantique 
+94 Alpes Maritimes OGC Nice 
+95 Bouches du Rhone Olympique de Marseille 
+96 Ile de France Paris Saint-Germain FC 
+97 Nord RC Lens 
+98 Bretagne Stade Rennais FC 
+99 Les Verts AS Saint-Etienne 
+100 Franche-Comté FC Sochaux-Montbéliard 
+101 Alsace RC Strasbourg 
+102 Garonne Toulouse FC 
+103 Aube ES Troyes Aube Champagne 
+
+
+Germany
+
+----------
+
+104 Domstadt 1. FC Köln 
+105 Alm DSC Arminia Bielefeld 
+106 Rhein Bayer 04 Leverkusen 
+107 Isar FC Bayern München 
+108 Westfalen BV Borussia Dortmund 
+109 Fohlen VfL Borussia Mönchengladbach 
+110 Stahlstadt MSV Duisburg 
+111 Rhein-Main Eintracht Frankfurt 
+112 Hanseaten Hamburger SV 
+113 Niedersachsen Hannover 96 
+114 Hauptstadt Hertha BSC Berlin 
+115 Pfalz 1. FC Kaiserslautern 
+116 Karneval 1. FSV Mainz 05 
+117 Franken 1. FC Nürnberg 
+118 Ruhr FC Schalke 04 
+119 Neckar VfB Stuttgart 
+120 Autostadt VfL Wolfsburg 
+121 Weser SV Werder Bremen 
+
+
+Italy
+
+--------
+
+122 A.C. Milan AC Milan* 
+123 A.S. Roma AS Roma* 
+124 Ascoli Ascoli Calcio 1898* 
+125 Cagliari Cagliari Calcio* 
+126 Chievo Verona AC Chievo Verona* 
+127 Empoli Empoli FC* 
+128 Fiorentina ACF Fiorentina* 
+129 Inter FC Internazionale* 
+130 Juventus Juventus* 
+131 Lazio S.S. Lazio* 
+132 Lecce US Lecce* 
+133 Livorno AS Livorno Calcio* 
+134 Messina FC Messina Peloro* 
+135 Palermo US Città di Palermo* 
+136 Parma Parma FC* 
+137 Reggina Reggina Calcio* 
+138 Sampdoria UC Sampdoria* 
+139 Siena AC Siena* 
+140 Treviso Treviso FC* 
+141 Udinese Udinese Calcio* 
+
+
+Holland
+
+----------
+
+142 ADO Den Haag ADO Den Haag* 
+143 Ajax AFC Ajax* 
+144 AZ AZ Alkmaar* 
+145 FC Groningen FC Groningen* 
+146 FC Twente FC Twente* 
+147 FC Utrecht FC Utrecht* 
+148 Feyenoord Feyenoord* 
+149 Heracles Almelo Heracles Almelo* 
+150 NAC Breda NAC Breda* 
+151 NEC Nijmegen NEC Nijmegen* 
+152 PSV Eindhoven PSV Eindhoven* 
+153 RBC Roosendaal RBC Roosendaal* 
+154 RKC Waalwijk RKC Waalwijk* 
+155 Roda JC Roda JC* 
+156 SC Heerenveen SC Heerenveen* 
+157 Sparta Rotterdam Sparta Rotterdam* 
+158 Vitesse SBV Vitesse* 
+159 Willem II Willem II* 
+
+
+Spain
+
+--------
+
+160 Alaves Deportivo Alavés SAD* 
+161 At. Osasuna CA Osasuna* 
+162 Athletic Club Athletic Club Bilbao* 
+163 C. Atlético Madrid Club Atlético de Madrid* 
+164 Cadiz Cádiz CF* 
+165 Celta RC Celta de Vigo* 
+166 F.C. Barcelona FC Barcelona* 
+167 Getafe C.F. Getafe CF* 
+168 Málaga C.F. Málaga CF* 
+169 R. Betis Real Betis Balompié* 
+170 R. Madrid Real Madrid CF* 
+171 R. Racing C. Real Racing Club Santander* 
+172 R. Sociedad Real Sociedad de Fútbol* 
+173 R. Zaragoza Real Zaragoza* 
+174 R.C. Deportivo RC Deportivo La Coruña* 
+175 R.C.D. Espanyol RCD Espanyol* 
+176 R.C.D. Mallorca RCD Mallorca* 
+177 Sevilla F.C. Sevilla FC* 
+178 Valencia C.F. Valencia CF* 
+179 Villarreal C.F. Villarreal CF* 
+
+
+Other
+
+--------
+
+180 Lisbonera SL Benfica 
+181 FC Bosphorus Besiktas JK 
+182 Celtic Celtic FC* 
+183 Djurgardens IF Djurgårdens IF* 
+184 Dynamo Kiev FC Dynamo Kyiv* 
+185 FC Belgium Club Brugge KV 
+186 FC Kopenhagen FC København* 
+187 FC Porto FC Porto* 
+188 Constanti Fenerbahçe SK 
+189 Galatasaray Galatasaray SK* 
+190 Russia Rail FC FC Lokomotiv Moskva 
+191 Peloponnisos Olympiacos CFP 
+192 Athenakos FC Panathinaikos FC 
+193 Rangers Rangers FC* 
+194 Rosenborg BK Rosenborg BK* 
+195 Bruxelles RSC Anderlecht 
+196 Sheffcor Domake FC Shakhtar Donetsk 
+197 AC Czech AC Sparta Praha 
+198 Esportiva Sporting Clube de Portugal 
+199 Caopolo São Paulo FC 
+
+
+200 PES United 
+201 WE United 
+
+
+
+

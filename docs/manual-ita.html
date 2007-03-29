@@ -1,0 +1,1191 @@
+<html>
+<head>
+    <title>Manuale KitServer 5.2</title>
+    <style>
+        img { display:block;margin:10px 0 10px 0;border:1px solid #000; }
+        div.note { background-color:#ffc;color:#800;padding:5px; }
+        table {padding:10px 0 10px 0}
+        table td {padding:5px;border:1px solid #000}
+        table th {padding:5px;border:1px solid #000;background-color:#ccc}
+        span.kitid {color:#080;font-style:italic}
+        pre {background-color:#ddf;border-top:1px solid #88a;border-bottom:1px solid #88a}
+        h3,h4 {background-color:#ccd;display:block;padding:5px;font-family:verdana,arial}
+        h2 {display:block;padding:5px 0 5px 0;font-family:verdana,arial;border-bottom:3px solid #88a}
+        div,span,p,li {font-family:verdana,arial;}
+        li {margin-bottom:10px;}
+        table {font-family:verdana,arial;}
+        table.shpal td {padding:5px 20px 5px 0;border-bottom:1px solid #000;
+            border-top:none;border-left:none;border-right:none}
+        table.shpal td.top {border-top:1px solid #000}
+        span.soft {font-weight:bold;color:#696;}
+        span.ex {font-weight:bold;color:#669;}
+    </style>
+</head>
+<body>
+<h2>Manuale KitServer 5.2</h2>
+<div>Versioni Moduli: <a href="#kitserver">KitServer 5.2.0</a>, <a href="#kitserver2">KitServer: 5.2.1</a>, <a href="#ballserver">BallServer: 5.2.0</a>, 
+    <a href="#faceserver">Faceserver: 5.2.1</a>, <a href="#lodmixer">LOD Mixer: 5.2.0</a>, <a href="stadium.html">Stadium Server: 1.2.0</a> 
+    - 16 Luglio, 2006</div>
+
+<h3>1.1 Introduzione</h3>
+<p>
+KitServer 5.2 è un programma aggiuntivo per Pro Evolution Soccer 5, Winning Eleven 9, 
+e Winning Eleven 9 Liveware Evolution. E' un gestore e interprete di vari moduli.
+Il modulo KitServer 5.2.1 offre un modo alternativo per gestire le maglie dei 
+giocatori e portieri al di fuori del file AFS del gioco: organizza le immagini 
+delle divise in PNG o BMP in un database esterno, una collezione di 
+cartelle e file strutturati secondo delle semplici regole. Non hai restrizioni 
+alla 1ma e 2nda divisa per ogni squadra - puoi inserire 
+tutte quelle che vuoi.
+Il modulo BallServer 5.2.0 è simile al KitServer, offre la possibilità di 
+scegliere un pallone all'interno di un database esterno. Inoltre è possibile 
+inserire più degli otto palloni standard. Un altra estensione è il modulo FaceServer 5.2.1. 
+Come dice il nome, consente di utilizzare più facce inserite in un database esterno senza 
+sovrascrivere una faccia già esistente.
+Infine il modulo LOD Mixer 5.2.0 che permette di avere maggiori dettagli grafici 
+e i controlli su diversi aspetti delle partite in modalità Lega e Coppa.
+</p>
+
+<h3>1.2 Installazione</h3>
+
+<p>
+Come sempre: copia l'intera cartella kitserver nella cartella di installazione del gioco, 
+in modo tale che la tua struttura delle cartelle sia simile a questa:
+</p>
+
+<img src="install.jpg" />
+
+<p>
+Vai nella cartella kitserver e avvia setup.exe. Il file "PES5.exe" nella lista
+drop-down list dovrebbe essere pre-selezionato, quindi devi solamente premere 
+sul pulsante "Install".
+Il kitserver dovrebbe visualizzare una finestra dicendo che l'installazione è 
+stata effettuata con successo. (Se hai un messaggio di errore, assicurati di non 
+avere il gioco in esecuzione e che il file PES5.exe non abbia l'attributo di 
+sola lettura)
+</p>
+
+<p>
+Per informazioni su come disabilitare/ri-abilitare i vari moduli, vedi <a href="#advconfig"> "Configurazioni 
+Avanzate"</a> alla fine del manuale.
+</p>
+
+<h3>1.3 Rimozione</h3>
+
+<p>
+Vai nella cartella kitserver e avvia setup.exe. Il file "PES5.exe" nella lista
+drop-down dovrebbe essere pre-selezionato. (Selezionalo, se non lo è). Premi sul 
+pulsante "Rimuovi".
+Il kitserver dovrebbe visualizzare una finestra dicendo che la disinstallazione 
+è avvenuta correttamente. Adesso puoi cancellare la cartella kitserver, se vuoi. (O 
+lasciarla dove è - non effettuerà nessun cambiamento e puoi velocemente 
+riabilitare il kitserver se avvi nuovamente setup e premi il pulsante "Install").
+</p>
+
+<h2 id="kitserver">Modulo KitServer 5.2.0 (kserv.dll)</h2>
+
+<h3>2.1 Elenco delle caratteristiche</h3>
+<p>
+<li><b>Visualizzazione divise in 2.5D nella schermata &quot;Selezione divise".</b><br />
+(2.5D sta a indicare le mini-divise in due dimensioni, ma create con le texture 
+delle divise utilizzate nel gioco).</li>
+<li><b>Divise extra per i giocatori.</b><br />
+Adesso non hai solo la 1ma e 2da divisa, ma anche 3za,4ta,ecc. Puoi anche 
+utilizzare le parti di tutte le divise (o di alcune), a patto che 
+tutte le parti utilizzate utilizzino le stesse palette &quot;shared palettes&quot;. (Maggiori 
+info sulle &quot;shared
+palettes&quot; - successivamente nel documento).</li>
+<li><b>Nuova struttura del database.</b><br />
+"KDB" è stato rinominato "GDB" (Graphics DataBase), in quanto contiene non solo 
+le divise ma anche i palloni (e altre aggiunte grafiche che verranno inserite 
+successivamente). La struttura interna è completamente nuova. La vecchia 
+struttura non era ideale per inserire le divise extra mentre la nuova struttura 
+è molto più flessibile. Una volta utilizzata, ti accorgerai che è molto più 
+semplice navigare rispetto al KDB del Kitserver 5.0.</li>
+</p>
+
+
+<h3>2.2 Organizzazione del GDB</h3>
+<p>
+Iniziamo col GDB, il cambiamento più importante nel modo di lavorare del kitserver (rispetto alla versione 5.0). Il GDB contiene una cartella chiamata <b>uni</b>, 
+che gestisce le divise delle squadre (uniformi). Il file più importante 
+all'interno della cartella <b>uni</b> è chiamato <b>map.txt</b>. Questo file 
+indica al kitserver dove trovare le divise di una specifica squadra. Come 
+saprai, ogni squadra ha un id unico - un numero intero tra 0 e 201 (+ alcune 
+squadre all-star extra). Quindi per ogni squadra nel GDB, dovrai specificare nel 
+file map.txt, dove sono le divise per quella squadra. Ecco un esempio:
+
+<pre>
+# This config maps team number into folder name
+# Format: &lt;team-num&gt;,"&lt;folder name&gt;"
+# Example: 21,"Russia"
+
+8,"National\France"
+9,"National\Germany"
+65,"EPL\Aston_Villa"
+75,"EPL\Man Utd"
+77,"EPL\Newcastle"
+80,"EPL\Tottenham"
+170,"La Liga\Real Madrid"
+</pre>
+</p>
+
+<div class="note">IMPORTANTE: Le due virgolette sono indispensabili - in questo 
+	modo non ci sarà ambiguità tra i nomi delle cartelle. Per gli ID di tutte le 
+	squadre - vedi il file <a href="uni.txt">uni.txt</a></div>
+
+<p>
+Attenzione che il GDB di esempio (incluso nel kitserver) è solamente una delle 
+possibili modalità di organizzazione delle squadre e delle cartelle. Utilizza la 
+cartella "EPL" per raggruppare tutte le squadre inglesi, "National" - per 
+raggruppare tutte le nazionali. Puoi creare la modalità che preferisci per 
+l'organizzazione delle cartelle - senza raggruppamenti extra. In questo caso 
+devi modificare il file <b>map.txt </b>di conseguenza, cambiando e creando la 
+struttura delle cartelle come creata. Questo è il vantaggio maggiore nell'avere 
+il file map.txt - la flessibilità nell'organizzazione delle maglie.
+</p>
+
+<p>
+Puoi vedere il file map.txt in basso. Per trovare la divisa della squadra #8, il kitserver, deve andare a leggere nella cartella <b>GDB\uni\National\France</b>. 
+Questa cartella contiene tutte le divise disponibili per la squadra #8. 
+All'interno, devi creare una cartella per ogni divisa. Cosi:
+
+<img src="france.jpg"/>
+
+Per i giocatori, la 1ma divisa deve avere una cartella chiamata <b>pa</b>, la 2da - <b>pb</b>. 
+Le divise extra possono avere una cartella con qualsiasi nome che inizi con la 
+lettera &quot;p&quot;. Credo sia meglio configurare tutte le cartelle con le divise extra 
+con il prefisso <b>px-</b>. Ad esempio, <b>px-blue</b>. Per i portieri, la 1ma 
+divisa deve essere nella cartella
+<b>ga</b>, la 2da - nella <b>gb</b>. Le divise extra devono avere una cartella 
+che inizia con la lettera "g".
+</p>
+
+<div class="note">IMPORTANTE: I nomi delle cartelle rappresentano l'ID per il kitserver, 
+	per cui ci sono alcune restrizioni nei nomi di tutte le cartelle: non 
+	possono avere spazi, preferibilmente dovrebbero essere relativamente corti e 
+	in Inglese, Francese o in altre lingue con i set dei caratteri Latin1 
+(iso8859-1). Di solito, se volete la certezza che il kitserver possa 
+	trovare/leggere una cartella, utilizzate i caratteri latini, numeri, underscore, 
+	e dash (segno meno).
+</div>
+
+<p>
+Adesso muoviamoci all'interno di una cartella delle divise. Per esempio la <b>pa</b>.
+
+<img src="pa.jpg" />
+
+La tua cartella dovrebbe apparire cosi, se hai una divisa "all-in-one" (cioè non 
+divisa in parti separate: maglia, pantaloncini e calzettoni). Il Kitserver 
+funziona con le divise divise e con le divise all-in-one, quest'ultime verranno 
+suddivise automaticamente dal programma. 
+</p>
+
+<div class="note">Per far si che le divise vengano divise correttamente in 
+	parti, assicurati di non cancellare la cartella chiamata <b>masks</b>. Deve 
+	essere all'interno di <b>uni</b>. Il Kitserver utilizza le immagini mask per 
+	dividere automaticamente le divise all-in-one.</div>
+
+<p>
+Il solo caso per il quale è richiesto che le divise siano divise si ha quando le 
+regole di suddivisione non sono standard: come per le maglie dei portieri della Juventus 
+che hanno due colori diversi nei calzettoni. Puoi anche utilizzare parti delle 
+divise quando non hai tutte le parti. Ad esempio, 
+guarda la cartella Newcastle's <b>px-away2</b>: non ha il file <b>all.png</b>, ma ha i file <b>shorts.png</b> 
+e <b>socks.png</b>. Non c'è quindi il file <b>shirt.png</b>, ma va bene comunque: 
+il kitserver utilizzerà i pantaloncini e i calzettoni e utilizzerà la maglia di 
+una cartella diversa.
+</p>
+
+<p>Riassumendo:</br>
+Avere il file <b>all.png</b> equivale ad avere questi tre file: <b>shirt.png</b>, <b>shorts.png</b>, 
+e
+<b>socks.png</b>. (Di solito, non dovresti avere tutti e quattro i file, all.png 
+e shirt.png - 
+questo creerebbe confusione).
+</p>
+
+<div class="note">Le immagini devono essere in formato PNG o BMP. Quindi i file 
+	dovranno avere l'estensione ".png" o ".bmp". E' possibile avere diverse 
+	estensioni per le parti delle divise: puoi avere
+<b>shirt.bmp</b>, <b>shorts.png</b>, <b>socks.bmp.</b></div>
+
+<p>
+<table>
+    <tr><th>Nomi dei file PNG riservati</th><th>Nomi dei file BMP riservati</th><th>
+		Descrizione</th></tr>
+    <tr><td>all.png</td><td>all.bmp</td><td>Divise all-in-one</td></tr>
+    <tr><td>shirt.png</td><td>shirt.bmp</td><td>Maglia</td></tr>
+    <tr><td>shorts.png</td><td>shorts.bmp</td><td>Pantaloncini</td></tr>
+    <tr><td>socks.png</td><td>socks.bmp</td><td>Calzettoni</td></tr>
+    <tr><td>font.png</td><td>font.bmp</td><td>Immagine 256x64 con i font per 
+		visualizzare i nomi dei giocatori nella parte posteriore della maglia</td></tr>
+</table>
+</p>
+
+<h4>2.3. config.txt</h4>
+
+<p>
+E' il file di configurazione dei parametri (nella versione precedente del Kitserver 
+era chiamato "attrib.cfg&quot;). Come in precedenza, è un file di testo - puoi 
+utilizzare Blocco Note o un altro editor di testo per vederlo o modificarlo. In 
+ogni cartella che nella quale è presente una maglia o un pantaloncino (sia che 
+sia una divisa all-in-one sia che 
+sia in parti separate) deve essere presente il file <b>config.txt</b>. Molte 
+delle impostazioni applicate alla maglia, ad esclusione del "shorts.number.location", 
+saranno applicate anche ai pantaloncini. Questo è il motivo per il quale è 
+necessario avere il file config.txt anche nella cartella in cui non è presente 
+una maglia ma solamente un pantaloncino.</p>
+
+<p>
+Ecco l'elenco di tutti i parametri supportati:
+</p>
+
+<table>
+    <tr><th>Nome parametro</th><th>Descrizione</th><th>Formato</th><th>
+		Esempio</th></tr>
+    <tr>
+        <td><b>model</b></td>
+        <td>indica il modello 3D della divisa</td>
+        <td>intero decimale</td>
+        <td><nobr>model = 37</nobr></td>
+    </tr>
+    <tr>
+        <td><b>collar</b></td>
+        <td>presenza del colletto</td>
+        <td>yes/no</td>
+        <td><nobr>collar = no</nobr></td>
+    </tr>
+    <tr>
+        <td><b>numbers</b></td>
+        <td>Nome del file (con percorso, relativo alla cartella delle maglie) 
+		dell'immagine che contiene le texture di numeri: 256x128 4bit/8bit paletted image</td>
+        <td>percorso tra virgolette</td>
+        <td><nobr>numbers = "..\num-white.png"</nobr></td>
+    </tr>
+    <tr>
+        <td><b>shorts.num-pal.<span class="kitid">X</span></b></td>
+        <td>Nome del file (con percorso, relativo alla cartella delle maglie) 
+		dell'immagine che contiene le palette dei numeri: 4bit/8bit paletted image. 
+		Questa è la palette che sarà utilizzata nei pantaloncini della cartella 
+		&quot;X&quot;, se i pantaloncini verranno usati con la maglia attualmente 
+		selezionata.</td>
+        <td>percorso tra virgolette</td>
+        <td><nobr>shorts.num-pal.pb = "..\pal-black.png"</nobr></td>
+    </tr>
+    <tr>
+        <td><b>shorts.number.location</b></td>
+        <td>Indica dove sarà inserito il numero nei pantaloncini. ("off" 
+		significa che il numero non sarà visualizzato).
+        </td>
+        <td>left|right|both|off</td>
+        <td><nobr>shorts.number.location = left</nobr></td>
+    </tr>
+    <tr>
+        <td><b>name.location</b></td>
+        <td>Indica dove sarà inserito il nome del giocatore dietro la maglia. E' 
+		utile per quelle squadre, come il Boca Juniors, che hanno il nome del 
+		giocatore posto nella parte bassa della maglia. ("off" significa che il 
+		numero non sarà visualizzato).</td>
+        <td>top|bottom|off</td>
+        <td><nobr>name.location = top</nobr></td>
+    </tr>
+    <tr>
+        <td><b>logo.location</b></td>
+        <td>Indica dove il logo dello sponsor verrà visualizzato. (Questa 
+		impostazione probabilmente non sarà molto utile con il kitserver, 
+		infatti, solitamente il logo è stato già creato nella texture della 
+		maglia dal kitmaker)</td>
+        <td>top|bottom|off</td>
+        <td><nobr>logo.location = off</nobr></td>
+    </tr>
+    <tr>
+        <td><b>name.shape</b></td>
+        <td>Indica se il nome del giocatore dovrà essere inclinato o dritto. I 
+		valori dovranno essere gli stessi della modalità edit: type1 - dritto, type2 - 
+		poco inclinato,
+type3 - inclinato.</td>
+        <td>type1|type2|type3</td>
+        <td><nobr>name.shape = type1</nobr></td>
+    </tr>
+	<tr>
+        <td><b>radar.color</b></td>
+        <td>Indica quale colore deve essere visualizzato nel radar del gioco. 
+		Influenza anche le maglie selezionate di default dopo la selezione delle 
+		squadre, 
+        PES5 utilizza degli indicatori differenti quando due maglie hanno dei 
+		colori simili e potrebbero confondersi. Attenzione: E' anche il colore 
+		standard dei mini-kits (non 2.5D)!</td>
+        <td>colore, scritto in formato esadecimale RRGGBB (red,green,blue)</td>
+        <td><nobr>radar.color = 0A5D88</nobr></td>
+    </tr>
+</table>
+
+<p>Un esempio dell'utilizzo di <b>shorts.num-pal.<span class="kitid">X</span></b> - studiando 
+il GDB di prova: contiene diversi esempi. Inizialmente può sembrare complicato;
+ma, dopo poco tempo, diventerà chiaro il perchè è stato necessario questo tipo 
+di organizzazione:
+per essere possibile un corretto mix di diverse parti delle divise, devi essere 
+in grado di indicare quale numero e quale palette dovranno essere utilizzate per 
+i pantaloncini in diverse situazioni.
+
+Per esempio, considera il file <b>config.txt</b> della cartella "pa" della 
+Germania:
+<pre>
+model = 37
+collar = no
+
+numbers = "..\..\adidas_black.png"
+
+shorts.number.location = left
+shorts.num-pal.pa = "..\..\adidas_white.png"
+shorts.num-pal.pb = "..\..\adidas_black.png"
+</pre>
+
+<p>
+Questo sta ad indicare:<br/>
+Per la maglia usa i numeri Adidas (black). Quando questa maglia è utilizzata con 
+i pantaloncini "pa", utilizza il file palette "adidas_white.png", che rende i 
+numeri bianchi nei pantaloncini.
+Quando questa maglia è utilizzata con i pantaloncini "pb", utilizza il file palette "adidas_black.png", 
+che rende i numeri neri nei pantaloncini.
+</p>
+
+<h3>2.4 Selezione divise e 2.5D</h3>
+
+<p>
+La funzione chiamata &quot;2.5D&quot; fornisce un anteprima delle divise nel GDB 
+selezionate (incluse quelle extra), 
+dove in precedenza venivano visualizzati i le minimaglie KONAMI. Come in origine 
+sono delle divise in 2 dimensioni ma sono create direttamente dalle texture 
+reali utilizzate dal gioco. Ecco uno screenshot:
+
+<img src="stripsel-pl.jpg" />
+
+(Quando una squadra non ha una divisa nel GDB, saranno visualizzate le 
+minimaglie originali KONAMI).
+</p>
+
+<p>
+Puoi scegliere tra la 1ma/2da divisa come in precedenza - utilizzando la 
+tastiera o il gamepad - come configurate. Per selezionare le divise extra, premi 
+il pulsante "O" - per entrare nella modalità "Change Setup". Le piccole frecce 
+gialle ti consentiranno ora di muoverti in ciascuna delle parti delle divise, 
+permettendoti di mixare le varie parti tra di loro. E' una funzione standard del 
+gioco - non hai bisogno di premere nessun tasto speciale per attivarla.</p>
+
+<p>
+Ecco le nuove aggiunte permesse dal Kitserver: puoi scegliere tra tutte le 
+differenti maglie (pantaloncini, calzettoni) che hai nel tuo GDB e non solo tra 
+la 1ma e la 2da. (Attenzione che non cambia niente se si preme la freccia a 
+destra o a sinistra - il kitserver visualizzerà le divise sempre nello stesso 
+ordine. E' un'attuale limitazione del kitserver. Nelle prossime versioni 
+cercherò di trovare il modo di muoversi tra le maglie in ambedue le direzioni). 
+Le combinazioni delle divise dipendono dall'utilizzo o meno delle palette 
+condivise (shared palettes). Il Kitserver individuerà automaticamente le palette 
+differenti e non consentirà il mixaggio fra le divise che utilizzano palette 
+diverse, questo perchè nel gioco si vedrebbero strane combinazioni di colori 
+nelle maglie, pantaloncini e calzettoni.</p>
+
+<p>
+E' anche possibile selezionare la divisa dei portieri. Ci sono ora 2 modalità di 
+selezione delle divise: "Player mode&quot; e
+"Goalkeepers mode". Puoi passare da una modalità all'altra premendo il tasto <b>[Tab]</b>. 
+Per i portieri,
+la scelta delle divise avviene nella stessa modalità di quelle per i giocatori. 
+Come nelle divise dei giocatori, puoi mixare le parti se vai nella modalità "Change Setup". (Ricorda 
+che anche in questo caso verrà applicata la regola delle palette condivise - 
+come avviene per le divise dei giocatori).
+</p>
+
+<img src="stripsel-gk.jpg" />
+
+<p>
+<div class="note">TROUBLE-SHOOTING tip: alcune persone che hanno provato delle 
+	versioni precedenti (5.1.0, 5.1.1) hanno indicato dei problemi nella 
+	visualizzazione delle maglie 2.5D in schede grafiche GeForce FX e GeForce: screen flickering, 
+	e divise non visualizzate durante la selezione delle divise. La versione del Kitserver 5.1.2 
+	e&nbsp; le successive contengono un fix che dovrebbe avere eliminato il 
+	problema. Se il problema si dovesse ripresentare, prova ad aggiornare i 
+	driver della tua scheda video.</div>
+</p>
+
+<h3>2.5 Shared palette vs. Non-shared palette</h3>
+
+<p>
+Le che persone che hanno provato ad aggiungere/cambiare le divise in PES5, 
+probabilmente hanno incontrato la più noiosa caratteristica del gioco - la 
+richiesta delle palette condivise (shared palette). Questo significa che 
+entrambe le le divise (1ma e 2da) dei giocatori di ogni squadra, devono 
+condividere lo stesso ordine dei 256 colori per far si che le divise vengano mixate 
+correttamente. Mentre la caratteristica delle divise mixate è una buona 
+aggiunta della Konami,
+il concetto di palette condivise sembra essere un piccolo ostacolo.</p>
+
+<p>
+Secondo la logica del gioco, la richiesta delle palette condivise è inevitabile 
+se vuoi essere in grado di mixare parti diverse di divise differenti. Il Kitserver, 
+comunque, ti offre la possibilità di utilizzare entrambe le divise, con palette 
+condivise e non. Per ogni squadra puoi usare le divise attuali o precedenti, o 
+puoi mixare diversi tipi di divise! Durante la selezione delle divise, il kitserver 
+riconoscerà automaticamente i conflitti di palette e consentirà di mixare 
+solamente parti con le stesse palette.</p>
+
+<p>
+Come già detto, questo ti consentirà di organizzare le divise in modalità 
+differenti. Vedi maggiori dettagli utilizzando gli esempi nel GDB incluso:
+</p>
+
+<table class="shpal" cellpadding="0" cellspacing="0">
+    <tr><td class="top" valign="top">1</td>
+        <td class="top"><b>Tutte le divise dei giocatori per una squadra hanno 
+		le stesse palette.</b><br />
+		Scarica le divise - 1ma, 2da, extra, e convertile in modo che abbiano 
+		una singola palette condivisa. E' semplice se hai il programma giusto. 
+		Sfortunatamente,
+		sembrano non esserci programmi gratuiti che facciano ciò, mentre è 
+		possibile con i programmi commerciali (puoi utilizzare GIMP o Photoshop, 
+		ma non sono in grado di mantenere la corretta trasparenza per i file PNG). 
+		Un altro problema si ha quando hai più di 4-5 divise, è difficile 
+		convertirle in palette condivise senza perdita qualitativa. Questo 
+		accade sopratutto se le divise hanno molti colori diversi. Ricorda, le 
+		palette condivise hanno solamente 256 colori totali.<br/>
+		Nel GDB incluso, gli esempi di questa modalità sono<span class="ex"> Newcastle, Man Utd, Real 
+		Madrid, e France</span>. 
+		Il vantaggio delle palette condivise è che puoi mixare le varie parti 
+		delle divise senza restrizioni.</td></tr>
+
+    <tr><td valign="top">2</td><td><b>Ogni divisa ha la sua palette.</b><br/>
+		E' il modo più semplice per organizzare le divise. Devi solamente 
+		scaricare le divise e metterle nella giusta cartella nel GDB; saranno 
+		pronte per essere utilizzate - nessuna modifica da effettuare. Tuttavia, 
+		se provi a mixare le parti nella selezione divise, vedrai che il 
+		kitserver cambierà la divisa intera - consentirà di scegliere tutte le 
+		divise, ma non consentirà di mixare le varie parti. Questa modalità è 
+		simile al funzionamento delle divise extra in PES3 e PES4. Tuttavia, 
+		puoi fare quello che fanno i kitmakers: le diverse combinazioni in 
+		divise separate - in questo modo potrai avere gli stessi risultati delle 
+		divise mixate. (Attualmente, i kitmakers spesso fanno loro stessi le 
+		diverse combinazioni delle divise quindi sei fortunato a non dover fare 
+		nessun lavoro extra - tutte le divise sono spesso disponibili per il 
+		download! :-) Questo è stato possibile una volta che il kitserver ha 
+		permesso l'inserimento di divise extra, tuttavia (in confronto alla 
+		modalità palette condivise) avrai molte più divise per avere tutte le 
+		combinazioni che desideri.<br/>
+		Nel GDB incluso, l'esempio di questa modalità è il <span class="ex">Tottenham</span>.</td></tr>
+
+    <tr><td valign="top">3</td><td><b>Combinazione di #1 e #2.</b>
+		Si, puoi utilizzare le divise con palette condivise e non, per la stessa 
+		squadra. Il kitserver accetterà di mixare le parti delle divise - quando 
+		tutte le parti da mixare hanno le stesse palette, ma non mixerà le parti 
+		con le palette diverse.<br />
+		Nel GDB incluso,vedi <span class="ex">Germany</span> come esempio di 
+		questa modalità.</td></tr>
+</table>
+
+
+<h2 id="kitserver2">Modulo KitServer 5.2.1 (kserv-HD.dll)</h2>
+
+<h3>2.1 Elenco delle caratteristiche</h3>
+<p>
+<li><b>Visualizzazione divise in 2.5D nella schermata &quot;Selezione divise&quot;.</b><br>
+(2.5D sta a indicare le mini-divise in due dimensioni, ma create con le texture 
+delle divise utilizzate nel gioco).</li>
+<li><b>Divise extra per i giocatori.</b><br>
+Adesso non hai solo la 1ma e 2da divisa, ma anche 3za,4ta,ecc. Puoi anche 
+utilizzare le parti di tutte le divise (o di alcune), a patto che tutte le parti 
+utilizzate utilizzino le stesse palette &quot;shared palettes&quot;. (Maggiori info sulle 
+&quot;shared palettes&quot; - successivamente nel documento).</li>
+<li><b>Nuova struttura del database.</b><br>
+&quot;KDB&quot; è stato rinominato &quot;GDB&quot; (Graphics DataBase), in quanto contiene non solo 
+le divise ma anche i palloni (e altre aggiunte grafiche che verranno inserite 
+successivamente). La struttura interna è completamente nuova. La vecchia 
+struttura non era ideale per inserire le divise extra mentre la nuova struttura 
+è molto più flessibile. Una volta utilizzata, ti accorgerai che è molto più 
+semplice navigare rispetto al KDB del Kitserver 5.0.</li>
+<li><b>Supporto per l'alta 
+definizione in Pro Evolution Soccer (HDPES)</b><br />
+E' l'ultimo cambiamento nel Kitserver 5.2.1. Parte della logica interna del 
+gioco è stata cambiata in modo tale da poter utilizzare ora texture più grandi. 
+Inoltre non sono più necessarie divise in palette condivise e sono possibili 
+anche immagini a 24 e 32 bit con più di 16.7 milioni di colori! Puoi mantenere 
+il tuo GDB, le immagini a 256 color saranno convertite internamente e potranno 
+essere mixate con altre immagini di diversa dimensione o profondità di colore.</li>
+</p>
+
+
+<h3>2.2 Organizzazione del GDB</h3>
+<p>
+Iniziamo col GDB, il cambiamento più importante nel modo di lavorare del kitserver (rispetto alla versione 5.0). Il GDB contiene una cartella chiamata <b>uni</b>, 
+che gestisce le divise delle squadre (uniformi). Il file più importante 
+all'interno della cartella <b>uni</b> è chiamato <b>map.txt</b>. Questo file 
+indica al kitserver dove trovare le divise di una specifica squadra. Come 
+saprai, ogni squadra ha un id unico - un numero intero tra 0 e 201 (+ alcune 
+squadre all-star extra). Quindi per ogni squadra nel GDB, dovrai specificare nel 
+file map.txt, dove sono le divise per quella squadra. Ecco un esempio:&nbsp;
+
+<pre>
+# This config maps team number into folder name
+# Format: &lt;team-num&gt;,"&lt;folder name&gt;"
+# Example: 21,"Russia"
+
+8,"National\France"
+9,"National\Germany"
+65,"EPL\Aston_Villa"
+75,"EPL\Man Utd"
+77,"EPL\Newcastle"
+80,"EPL\Tottenham"
+170,"La Liga\Real Madrid"
+</pre>
+</p>
+
+<div class="note">IMPORTANTE: Le due virgolette sono indispensabili - in questo 
+	modo non ci sarà ambiguita tra i nomi delle cartelle. Per gli ID di tutte le 
+	squadre - vedi il file <a href="uni.txt">uni.txt</a></div>
+
+<p>
+Attenzione che il GDB di esempio (incluso nel kitserver) è solamente una delle 
+possibili modalità di organizzazione delle squadre e delle cartelle. Utilizza la 
+cartella "EPL" per raggruppare tutte le squadre inglesi, "National" - per 
+raggruppare tutte le nazionali. Puoi creare la modalità che preferisci per 
+l'organizzazione delle cartelle - senza raggruppamenti extra. In questo caso 
+devi modificare il file <b>map.txt </b>di conseguenza, cambiando e creando la 
+struttura delle cartelle come creata. Questo è il vantaggio maggiore nell'avere 
+il file map.txt - la flessibilità nell'organizzazione delle maglie.
+</p>
+
+<p>
+Puoi vedere il file map.txt in basso. Per trovare la divisa della squadra #8, il kitserver, deve andare a leggere nella cartella <b>GDB\uni\National\France</b>. 
+Questa cartella contiene tutte le divise disponibili per la squadra #8. 
+All'interno, devi creare una cartella per ogni divisa. Cosi:</p>
+
+<p>
+&nbsp;<img src="france.jpg"/> 
+
+Per i giocatori, la 1ma divisa deve avere una cartella chiamata <b>pa</b>, la 2da - <b>pb</b>. 
+Le divise extra possono avere una cartella con qualsiasi nome che inizi con la 
+lettera &quot;p&quot;. Credo sia meglio configurare tutte le cartelle con le divise extra 
+con il prefisso <b>px-</b>. Ad esempio, <b>px-blue</b>. Per i portieri, la 1ma 
+divisa deve essere nella cartella
+<b>ga</b>, la 2da - nella <b>gb</b>. Le divise extra devono avere una cartella 
+che inizia con la lettera "g".</p>
+
+<div class="note">IMPORTANTE: I nomi delle cartelle rappresentano l'ID per il kitserver, 
+	per cui ci sono alcune restrizioni nei nomi di tutte le cartelle: non 
+	possono avere spazi, preferibilmente dovrebbero essere relativamente corti e 
+	in Inglese, Francese o in altre lingue con i set dei caratteri Latin1 
+(iso8859-1). Di solito, se volete la certezza che il kitserver possa 
+	trovare/leggere una cartella, utilizzate i caratteri latini, numeri, underscore, 
+	e dash (segno meno).
+</div>
+
+<p>
+Adesso muoviamoci all'interno di una cartella delle divise. Per esempio la <b>pa</b>.
+
+<img src="pa.jpg" />
+
+La tua cartella dovrebbe apparire cosi, se hai una divisa "all-in-one" (cioè non 
+divisa in parti separate: maglia, pantaloncini e calzettoni). Il Kitserver 
+funziona con le divise divise e con le divise all-in-one, quest'ultime verranno 
+suddivise automaticamente dal programma.</p>
+
+<div class="note">Per far si che le divise vengano divise correttamente in 
+	parti, assicurati di non cancellare la cartella chiamata <b>masks</b>. Deve 
+	essere all'interno di <b>uni</b>. Il Kitserver utilizza le immagini mask per 
+	dividere automaticamente le divise all-in-one.</div>
+
+<p>
+Il solo caso per il quale è richiesto che le divise siano divise si ha quando le 
+regole di suddivisione non sono standard: come per le maglie dei portieri della Juventus 
+che hanno due colori diversi nei calzettoni. Puoi anche utilizzare parti delle 
+divise quando non hai tutte le parti. Ad esempio, 
+guarda la cartella Newcastle's <b>px-away2</b>: non ha il file <b>all.png</b>, ma ha i file <b>shorts.png</b> 
+e <b>socks.png</b>. Non c'è quindi il file <b>shirt.png</b>, ma va bene comunque: 
+il kitserver utilizzerà i pantaloncini e i calzettoni e utilizzerà la maglia di 
+una cartella diversa.
+</p>
+
+<p>Riassumendo:</br>
+Avere il file <b>all.png</b> equivale ad avere questi tre file: <b>shirt.png</b>, <b>shorts.png</b>, 
+e
+<b>socks.png</b>. (Di solito, non dovresti avere tutti e quattro i file, all.png 
+e shirt.png - 
+questo creerebbe confusione).
+</p>
+
+<div class="note">Le immagini devono essere in formato PNG o BMP. Quindi i file 
+	dovranno avere l'estensione ".png" o ".bmp". E' possibile avere diverse 
+	estensioni per le parti delle divise: puoi avere
+<b>shirt.bmp</b>, <b>shorts.png</b>, <b>socks.bmp.</b></div>
+
+<p>
+<table id="table1">
+    <tr><th>Nomi dei file PNG riservati</th><th>Nomi dei file BMP riservati</th><th>
+		Descrizione</th></tr>
+    <tr><td>all.png</td><td>all.bmp</td><td>Maglie all-in-one</td></tr>
+    <tr><td>shirt.png</td><td>shirt.bmp</td><td>Maglia</td></tr>
+    <tr><td>shorts.png</td><td>shorts.bmp</td><td>Pantaloncini</td></tr>
+    <tr><td>socks.png</td><td>socks.bmp</td><td>Calzettoni</td></tr>
+    <tr><td>font.png</td><td>font.bmp</td><td>Immagine 256x64 con i font per 
+		visualizzare i nomi dei giocatori nella parte posteriore della maglia</td></tr>
+</table>
+
+<h4>2.3. config.txt</h4>
+
+<p>
+E' il file di configurazione dei parametri (nella versione precedente del Kitserver era chiamato &quot;attrib.cfg&quot;). 
+Come in precedenza, è un file di testo - puoi utilizzare Blocco Note o un altro 
+editor di testo per vederlo o modificarlo. In ogni cartella che nella quale è 
+presente una maglia o un pantaloncino (sia che sia una divisa all-in-one sia che sia in parti separate) 
+deve essere presente il file <b>config.txt</b>. Molte delle impostazioni 
+applicate alla maglia, ad esclusione del &quot;shorts.number.location&quot;, saranno 
+applicate anche ai pantaloncini. Questo è il motivo per il quale è necessario 
+avere il file config.txt anche nella cartella in cui non è presente una maglia 
+ma solamente un pantaloncino. nella versione HD sono stati aggiunti i parametri "description&quot; 
+e "mask" riferite a tutte le parti.</p>
+
+<p>
+Ecco l'elenco di tutti i parametri supportati:</p>
+
+<table id="table2" width="985">
+    <tr><th width="203">Nome parametro</th><th width="175">Descrizione</th>
+		<th width="152">Formato</th><th>
+		Esempio</th></tr>
+    <tr>
+        <td width="203"><b>model</b></td>
+        <td width="175">indica il modello 3D della divisa</td>
+        <td width="152">intero decimale</td>
+        <td><nobr>model = 37</nobr></td>
+    </tr>
+    <tr>
+        <td width="203"><b>collar</b></td>
+        <td width="175">presenza del colletto</td>
+        <td width="152">yes/no</td>
+        <td><nobr>collar = no</nobr></td>
+    </tr>
+    <tr>
+        <td width="203"><b>numbers</b></td>
+        <td width="175">Nome del file (con percorso, relativo alla cartella delle maglie) 
+		dell'immagine che contiene le texture di numeri: 256x128 4bit/8bit paletted image</td>
+        <td width="152">percorso tra virgolette</td>
+        <td><nobr>numbers = "..\num-white.png"</nobr></td>
+    </tr>
+    <tr>
+        <td width="203"><b>shorts.num-pal.<span class="kitid">X</span></b></td>
+        <td width="175">Nome del file (con percorso, relativo alla cartella delle maglie) 
+		dell'immagine che contiene le palette dei numeri: 4bit/8bit paletted image. 
+		Questa è la palette che sarà utilizzata nei pantaloncini della cartella 
+		&quot;X&quot;, se i pantaloncini verranno usati con la maglia attualmente 
+		selezionata.</td>
+        <td width="152">percorso tra virgolette</td>
+        <td><nobr>shorts.num-pal.pb = "..\pal-black.png"</nobr></td>
+    </tr>
+    <tr>
+        <td width="203"><b>shorts.number.location</b></td>
+        <td width="175">Indica dove sarà inserito il numero nei pantaloncini. ("off" 
+		significa che il numero non sarà visualizzato).
+        </td>
+        <td width="152">left|right|both|off</td>
+        <td><nobr>shorts.number.location = left</nobr></td>
+    </tr>
+    <tr>
+        <td width="203"><b>name.location</b></td>
+        <td width="175">Indica dove sarà inserito il nome del giocatore dietro la maglia. E' 
+		utile per quelle squadre, come il Boca Juniors, che hanno il nome del 
+		giocatore posto nella parte bassa della maglia. ("off" significa che il 
+		numero non sarà visualizzato).</td>
+        <td width="152">top|bottom|off</td>
+        <td><nobr>name.location = top</nobr></td>
+    </tr>
+    <tr>
+        <td width="203"><b>logo.location</b></td>
+        <td width="175">Indica dove il logo dello sponsor verrà visualizzato. (Questa 
+		impostazione probabilmente non sarà molto utile con il kitserver, 
+		infatti, solitamente il logo è stato già creato nella texture della 
+		maglia dal kitmaker)</td>
+        <td width="152">top|bottom|off</td>
+        <td><nobr>logo.location = off</nobr></td>
+    </tr>
+    <tr>
+        <td width="203"><b>name.shape</b></td>
+        <td width="175">Indica se il nome del giocatore dovrà essere inclinato o dritto. I 
+		valori dovranno essere gli stessi della modalità edit: type1 - dritto, type2 - 
+		poco inclinato,
+type3 - inclinato.</td>
+        <td width="152">type1|type2|type3</td>
+        <td><nobr>name.shape = type1</nobr></td>
+    </tr>
+	<tr>
+        <td width="203"><b>radar.color</b></td>
+        <td width="175">Indica quale colore deve essere visualizzato nel radar del gioco. 
+		Influenza anche le maglie selezionate di default dopo la selezione delle 
+		squadre, 
+        PES5 utilizza degli indicatori differenti quando due maglie hanno dei 
+		colori simili e potrebbero confondersi. Attenzione: E' anche il colore 
+		standard dei mini-kits (non 2.5D)!</td>
+        <td width="152">colore, scritto in formato esadecimale RRGGBB (red,green,blue)</td>
+        <td><nobr>radar.color = 0A5D88</nobr></td>
+    </tr>
+    <tr>
+        <td width="203"><b>description</b></td>
+        <td width="175">Puoi indicare il nome della divisa. Sarà utilizzato per 
+		le <a href="#kitinfoscreen">informazioni sulle divise</a>, spiegato poco 
+		più avanti.</td>
+        <td width="150">descrizione tra virgolette</td>
+        <td><nobr>description = "Home (UEFA Champions League)"</nobr></td>
+    </tr>
+	<tr>
+        <td width="203"><b>mask</b></td>
+        <td width="175">E' la maschera applicata quando la divisa viene separate 
+		in parti per il mixaggio. Hai bisogno di indicare questo parametro solo 
+		se la divisa non utilizza le regole di suddivisione non-standard
+        (per maggiori informazioni vedi le&nbsp; <a href="#kitmakernotes">note 
+		per i kitmakers</a>)</td>
+        <td width="152">descrizione tra virgolette</td>
+        <td><nobr>mask = "mask_juve.png"</nobr></td>
+    </tr>
+	
+</table>
+
+<p>Un esempio dell'utilizzo di <b>shorts.num-pal.<span class="kitid">X</span></b> - studiando 
+il GDB di prova: contiene diversi esempi. Inizialmente può sembrare complicato;
+ma, dopo poco tempo, diventerà chiaro il perchè è stato necessario questo tipo 
+di organizzazione:
+per essere possibile un corretto mix di diverse parti delle divise, devi essere 
+in grado di indicare quale numero e quale palette dovranno essere utilizzate per 
+i pantaloncini in diverse situazioni.
+
+Per esempio, considera il file <b>config.txt</b> della cartella "pa" della 
+Germania:
+<pre>
+model = 37
+collar = no
+
+numbers = "..\..\adidas_black.png"
+
+shorts.number.location = left
+shorts.num-pal.pa = "..\..\adidas_white.png"
+shorts.num-pal.pb = "..\..\adidas_black.png"
+</pre>
+
+<p>
+Questo sta ad indicare:<br>
+Per la maglia usa i numeri Adidas (black). Quando questa maglia è utilizzata con 
+i pantaloncini &quot;pa&quot;, utilizza il file palette &quot;adidas_white.png&quot;, che rende i 
+numeri bianchi nei pantaloncini. Quando questa maglia è utilizzata con i 
+pantaloncini &quot;pb&quot;, utilizza il file palette &quot;adidas_black.png&quot;, che rende i 
+numeri neri nei pantaloncini.</p>
+
+<h3>2.4 Selezione divise e 2.5D</h3>
+
+<p>
+La funzione chiamata &quot;2.5D&quot; fornisce un anteprima delle divise nel GDB 
+selezionate (incluse quelle extra), 
+dove in precedenza venivano visualizzati i le minimaglie KONAMI. Come in origine 
+sono delle divise in 2 dimensioni ma sono create direttamente dalle texture 
+reali utilizzate dal gioco. Ecco uno screenshot:
+
+<img src="stripsel-pl.jpg" />
+
+</p>
+
+<p>
+
+(Quando una squadra non ha una divisa nel GDB, saranno visualizzate le 
+minimaglie originali KONAMI).
+</p>
+
+<p>
+Puoi scegliere tra la 1ma/2da divisa come in precedenza - utilizzando la 
+tastiera o il gamepad - come configurate. Per selezionare le divise extra, premi 
+il pulsante "O" - per entrare nella modalità "Change Setup". Le piccole frecce 
+gialle ti consentiranno ora di muoverti in ciascuna delle parti delle divise, 
+permettendoti di mixare le varie parti tra di loro. E' una funzione standard del 
+gioco - non hai bisogno di premere nessun tasto speciale per attivarla.</p>
+
+<p>
+Ecco le nuove aggiunte permesse dal Kitserver: puoi scegliere tra tutte le 
+differenti maglie (pantaloncini, calzettoni) che hai nel tuo GDB e non solo tra 
+la 1ma e la 2da. (Attenzione che non cambia niente se si preme la freccia a 
+destra o a sinistra - il kitserver visualizzerà le divise sempre nello stesso 
+ordine. E' un'attuale limitazione del kitserver. Nelle prossime versioni 
+cercherò di trovare il modo di muoversi tra le maglie in ambedue le direzioni). 
+Le combinazioni delle divise dipendono dall'utilizzo o meno delle palette 
+condivise (shared palettes). Il Kitserver individuerà automaticamente le palette 
+differenti e non consentirà il mixaggio fra le divise che utilizzano palette 
+diverse, questo perchè nel gioco si vedrebbero strane combinazioni di colori 
+nelle maglie, pantaloncini e calzettoni.</p>
+
+<p>
+E' anche possibile selezionare la divisa dei portieri. Ci sono ora 2 modalità di 
+selezione delle divise: "Player mode&quot; e
+"Goalkeepers mode". Puoi passare da una modalità all'altra premendo il tasto <b>[Tab]</b>. 
+Per i portieri,
+la scelta delle divise avviene nella stessa modalità di quelle per i giocatori. 
+Come nelle divise dei giocatori, puoi mixare le parti se vai nella modalità "Change Setup". (Ricorda 
+che anche in questo caso verrà applicata la regola delle palette condivise - 
+come avviene per le divise dei giocatori).&nbsp;
+
+<img src="stripsel-gk.jpg" />
+
+<a name="kitinfoscreen">
+</p>
+<p>
+Sotto le anteprime sono visualizzate informazioni aggiuntive. Poiché non c'è 
+abbastanza spazio, sono suddivise in pagine che puoi scorrere premendo i tasti <b>[PAGE UP]</b> 
+e <b>[PAGE DOWN]</b>. Nell'immagine sotto puoi vedere la pagina chiamata "Kit information". 
+Questa visualizza i nomi delle parti delle divise selezionate che hai provveduto 
+a indicare nel parametro "description" del file config.txt. Il nome è utilizzato 
+per tutte le parti della divisa di quella cartella. Se non è indicato niente, 
+verrà utilizzato in nome della cartella o nel caso delle quattro divise standard 
+il nome (pa, pb, ga e gb) "Standard [Home/Away]".</p>
+
+<img src="kitinfo.jpg" />
+
+<p>
+<div class="note">TROUBLE-SHOOTING tip: alcune persone che hanno provato delle 
+	versioni precedenti (5.1.0, 5.1.1) hanno indicato dei problemi nella 
+	visualizzazione delle maglie 2.5D in schede grafiche GeForce FX e GeForce: 
+	screen flickering, e divise non visualizzate durante la selezione delle 
+	divise. La versione del Kitserver 5.1.2 e&nbsp; le successive contengono un fix 
+	che dovrebbe avere eliminato il problema. Se il problema si dovesse 
+	ripresentare, prova ad aggiornare i driver della tua scheda video.</div>
+</p>
+
+<h3 id="kitmakernotes">2.5 Note per i Kitmakers</h3>
+<p>Uno dei cambiamenti più importanti nella versione 5.2.1 è HDPES. Questo 
+permette di utilizzare divise più accurate in quanto ora non ci sono più 
+restrizioni nella grandezza e nella profondità dei colori delle texture. Per 
+esempio possono essere utilizzate texture di grandezza 1024x512 o
+2048x1024 pixels che hanno una proporzione di 2 a 1 e la larghezza è un multiplo 
+intero di 512. Tutte le parti saranno ridimensionate in modo proporzionale, 
+quindi le texture dovrebbero apparire come prima quando effettui lo zoom. 
+Inoltre non avrai più il problema delle palette condivise visto che ora le 
+immagini posso avere più di 256 colori. Sono accettate le immagini a 32bit come 
+file PNG con il canale alpha e immagini a 24 bit. Per l'ultima, il Kitserver 
+cerca un immagine a 256 colori delle stesse dimensioni chiamata "all-alpha.png" o "shirt-alpha.bmp". 
+Se trovata, l'ordine delle palette è utilizzato come valore alpha dei pixel 
+nelle stesse posizioni dell'immagine con le texture. Puoi trovare, nella 
+cartella kitserver, una palette di esempio chiamata &quot;alpha.pal". Se la utilizzi, 
+il colore nero con index 0 starà ad indicare la trasparenza completa e il bianco 
+con index 255 indicherà l'opacità completa. Se nessun file alpha verrà trovato, 
+tutti i pixel verranno considerati opachi.
+</p>
+
+
+<img src="mask.png" />
+<p>
+E' anche importante la suddivisione in parti individuali. Come in precedenza 
+questa avviene con le maschere, ma il formato è cambiato. Adesso tutte e tre le 
+parti sono salvate in un unico file contente i colori rosso (maglia), blu 
+(pantaloncini) e giallo (calzettoni). Di default viene utilizzato il file "mask.png" 
+che si trova nella cartella <b>uni\masks</b>. Tuttavia poiché alcune squadre 
+(come la Juventus) hanno due calzettoni diversi, devi cambiare la maschera 
+utilizzata. Questo può essere specificato nel parametro "mask".
+La maschera della maglia è utilizzata per tutte le parti.<br />
+Comunque, nonostante tutti questi cambiamenti, puoi continuare ad utilizzre il 
+tuo GDB, tutte le texture infatti saranno cambiate internamente a 32 bit 
+cosicché tu possa sempre mixare tutte le parti delle divise, indipendentemente 
+dalle palette e dalla profondità di colore.
+Inoltre, è possibile anche mixare le divise con texture di dimensioni diverse. 
+L'unica cosa importante è che copi la cartella "masks",
+altrimenti la suddivisione delle divise non funzionerà.
+</p>
+
+
+<h2 id="ballserver">Modulo Ballserver 5.2.0 (bserv.dll)</h2>
+
+<h3>3.1 Elenco delle caratteristiche</h3>
+<li><b>Selezione Palloni nella schermata "Selezione divise".</b><br />
+Mi spiace, non c'è ancora un'anteprima disponibile. Ci sto lavorando.</li>
+<li><b>Supporto per le texture di diverse dimensioni.</b><br />
+Puoi utilizzare texture di 256x256, 512x512 e 1024x1024 pixel, in formato 
+BMP o PNG. La dimensione è identificata automaticamente quindi non c'è bisogno 
+di configurare niente.</li>
+</p>
+
+<h3>3.2 Configurazione del GDB</h3>
+
+<p>
+Il
+Ballserver utilizza la stessa cartella GDB degli altri moduli del Kitserver. La 
+sottocartella è chiamata 
+<b>balls</b>. Ti avviso che c'è un file all'interno chiamato <b>map.txt</b> (come 
+nel Kitserver) 
+che serve per configurare i palloni. Il formato è abbastanza semplice: in ogni 
+linea c'è un pallone e tre parametri. Il primo è il nome visualizzato nella 
+selezione del gioco, seguito dal nome del file del modello 3D e del file della texture. 
+Guarda l'esempio:
+<pre>
+# This is the configuration file for Ballserver
+# Format: "&lt;name displayed in game&gt;","&lt;model file&gt;","&lt;texture file&gt;"
+# Example: "adidas Finale Capitano Grey","ariel_mdl.bin","adidas_finale_capitano_grey.bmp"
+# Texture paths are relative to GDB\balls\, model paths to GDB\balls\mdl\
+
+# adidas
+"adidas Finale Capitano Grey","ariel_mdl.bin","adidas_finale_capitano_grey.bmp"
+"adidas Teamgeist Blue","gwidon_mdl.bin","adidas_teamgeist_blue.png"
+
+# Nike
+
+# Puma
+
+# This comment makes sure you have pressed the enter key after the last ball
+</pre>
+
+Non dimenticatevi le virgolette, sono importanti! Se il tuo map.txt è uguale a 
+questo (e hai questi file), puoi scegliere nel gioco tra l'<i>adidas Finale Capitano Grey</i> 
+e <i>l'adidas Teamgeist Blue</i>. I files delle texture si trovano nella 
+cartella "GDB\balls" e i file del modello in "GDB\balls\mdl".</p>
+
+<a name="relfolderexample">
+<div class="note">Se vuoi utilizzare altre cartelle, devi usare i relativi 
+	percorsi come <b>sottocatella\tex.png</b>
+	per il file "tex.png" che si trova nella cartella "GDB\balls\sottocartella".</div>
+<p>
+Quando scarichi i palloni, ti renderai conto che molti di essi utilizzano un 
+identico modello 3D. In questo caso, hai bisogno solamente di un modello 3D. 
+Generalmente, i modelli sono indipendenti rispetto alla grandezza delle texture, 
+quindi un modello fornito con le texture a 256x256 dovrebbe funzionare bene 
+anche con le texture a 512x512. Se non sei sicuro, prova con modelli diversi.
+</p>
+
+<h3>3.3 Selezione dei palloni</h3>
+<p>
+Avvia il gioco normalmente. Quando arrivi alla schermata per selezionare le 
+divise, vedrai sotto le mini divise la scritta di dafault 
+<b>&quot;Ball: game choice&quot;</b>. In questo caso, non ci saranno cambiamenti e 
+utilizzerai il pallone scelto nelle opzioni del gioco. Ecco la nuova 
+caratteristica: premi <b>B</b> nella tastiera per selezionare il pallone 
+successivo (o <b>V</b> 
+per il precedente). Il testo cambierà in <b>"Ball: <i>&lt;name configured in map.txt&gt;</i>"</b> 
+e, se tutto è stato configurato correttamente, giocherai con il pallone 
+selezionato. Per selezionare casualmente un pallone premi il tasto <b>R</b> 
+mentre per ritornare alle impostazioni standard con la scelta del pallone 
+affidata al gioco premi il tasto <b>C</b>.
+
+<img src="ballsel.jpg" /> Se non visualizzi il testo, devi 
+<a href="#kitinfoscreen">scorrere</a> le pagine. Il testo selezionato sotto 
+mostrerà la scritta "Ball selection".
+
+<img src="ballsel2.jpg" />
+
+</p>
+
+<h2 id="faceserver">Modulo FaceServer 5.2.1 (fserv.dll)</h2>
+
+<h3>4.1 Introduzione</h3>
+Il
+Faceserver è simile al Kitserver e al Ballserver, esso rende possibile 
+l'utilizzo di molte tutte le facce extra che vuoi precedentemente inserite nel GDB. 
+A causa di numerosi bug, ho deciso di riscrivere il modulo con una logica 
+completamente diversa. La modalità con la quale vengono aggiunte le facce è 
+molto cambiata e penso che dovrebbe funzionare correttamente senza più crash.
+Tutti i cambiamenti delle facce avvengono ora solo temporaneamente cosicché 
+niente viene più salvato nel file option. I capelli dovrebbero funzionare 
+correttamente ora, ma se il tempo me lo permetterà, proverò ad aggiungere il 
+supporto per capelli extra.<br />
+Se non vuoi utilizzare il Faceserver o ti crea problemi, disabilitalo. Vedi
+<a href="#advconfig">"Configurazioni avanzate"</a> per sapere come fare.
+
+<h3>4.2 Utilizzo</h3>A seguito dei cambiamenti apportati puoi andare ora nella 
+modalità edit e vedere come vengono visualizzate le facce.
+Dovresti entrare sia prima che dopo aver inserito una nuova faccia poiché, in 
+alto a destra, sono visualizzate due nuove righe che&nbsp; possono aiutati nella 
+configurazione.
+
+<img src="faceseditmode.jpg" /> La faccia di esempio di David Villa è stata 
+creata da Chris79. L'id del giocatore è lo stesso che trovi anche nel file PlayerList.txt 
+ed è quello che ti serve per configurare il tuo map.txt. Per aggiungere la 
+faccia a questo giocatore, ricorda l'id e vai nella cartella <b>GDB\faces</b>. 
+Copia la faccia qui (estrai prima il file bin se hai scaricato un file compresso!) 
+e apri il file <b>map.txt</b> con Blocco Note. Aggiungi una nuova linea, dopo 
+quella di esempio, utilizzando il formato nella parte alta del commento (l'id 
+del giocatore seguito dal nome del file tra virgolette). Il nome del file è 
+relativo alla cartella
+"GDB\faces", tuttavia puoi utilizzare le sottocartelle (per facepacks o per 
+squadre diverse, o come preferisci).
+Nel manuale del Ballserver trovi un <a href="#relfolderexample"> esempio</a> di 
+come fare.
+Ora, quando giochi, il giocatore avrà la faccia che gli hai assegnato. Per 
+verificarlo,
+vai nella modalità edit e guarda in alto. Quando selezioni un giocatore con una 
+nuova faccia, sarà visualizzato il nome del file . Non preoccuparti se la faccia 
+del giocatore non verrà visualizzata quando editi un giocatore.
+Questo perchè non viene salvata nel file option. Nel gioco la vedrai 
+correttamente,
+ad eccezione di quando cambi un giocatore con una nuova faccia che avrà la sua 
+faccia standard.
+Tuttavia, il sostituto avrà la sua nuova faccia (se gliene hai assegnata una). 
+E' un piccolo dettaglio, e penso non puoi conviverci fino a quando non verrà 
+rilasciata una nuova versione dove spero di riuscire a fixare il problema. E 
+comunque è meglio che avere un crash!<br />
+Alcune persone sembrano avere dei problemi a trovare il file PlayerList.txt. 
+Sebbene non necessario, è utile per avere una visione di tutti i giocatori. Puoi 
+trovare il file nella cartella kitserver dopo aver avviato e successivamente 
+chiuso il gioco con il Faceserver abilitato. Nella nuova versione ho aggiunto 
+maggiori informazioni quindi devi cancellare il vecchio file altrimenti non 
+sarebbe sovrascritto.<br />
+Probabilmente ti sarai reso conto che le nuove facce sono selezionabili, adesso, 
+anche nella modalità edit. Sono aggiunte dopo quelle standard. Tuttavia non 
+dovresti assegnarle per due ragioni. La prima è che verrebbero salvate nel tuo 
+file option e questo causerebbe problemi se disabiliti il Faceserver o inserisci 
+nuove facce.
+La seconda è che il numero massimo di facce che possono essere salvate è 512. Se 
+configuri le nuove facce utilizzando il file map.txt, non avrai questi problemi. 
+Forse creerò, in una prossima versione, una nuova caratteristica che aggiunga il 
+giocatore al map.txt quando gli selezioni una nuova faccia, ma mi chiedo se 
+questo sia più utile rispetto a copiare il file nel tuo GDB e dire al Faceserver 
+di caricarlo. Ora lo puoi utilizzare solo per verificare l'inserimento delle 
+facce.<h2 id="lodmixer">Modulo LOD Mixer 5.2.0 (lodmixer.dll)</h2>
+
+<h3>5.1 Utilizzo</h3>
+
+<p>
+Il
+KitServer include, adesso, un nuovo tool - LOD Mixer - come modulo integrato. 
+Tale modulo consente di effettuare alcune modifiche al motore grafico del gioco 
+come, regolazione dei livelli dei dettagli (Level-Of-Detail), 
+visualizzazione del pubblico in tutte le telecamere, scelta del tempo/stadio/ecc. 
+per Leghe/Coppe/Mater League.
+</p>
+<p>Avvia il file <b>lodcfg.exe</b> per configurare le impostazioni del LOD Mixer. 
+Questo è uno screenshot di come si presenterà il programma (molto simile alla 
+versione LOD Mixer 1.6 autonoma):
+</p> 
+
+<img src="lodmixer.gif"/>
+
+<div class="NOTE">
+    Per una documentazione completa vedi il file: <b><a href="lodmixer.txt">lodmixer.txt</a></b>
+</div>
+
+<h2 id="advconfig">Configurazioni avanzate</h2>
+
+<h3>6.1. File di configurazione generale: kload.cfg</h3>
+
+<p>
+Di solito, non hai la necessità do modificarlo, a meno che non hai dei problemi 
+o vuoi abilitare/disabilitare manualmente un singolo modulo. Per esempio, se 
+vuoi utilizzare il ballserver e lodmixer ma non vuoi utilizzare il modulo 
+kitserver (per le divise), devi effettuare delle modifiche nel file <b>kload.cfg</b>. 
+Questo è come è configurato di default:
+</p>
+
+<pre>
+# Loader configuration file
+
+gdb.dir = ".\"
+DLL.num = 8
+DLL.0 = "kitserver\zlib1.dll"
+DLL.1 = "kitserver\libpng13.dll"
+DLL.2 = "kitserver\kserv.dll" #kitserver
+#DLL.2 = "kitserver\kserv-HD.dll" #kitserver-HighDefinition
+DLL.3 = "kitserver\bserv.dll" #ballserver
+DLL.4 = "kitserver\fserv.dll" #faceserver
+DLL.5 = "kitserver\lodmixer.dll" #lodmixer
+DLL.6 = "kitserver\stadium.dll" #stadium server
+DLL.7 = "kitserver\dxtools.dll"
+
+# DirectX options
+dx.force-SW-TnL = 0
+dx.emulate-HW-TnL = 0
+#dx.fullscreen.width = 1920
+#dx.fullscreen.height = 1200
+</pre>
+
+<p>Le prime due DLLs - <b>zlib1.dll</b> e <b>libpng13.dll</b> sono necessarie 
+per il supporto dei file immagine PNG. Non rimuoverle. Le altre 4 sono moduli 
+indipendenti che puoi abilitare o disabilitare. Per esempio, per disabilitare il 
+modulo kitserver(<b>kserv.dll</b>),
+aggiungi il simbolo &quot;#&quot; all'inizio della riga:
+</p>
+
+<pre>
+DLL.num = 8
+DLL.0 = "kitserver\zlib1.dll"
+DLL.1 = "kitserver\libpng13.dll"
+#DLL.2 = "kitserver\kserv.dll"
+DLL.3 = "kitserver\bserv.dll"
+DLL.4 = "kitserver\fserv.dll"
+DLL.5 = "kitserver\lodmixer.dll"
+DLL.6 = "kitserver\stadium.dll"
+DLL.7 = "kitserver\dxtools.dll"
+</pre>
+
+<p>
+<span class="postbody">Avrai notato che ci sono 2 versioni del modulo Kitserver.
+<br>
+La versione &quot;-HD&quot; dll è quella che non necessita delle palette condivise 
+cosicché puoi utilizzare ogni maglia, pantaloncino e calzettoni. Supporta anche 
+l'alta definizione (o alta risoluzione) delle divise. Tuttavia, questa è una 
+versione &quot;BETA&quot;, quindi sono presenti alcuni piccoli bug (come la scelta delle 
+divise per le squadre sbagliate, crash nella modalità edit, replay, ecc.), 
+questo è il motivo per cui è disabilitato di default. E' però semplice 
+abilitarlo, basta cambiare, nel file kload.cfg, le righe in questa maniera:<br>
+<br>
+da:</span></p><span class="postbody">
+<pre>
+DLL.num.2 = &quot;kitserver\kserv.ll&quot; 
+#DLL.num.2 = &quot;kitserver\kserv-HD.dll&quot;
+</pre>
+a: <br>
+<pre>#DLL.num.2 = &quot;kitserver\kserv.ll&quot;
+DLL.num.2 = &quot;kitserver\kserv-HD.dll&quot;
+</pre>
+kserv.dll è più stabile, ma non consente di mixare le parti delle divise se non 
+hanno le palette condivise e non supporta le texture più grandi di quelle 
+standard (divise ad alta risoluzione). 
+Inoltre, funzione correttamene nella modalità edit e nei replay.<p>Scegli il 
+modulo che preferisci, ricorda, comunque, di abilitare solamente un modulo 
+kitserver. Devi cioè scegliere se abilitare il modulo kserv.dll o kserv-HD.dll.</span><p>
+Le opzioni <b>dx.force-SW-TnL</b> e <b>dx.emulate-HW-TnL</b> offrono funzioni 
+simili a quelle "Force SW TnL" e "Emulate HW TnL Caps" del programma 3DAnalyzer. 
+Se il tuo gioco crasha (perchè hai una scheda grafica vecchia o per altri 
+problemi di compatibilità) e non puoi avviare il gioco con 3DAnalyzer, prova 
+queste due opzioni - potrebbero essere quello di cui hai bisogno per permettere 
+al gioco di funzionare nuovamente.<br />
+Per abilitarle, cambia i valori da 0 a 1.
+</p>
+
+<p>
+Le ultime due opzioni - <b>dx.fullscreen.width</b> e <b>dx.fullscreen.height</b> - 
+possono essere utilizzate per forzare la risoluzione in modalità schermo intero.
+<i>Queste due opzioni sono disabilitate di default; per abilitarle, rimuovi il 
+cancelletto ('#') all'inizio delle due righe, e assicurati di impostare la 
+risoluzione supportata dal tuo monitor.</i>
+</p>
+
+<h2>Crediti</h2>
+
+<p>
+Programmazione: <b>juce</b> (KitServer, LOD Mixer, alcuni algoritmi del BallServer, Stadium Server), <b>Robbie</b> (BallServer, Faceserver,
+KitServer-HD)<br />
+Test: <b>biker_jim_uk, ntalex</b><br />
+Divise: <b>Spark, kel, qiankun</b>.<br />
+Palloni: <b>DAMned</b>.<br />
+Modelli dei Palloni: <b>Ariel, Gwidon</b>.<br />
+Faccia: <b>Chris79</b>.<br />
+Divise, palloni e modelli dei palloni: <a href="http://www.wevolution.org">http://www.wevolution.org</a><br />
+Fonts, numeri: autori sconosciuti. Immagini prese dal sito: 
+<a href="http://www.socsci.umn.edu/~jkoepp/pes5/">http://www.socsci.umn.edu/~jkoepp/pes5/</a>
+e dal gioco.<br/>
+Documentazione: <b>TriAn</b> (Testo Russo), <b>juce</b> (Testo Inglese + 
+Modifiche/Aggiunte al testo Russo), 
+<b>Robbie</b> (Testo Tedesco, manuale Inglese del BallServer e del Faceserver manual, 
+cambiamenti nel testo Inglese),
+<b>FabioS</b> (Testo Italiano)</p>
+
+<p>
+Kitserver e Ballserver utilizzano i seguenti software open source:<br />
+<span class="soft">pngdib</span> by Jason Summers 
+<a href="http://entropymine.com/jason/pngdib/">http://entropymine.com/jason/pngdib/</a><br />
+<span class="soft">libpng</span> by Guy Eric Schalnat, Andreas Dilger, Glenn Randers-Pehrson, 
+e altri 
+<a href="http://libpng.org/pub/png/libpng.html">http://libpng.org/pub/png/libpng.html</a><br />
+<span class="soft">zlib</span> by Jean-loup Gailly e Mark Adler, e altri
+<a href="http://www.zlib.net/">http://www.zlib.net/</a><br />
+</p>
+
+</body>
+</html>

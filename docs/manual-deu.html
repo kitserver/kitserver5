@@ -1,0 +1,906 @@
+<html>
+<head>
+    <title>KitServer 5.2 Anleitung</title>
+    <style>
+        img { display:block;margin:10px 0 10px 0;border:1px solid #000; }
+        div.note { background-color:#ffc;color:#800;padding:5px; }
+        table {padding:10px 0 10px 0}
+        table td {padding:5px;border:1px solid #000}
+        table th {padding:5px;border:1px solid #000;background-color:#ccc}
+        span.kitid {color:#080;font-style:italic}
+        pre {background-color:#ddf;border-top:1px solid #88a;border-bottom:1px solid #88a}
+        h3,h4 {background-color:#ccd;display:block;padding:5px;font-family:verdana,arial}
+        h2 {display:block;padding:5px 0 5px 0;font-family:verdana,arial;border-bottom:3px solid #88a}
+        div,span,p,li {font-family:verdana,arial;}
+        li {margin-bottom:10px;}
+        table {font-family:verdana,arial;}
+        table.shpal td {padding:5px 20px 5px 0;border-bottom:1px solid #000;
+            border-top:none;border-left:none;border-right:none}
+        table.shpal td.top {border-top:1px solid #000}
+        span.soft {font-weight:bold;color:#696;}
+        span.ex {font-weight:bold;color:#669;}
+    </style>
+</head>
+<body>
+<h2>KitServer 5.2 Anleitung</h2>
+<div>
+9. August 2006<br />
+Versionen der Module: <a href="#kitserver">KitServer: 5.2.3</a>, <a href="#ballserver">BallServer: 5.2.3</a>,
+<a href="#faceserver">Faceserver: 5.2.3</a>, <a href="#stadiumserver">Stadium Server: 5.2.3</a>, 
+<a href="#lodmixer">LOD Mixer: 5.2.3</a> 
+</div><hr>
+
+
+<!-- ### GENERAL ### -->
+
+<h3>1.1 Einleitung</h3>
+<p>
+Der KitServer 5.2 ist ein Erweiterungsprogramm für Pro Evolution Soccer 5, Winning Eleven 9 und
+Winning Eleven 9 Liveware Edition. Er dient als Starter und Verwalter von verschiedenen Einzelmodulen.
+Das KitServer-Modul 5.2.3 bietet einen alternativen Weg, um die Trikots von Spielern und Torhütern
+außerhalb der AFS-Datei des Spiels zu verwalten: die Trikots werden als PNG- oder BMP-Bilder in einer
+externen Datenbank organisiert, die hauptsächlich eine Ansammlung von Ordnern und Dateien ist, die
+einigen einfachen Regeln folgen. Dabei bist du nicht auf Heim- und Auswärtstrikot beschränkt, sondern
+kannst so viele haben wie du möchtest. Das BallServer-Modul 5.2.0 funktioniert ähnlich wie der KitServer,
+es ermöglicht dir, Bälle aus einer externen Datenbank auszuwählen, natürlich auch mehr als die acht
+Standardbälle. Eine andere Erweiterung ist das FaceServer-Modul 5.2.3. Wie der Name schon sagt, erlaubt
+es mehr Gesichter und Haare aus einer externen Datenbank zu benutzen, ohne existierende zu
+überschreiben. Mit dem StadumServer 5.2.3 kannst du zusätzliche Stadien aus deiner GDB auswählen.
+Darüberhinaus ermöglicht das LOD Mixer-Modul 5.2.3 detailiertere Grafiken und die Kontrolle über
+Spieleinstellungen in Ligen und Pokalen.
+</p>
+
+<h3>1.2 Installation</h3>
+
+<p>
+Wie immer: einfach den gesamten kitserver-Ordner in den Spielordner kopieren, sodass die Ordnerstruktur 
+ähnlich wie hier aussieht:
+</p>
+
+<img src="install.jpg" />
+
+<p>
+Gehe in den kitserver-Ordner und starte setup.exe. In der Drop-Down-Liste sollte "PES5.exe" vorausgewählt sein, 
+klicke also einfach auf den "Install"-Button. Der Kitserver sollte eine Meldung anzeigen, dass die Installation 
+erfolgreich war. (Wenn du eine Fehlermeldung bekommst, stelle sicher dass das Spiel nicht läuft und die PES5.exe 
+nicht als schreibgeschützt markiert ist)
+</p>
+
+<p>
+Informationen, wie du einzelne Module ausschalten/wieder einschalten kannst, findest du am Ende der
+Anleitung unter <a href="#advconfig">"Erweiterte Konfiguration"</a>.
+</p>
+
+<h3>1.3 Deinstallation</h3>
+
+<p>
+Gehe in den kitserver-Ordner und starte setup.exe. In der Drop-Down-Liste sollte "PES5.exe" vorausgewählt sein. 
+(Wenn nicht, wähle sie aus). Klicke auf den "Remove"-Button. Der Kitserver sollte nun eine Meldung anzeigen, dass 
+die Deinstallation erfolgreich war. Nun kannst du den gesamten kitserver-Ordner löschen, wenn du willst. (Oder ihn 
+dort belassen - er schadet nicht, und du kannst den Kitserver später schnell reaktivieren, indem du das Setup 
+erneut startest und den "Install"-Button anklickst.)
+</p>
+
+
+
+<!-- ### KITSERVER ### -->
+
+<h2 id="kitserver">KitServer-Modul 5.2.3</h2>
+
+<h3>2.1 Kurze Zusammenfassung der Funktionen</h3>
+<p>
+<li><b>2.5D Trikotanzeige im "Trikot-Auswahl"-Bildschirm</b><br />
+(2.5D heißt, dass dies zweidimensionale Mini-Trikots sind, die aber aus den aktuellen Trikot-Texturen erstellt werden, 
+die im Spiel verwendet werden.)</li>
+<li><b>Zusätzliche Trikots für die Spieler und Torhüter</b><br />
+Jetzt kannst du mehr als ein Heim- und ein Auswärtstrikot haben, also ein drittes, viertes und so weiter. 
+Du kannst außerdem die Teile aller Trikots mischen.</li>
+<li><b>Neue Datenbankstruktur</b><br />
+"KDB" wurde in "GDB" (Graphics DataBase) umbenannt, denn die Datenbank enthält mehr als nur Trikots,
+nämlich auch Bälle und Gesichter (und später eventuell noch mehr Grafiken). Auch die interne Struktur
+ist komplett neu. Die alte Struktur passte nicht gut für Extra-Trikots, aber die neue ist wirklich flexibel.
+Sobald man sich daran gewöhnt hat, stellt man fest dass sie einfacher zu bedienen ist als die Kitserver 5.0 KDB.</li>
+<li><b>HighDefinition Pro Evolution Soccer (HDPES) Unterstützung</b><br />
+Das ist die neuste Funktion in Kitserver 5.2.1. Teile der internen Logik wurden
+geändert, sodass du jetzt größere Texturen benutzen kannst. Außerdem sind gemeinsame Paletten nicht
+mehr notwendig, da jetzt 24- und 32-Bit-Texturen möglich sind, die mehr als 16,7 Millionen
+Farben bieten! Trotzdem kannst du deine existierende GDB weiter benutzen, weil 256-Farben-Bilder intern
+konvertiert werden und so frei gemischt werden können, sogar mit Trikots in anderen Größen und Farbtiefen.</li>
+</p>
+
+
+<h3>2.2 GDB Organisation</h3>
+<p>
+Fangen wir als mit der GDB an, der wichtigsten Änderung (im Vergleich zu Version 5.0). Die GDB enthält einen Ordner namens 
+<b>uni</b>, der verantwortlich für die Aufbewahrung der Team-Trikots (Uniformen) ist. Der wichtigste Einzeldatei in <b>uni</b> 
+ist <b>map.txt</b>. Diese Datei zeigt dem Kitserver, wo er die Trikots für ein bestimmtes Team findet. Wie du weißt, hat jedes 
+Team eine einmalige ID - eine Ganzzahl von 0 bis 201, glaube ich (+ einige All-Star-Teams). Also musst du für jedes Team in der 
+map.txt festlegen, wo die Trikots dieses Teams sind. Hier ein Beispiel:
+
+<pre>
+# This config maps team number into folder name
+# Format: &lt;team-num&gt;,"&lt;folder name&gt;"
+# Example: 21,"Russia"
+
+8,"National\France"
+9,"National\Germany"
+65,"EPL\Aston_Villa"
+75,"EPL\Man Utd"
+77,"EPL\Newcastle"
+80,"EPL\Tottenham"
+170,"La Liga\Real Madrid"
+</pre>
+</p>
+
+<div class="note">WICHTIG: Anführungszeichen sind notwendig - so dass es keine Zweifel wegen des Ordnernamens gibt. Die 
+IDs aller Teams findest du in der <a href="uni.txt">uni.txt</a>-Datei.</div>
+
+<p>
+Beachte bitte, dass die Beispiel-GDB (die mit dem Kitserver verbreitet wird) nur ein möglicher Weg ist, die Teams und Ordner 
+zu organisieren. Sie benutzt einen "EPL"-Ordner, um alle englischen Teams zu gruppieren, "National" - um alle Nationalteams 
+zu gruppieren und so weiter. Vielleicht bevorzugst du eine einfache Liste der Ordner - ohne diese Extra-Gruppen. In diesem Fall,
+passe einfach die <b>map.txt</b>-Datei an und erstelle die Ordnerstruktur so wie du es bevorzugst. Das ist der Hauptvorteil, dass 
+es map.txt gibt - die Flexibilität der Trikot-Organisation.
+</p>
+
+<p>
+Du kannst in der map.txt oben erkannen, dass der Kitserver um ein Trikot für Team #8 in den Ordner 
+<b>GDB\uni\National\France</b> gehen muss. Dieser Ordner enthält alle Trikots, die für Team #8 verfügbar sind. In ihm musst
+du für jedes Trikot einen eigenen Ordner erstellen, etwa so:
+
+<img src="france.jpg"/>
+
+Für Spieler muss das erste (Heim-)Trikot den Ordnernamen <b>pa</b> haben, das zweite (Auswärts) - <b>pb</b>. Zusätzliche Trikots 
+können irgendeinen Ordnernamen haben, der mit dem Buchstaben "p" beginnt. I fand es sinnvoll, dass alle zusätzlichen Trikots 
+mit <b>px-</b> anfangen, zum Beispiel <b>px-blue</b>. Für Torhüter muss das erste Trikot im Ordner <b>ga</b> sein, das zweite in 
+<b>gb</b>. Zusätzliche Trikots können irgendeinen Ordnernamen haben, der mit dem Buchstaben "g" beginnt.
+</p>
+
+<div class="note">WICHTIG: Die Ordnername sind eine Art ID für den Kitserver, was eine zusätzliche Beschränkung für alle diese
+Ordnernamen mit sich bringt: sie können keine Leerzeichen enthalten, sind möglichst kurz und in Englisch, Französisch oder einer
+anderen Sprache mit Latin1 (ISO 8859-1) Zeichensatz. Daher, wenn du sichergehen willst, dass der Kitserver den Ordner erfolgreich
+finden/lesen kann, benutze nur lateinische Zeichen, Nummern, Unterstrich und das Minus-Zeichen.
+</div>
+
+
+<p>
+Schauen wir uns nun den Inhalt eines der Trikot-Ordner an. Nehmen wir <b>pa</b> als Beispiel.
+
+<img src="pa.jpg" />
+
+So sieht ein Ordner aus, wenn du ein sogenanntes "All-In-One"-Trikot hast, also nicht in mehrere Einzelteile geteilt
+ist: Shirt, Hose und Socken. Kitserver kann mit beiden, geteilten und All-In-One-Trikots, erfolgreich umgehen, denn
+er teilt ein All-In-One-Trikot sowieso zur Laufzeit, wenn Trikot-Teile gemischt werden.
+</p>
+
+<div class="note">Damit das Teilen zur Laufzeit funktioniert, lösche niemals den Ordnder <b>masks</b>. Er sollte sich in <b>uni</b>
+befinden. Der Kitserver benutzt die Maskenbilder, um die All-In-One-Trikots automatisch zur Laufzeit zu teilen.</div>
+
+<p>
+Normalerweise ist es kein Problem, All-In-One-Trikots zu benutzen. Trotzdem möchtest du geteilte Trikots vielleicht benutzen,
+wenn du nicht alle Teile hast oder einzelne Teile hinzufügen möchtest und nicht ein gesamtes Trikot, weil du das Shirt schon
+hast und es nicht doppelt in der Trikot-Auswahl erscheinen soll. Zum Beispiel, sehe dir Newcastles <b>px-away2</b>-Ordner an:
+er hat keine <b>all.png</b>-Datei, aber enthält stattdessen <b>shorts.png</b> und <b>socks.png</b>. Du wirst bemerken, dass
+es keine <b>shirt.png</b>-Datei gibt, aber das ist in Ordnung: der Kitserver wird die Hose und die Socken benutzen und das
+Shirt aus einem anderen Ordner nehmen.
+</p>
+
+<p>So, zusammenfassend:</br>
+Die <b>all.png</b>-Datei zu haben ist gleichwertig wie diese drei Dateien zu haben: <b>shirt.png</b>, <b>shorts.png</b> und
+<b>socks.png</b>. (Eigentlich solltest du nicht alle vier haben oder all.png und zum Beispiel shirt.png - das wird schnell verwirrend.)
+</p>
+
+<div class="note">Bilder können entweder im PNG- oder BMP-Format vorliegen. Die Dateinamen müssen also entweder mit ".png" oder ".bmp" enden.
+Es ist in Ordnung, die Formate bei einem Trikot zu mischen: du kannst <b>shirt.bmp</b>, <b>shorts.png</b> und <b>socks.bmp</b> haben.</div>
+
+<p>
+<table>
+    <tr><th>Reservierter PNG-Dateiname</th><th>Reservierter BMP-Dateiname</th><th>Bedeutung</th></tr>
+    <tr><td>all.png</td><td>all.bmp</td><td>All-In-One-Trikot</td></tr>
+    <tr><td>shirt.png</td><td>shirt.bmp</td><td>Shirt</td></tr>
+    <tr><td>shorts.png</td><td>shorts.bmp</td><td>Hose</td></tr>
+    <tr><td>socks.png</td><td>socks.bmp</td><td>Socken</td></tr>
+    <tr><td>font.png</td><td>font.bmp</td><td>256x64 Bild mit der Schriftart für den Spielernamen auf der Shirt-Rückseite.</td></tr>
+</table>
+</p>
+
+<h4>2.3. config.txt</h4>
+
+<p>
+Dies ist die Attribute-Konfigurationsdatei (in vorherigen Kitservern hieß sie "attrib.cfg").
+Wie vorher ist sie nur eine normale Textdatei - du kannst Notepad oder einen anderen Texteditor zum Anzeigen oder Modifizieren verwenden.
+In jedem Ordner, der ein Shirt oder eine Hose beinhaltet (entweder als Teil eines All-In-One-Trikots oder also einzelnes Bild), sollte eine
+<b>config.txt</b> existieren. Die meisten Attribute betreffen das Shirt, außer "shorts.number.location", das die Hose betrifft. Deshalb
+würdest du auch dann eine config.txt in einem Ordner benötigen, der kein Shirt, aber eine Hose enthält. Außerdem gelten
+die Attribute "description" und "mask" für alle Teile.</p>
+
+<p>
+Hier ist eine Zusammenfassung aller unterstützten Attribute:
+</p>
+
+<table>
+    <tr><th>Name des Attributs</th><th>Bedeutung</th><th>Format</th><th>Beispiel</th></tr>
+    <tr>
+        <td><b>model</b></td>
+        <td>Bezeichner für das 3D-Model des Shirts</td>
+        <td>Dezimale Ganzzahl</td>
+        <td><nobr>model = 37</nobr></td>
+    </tr>
+    <tr>
+        <td><b>collar</b></td>
+        <td>Vorhandensein eines Kragens</td>
+        <td>yes/no</td>
+        <td><nobr>collar = no</nobr></td>
+    </tr>
+    <tr>
+        <td><b>numbers</b></td>
+        <td>Dateiname (mit Pfad, relativ zum Trikot-Ordner) des Bildes, das die Nummern-Texturen
+            enthält: ein 256x128 Bild mit 4 Bit oder 8 Bit Palette</td>
+        <td>Zeichenkette in Anführungszeichen</td>
+        <td><nobr>numbers = "..\num-white.png"</nobr></td>
+    </tr>
+    <tr>
+        <td><b>shorts.num-pal.<span class="kitid">X</span></b></td>
+        <td>Dateiname (mit Pfad, relativ zum Trikot-Ordner) des Bildes, das die Palette des 
+            Nummern-Bildes enthält: ein Bild mit 4 Bit oder 8 Bit Palette. Das ist die Palette, die
+            benutzt wird für die Hose aus dem Trikot-Ordner "X", wenn diese Hose mit dem aktuellen Shirt
+        benutzt wird.</td>
+        <td>Zeichenkette in Anführungszeichen</td>
+        <td><nobr>shorts.num-pal.pb = "..\pal-black.png"</nobr></td>
+    </tr>
+    <tr>
+        <td><b>shorts.number.location</b></td>
+        <td>Wo do Nummer auf der Hose platziert wird. ("off" bedeutet, dass die Nummer gar nicht angezeigt
+		wird.)
+        </td>
+        <td>left|right|both|off</td>
+        <td><nobr>shorts.number.location = left</nobr></td>
+    </tr>
+    <tr>
+        <td><b>name.location</b></td>
+        <td>Wo auf dem Shirt der Spielername platziert wird. Das ist nützlich für Teams wie Boca Juniors,
+        die die Spielernamen unten auf dem Shirt stehen haben. ("off" bedeutet, dass der Name gar nicht
+        angezeigt wird.)</td>
+        <td>top|bottom|off</td>
+        <td><nobr>name.location = top</nobr></td>
+    </tr>
+    <tr>
+        <td><b>logo.location</b></td>
+        <td>Wo auf dem Shirt das Sponsorenlogo plaziert wird. (Dieses Attribut wird wahrscheinlich mit dem
+        Kitserver nicht sehr nützlich sein, da das Logo vom Kitmaker direkt auf das Trikot gezeichnet würde,
+        falls ein Team dieses auf der Rückseite des Shirts hätte.)</td>
+        <td>top|bottom|off</td>
+        <td><nobr>logo.location = off</nobr></td>
+    </tr>
+    <tr>
+        <td><b>name.shape</b></td>
+        <td>Bestimmt, ob der Name gebogen oder gerade ist. Die Werte bedeuten das gleiche wie im Editor-Modus:
+        Typ 1: gerade, Typ 2: leicht gebogen, Typ 3: gebogen.</td>
+        <td>type1|type2|type3</td>
+        <td><nobr>name.shape = type1</nobr></td>
+    </tr>
+	<tr>
+        <td><b>radar.color</b></td>
+        <td>Dieses Attribut bestimmt die Farbe, die du auf dem Radar im Spiel siehst. Es beeinflusst auch das Trikot,
+        das standardmäßig bei der Trikot-Auswahl ausgewählt ist, denn PES5 benutzt sie als Anzeichen dafür, ob zwei
+        Trikots sich ähnlich sehen und daher im Spiel zusammen Verwirrung auslösen würden. Achtung: Dies ist auch
+        die Hauptfarbe der Standard-Mini-Kits (nicht 2.5D)!</td>
+        <td>Farbe, geschrieben im hexadezimalen Format RRGGBB (rot,grün,blau)</td>
+        <td><nobr>radar.color = 0A5D88</nobr></td>
+    </tr>
+    <tr>
+        <td><b>description</b></td>
+        <td>Hier kannst du den Namen des Trikots festlegen. Der wird für die
+        <a href="#kitinfoscreen">Trikot-Informationen</a> benutzt, der später
+        erklärt wird.</td>
+        <td>Zeichenkette in Anführungszeichen</td>
+        <td><nobr>description = "Home (UEFA Champions League)"</nobr></td>
+    </tr>
+    <tr>
+        <td><b>mask</b></td>
+        <td>Das ist die Maskendatei, die angewendet wird, wenn das Trikot geteilt
+        wird, um Teile zu mischen. Du brauchst das nur, wenn die Teilungsregeln
+        nicht standardmäßig sind (siehe die <a href="#kitmakernotes">Anmerkungen
+        für Kitmaker</a> wenn du mehr Informationenen brauchst).</td>
+        <td>Zeichenkette in Anführungszeichen</td>
+        <td><nobr>mask = "mask_juve.png"</nobr></td>
+    </tr>
+</table>
+
+<p>Für Beispiele der <b>shorts.num-pal.<span class="kitid">X</span></b> Benutzung - schau dir die Beispiel-GDB an:
+Sie enthält viele verschiedene Beispiele. Anfangs mag das zu kompliziert aussehen, aber nach kurzer Zeit wird dir
+klar werden warum diese Art von Organisation nötig war: Um die Teile eines Trikots frei mischen zu können, musst du
+die Möglichkeit haben festzulegen, welche Art von Nummern und Paletten bei Hosen in verschiedenen Situationen benutzt
+werden sollen.
+
+Nehmen wir als Beispiel die <b>config.txt</b> aus Deutschlands "pa"-Ordner:
+
+<pre>
+model = 37
+collar = no
+
+numbers = "..\..\adidas_black.png"
+
+shorts.number.location = left
+shorts.num-pal.pa = "..\..\adidas_white.png"
+shorts.num-pal.pb = "..\..\adidas_black.png"
+</pre>
+
+<p>
+In gut Deutsch bedeutet das:<br/>
+Für das Shirt benutzte Adidas-Nummern (schwarz). Wenn das Shirt mit "pa"-Hosen benutzt wird, dann
+verwende die Palette "adidas_white.png" an, die effektiv weiße Nummern auf die Hosen zeichnet. Wenn
+das Shirt mit "pb"-Hosen benutzt wird, dann verwende die Palette "adidas_black.png" an, die effektiv
+schwarze Nummern auf die Hosen zeichnet.
+</p>
+
+
+<h3>2.4 Trikot-Auswahl und 2.5D Trikots</h3>
+
+<p>
+Um eine visuelle Referenz der aktuell ausgewählten GDB-Trikots (inklusive Zusatztrikots), werden KONAMIs
+Mini-Kits mit diesen so genannten "2.5D"-Trikots überlegt. Der Name entstand dadurch, dass dies zwar
+2D-Trikots sind, aber aus den echten Texturen erzeugt werden, die im Spiel verwendet werden. Hier ist ein
+Screenshot:
+
+<img src="stripsel-pl.jpg" />
+
+(Wenn ein Team keine Trikots in der GDB hat, sind die Original-KONAMI-Mini-Trikots trotzdem noch sichtbar.)
+</p>
+
+<p>
+Du kannst zwischen dem ersten und zweiten Trikot wie bisher wechseln - mit der Tastatur oder dem
+Gamepad - was auch immer du konfiguriert hast. Um an die zusätzlichen Trikots zu kommen, drücke
+die "O"-Taste - um den "Konfiguration ändern"-Modus zu erreichen. Die kleinen gelben Pfeile ändern
+nun die einzelnen Teile des Trikots, du kannst also mit dem Mischen der einzelnen Teile beginnen.
+Das ist alles eine normale Spielfunktion - du brauchst keine speziellen Hotkeys drücken, um dies
+zu aktivieren.
+</p>
+
+<p>
+Nun kommt die neue Funktion des Kitservers: indem du das Shirt (Hose, Socken) änderst, kreist durch
+alle verfügbaren Teile, und nicht nur durch die ersten und zweiten Trikots. In Version 5.2.3 kannst
+jetzt endlich in beide Richtungen durch die Trikots navigieren.
+</p>
+
+<p>
+Es ist auch möglich, Torwarttrikots auszuwählen. Es gibt jetzt 2 Modi der Trikotauswahl: "Player-Modus"
+und "Torwart-Modus". Du kannst zwischen ihnen mit der <b>[Tab]</b>-Taste wechseln. Für Torhüter wählst
+du die Trikots genauso aus wie du es für die Spieler getan hast. Wie bei den Spielern kannst du die
+Einzelteile mischen, wenn du in den "Konfiguration ändern"-Modus gehst.
+</p>
+
+<img src="stripsel-gk.jpg" />
+
+<a name="kitinfoscreen">
+<p>
+Unter den Trikots werden zusätzliche Informationen eingeblendet. Diese sind aufgrund von Platzproblemen auf mehrere
+Seiten verteilt, zwischen denen du mit den <b>[BILD AUF]</b>- und <b>[BILD AB]</b>-Tasten wechseln kannst.
+Auf dem Bild ist die Seite "Kit information" zu sehen. Hier werden die Namen der Trikot-Teile angezeigt.
+Diese können durch das "description"-Attribut festgelegt werden. Der Name gilt für alle Trikot-Teile, die
+sich in diesem Ordner befinden. Wenn nichts festgelegt ist, wird der Ordnername oder im Falle von den 4
+Standardtrikots (pa, pb, ga und gb) der Name "Standard [Home/Away]". Wie auch zu erkennen ist, befindet
+diese Anzeige bei der Standardkonfiguration an zweiter Stelle, du musst also erst dahin wechseln.
+</p>
+
+<img src="kitinfo.jpg" />
+
+<p>
+<div class="note">TROUBLE-SHOOTING Tipp: Benutzer von früheren Versionen (5.1.0, 5.1.1) haben von einigen Anzeigeproblemen
+von 2.5D-Trikots mit GeForce FX und GeForce 4 Karten berichtet: Bildschirmflackern, und nicht angezeigte Trikots während der
+Trikotauswahl. Der Kitserver in Version 5.1.2 oder neuer enthalten eine Änderung, die das Problem beheben sollte. 
+Wenn diese Probleme trotzdem auftreten, könnte ein Update der Grafikkartentreiber helfen.</div>
+</p>
+
+<h3 id="kitmakernotes">2.5 Anmerkungen für Kitmaker</h3>
+<p>Eine der wichtigsten Änderungen in der Version 5.2.1 ist HDPES. Es bedeutet, dass jetzt um einiges
+bessere Trikots benutzt werden können, da die Beschränkung der Größe und der Farbtiefe der Texturen
+wegfällt. Es können jetzt zum Beispiel 1024x512 oder 2048x1024 Pixel große Texturen verwendet werden,
+das Seitenverhältnis muss nur bei 2:1 bleiben und die Breite muss 512 multipliziert mit einer Ganzahl
+sein. Alle Teile werden proportional vergrößert, die Textur sollte also so aussehen wie früher, nur
+mit Zoom. Außerdem braucht man sich nicht mehr um lästige gemeinsame Paletten zu kümmern, da die
+Bilder in mehr als 256 Farben vorliegen können. Akzeptiert werden 32 Bit-Bilder, also zum Beispiel
+eine PNG-Datei mit Alpha-Kanal und 24 Bit-Bilder. Für letztere wird nach einem 256 Farben-Bild gesucht,
+das die gleichen Abmessungen hat. Der Dateiname ist z.B. all-alpha.png oder shirt-alpha.bmp. Wird es
+gefunden, so bestimmt der Paletten-Index den Alpha-Wert eines Pixels an gleicher Stelle in der Textur.
+Eine Beispielpalette findest du unter "alpha.pal" im kitserver-Ordner. Hierbei ist Schwarz mit Index 0
+komplett durchsichtig und Weiß mit Index 255 nicht transparent. Wird keine Alpha-Datei gefunden, werden
+alle Pixel auf undurchsichtig gesetzt.
+<div class="note">Es werden bis jetzt nur 256-Farben-Bilder als Alpha-Dateien unterstützt,
+keine Schwarz-Weiß-Bilder. Nicht die Farbe ist wichtig, sondern der Index.</div>
+</p>
+
+<img src="mask.png" />
+<p>
+Was noch zu beachten ist, ist die Trennung in Einzelteile.
+Dies geschieht weiterhin mit Masken, das Format hat sich jedoch geändert. Jetzt befinden sich alle drei
+Teile in einer Datei und werden durch die Farben Rot (Shirt), Blau (Hose) und Gelb (Socken) bestimmt.
+Standardmäßig wird die "mask.png" im <b>uni\masks</b>-Ordner verwendet. Da Juventus jedoch getrennte
+Socken hat, ist eine angepasste Maske notwendig. Diese kann durch das "mask"-Attribut angegeben werden
+und wird dann zuerst relativ zum Ordner mit der config.txt gesucht und dann im "masks"-Ordner. Es wird
+immer die Maske des Shirts für alle Teile verwendet. Wichtig ist, dass die Maske unabhängig von der
+Texturgröße immer 512x256 Pixel groß ist und 256 Farben hat.<br />
+Trotz all dieser neuen Möglichkeiten kannst du natürlich deine bestehende GDB weiterverwenden, denn
+alle Texturen werden intern auf 32 Bit hochgerechnet, sodass du sogar <b>alle</b> Trikot-Teile, unabhängig
+von der Palette und der Farbtiefe mischen kannst. Auch Kombinationen verschiedener Texturgrößen sind erlaubt.
+Wichtig ist nur, dass du den "masks"-Ordner kopierst, da sonst das Aufteilen nicht funktioniert.
+</p>
+
+
+
+<!-- ### BALLSERVER ### -->
+
+<h2 id="ballserver">Ballserver-Modul 5.2.3</h2>
+
+<h3>3.1 Kurze Zusammenfassung der Funktionen</h3>
+
+<p>
+<li><b>Ballauswahl im "Trikot-Auswahl"-Bildschirm.</b><br />
+Mit dr Version 5.2.3 bekommst du eine richtige 3D-Vorschau wie der Ball später im Spiel
+aussieht.</li>
+<li><b>Unterstützung für unterschiedliche Texturgrößen.</b><br />
+Du kannst 256x256, 512x512 und sogar 1024x1024 Pixel große Texturen benutzen,
+die entweder im BMP- oder im PNG-Format abgespeichert sind. Die Größe wird automatisch
+erkannt, muss also nicht extra eingestellt werden.</li>
+</p>
+
+<h3>3.2 GDB Konfiguration</h3>
+
+<p>
+Der Ballserver verwendet den gleichen GDB-Ordner wie die anderen Module, zum Beispiel Kitserver.
+Der Unterordner heißt <b>balls</b>. Du wirst bemerken dass sich darin eine Datei namens <b>map.txt</b>
+befindet (wie beim Kitserver), um die Bälle zu konfigurieren. Das Format ist sehr einfach: eine Zeile
+ist ein Ball, und es gibt drei Eigenschaften. Die erste ist der Name, der in der Auswahl im Spiel angezeigt
+wird, gefolgt vom Namen der 3D-Model-Datei und er Textur-Datei. Hier ein Beispiel:
+
+<pre>
+# This is the configuration file for Ballserver
+# Format: "&lt;name displayed in game&gt;","&lt;model file&gt;","&lt;texture file&gt;"
+# Example: "adidas Finale Capitano Grey","ariel_mdl.bin","adidas_finale_capitano_grey.bmp"
+# Texture paths are relative to GDB\balls\, model paths to GDB\balls\mdl\
+
+# adidas
+"adidas Finale Capitano Grey","ariel_mdl.bin","adidas_finale_capitano_grey.bmp"
+"adidas Teamgeist Blue","gwidon_mdl.bin","adidas_teamgeist_blue.png"
+
+# Nike
+
+# Puma
+
+# This comment makes sure you have pressed the enter key after the last ball
+</pre>
+
+Bitte vergesse nicht die Anführungszeichen, sie sind wichtig! Wenn deine map.txt so aussieht (und du natürlich
+diese Dateien hast), kannst du später im Spiel zwischen <i>adidas Finale Capitano Grey</i> und <i>adidas Teamgeist Blue</i>
+wählen. Die Textur-Dateien müssen iim "GDB\balls"-Ordner gespeichert werden und die Model-Dateien in "GDB\balls\mdl".</p>
+
+<a name="relfolderexample">
+<div class="note">Wenn du andere Ordner verwenden willst, musst du relative Pfade wie <b>mysubfolder\tex.png</b>
+verwenden für eine Datei "tex.png" im Ordner "GDB\balls\mysubfolder".</div>
+<p>
+Wenn du Bälle herunterlädst, wirst du bemerken, dass viele Bälle das gleiche 3D-Model verwenden. In diesem Fall
+brauchst du jede Model-Datei nur einmal. Im Allgemeinen sind die Models unabhängig von der Texturgröße, also
+sollte ein 3D-Model, das mit einer 256x256er Textur veröffentlicht wurde auch mit 512x512er Texturen funktionieren.
+Wenn du unsiche bist, probiere es einfach mit verschiedenen Models.
+</p>
+
+<h3>3.3 Ballauswahl</h3>
+<p>
+Starte das Spiel ganz normal. Wenn du zur Trikotauswahl kommst, siehst du einen neuen Text unter den Mini-Trikots,
+der standardmäßig <b>"Ball: game choice"</b> lautet. In diesem Fall wirst du keine Veränderung merken wenn du spielst,
+da der Ball verwendet wird, den du in den Optionen ausgewählt hast. Nun kommt die neue Funktion: drücke die <b>B</b>-Taste
+auf deiner Tastatur um den nächsten Ball auszuwählen (oder <b>V</b> in die andere Richtung zu navigieren). Der Text ändert
+sich in <b>"Ball: <i>&lt;Name aus der map.txt&gt;</i>"</b> und wenn alles richtig konfiguriert ist, spielst du mit diesem
+Ball. Um einen zufälligen Ball auszuwählen, drücke <b>R</b> und um den Ball zurückzusetzen, drücke <b>C</b>.
+Unter dem Text siehst du eine 3D-Vorschau. Dafür sind keine Konfiguration oder zusätzliche Dateien in der GDB notwendig,
+da die Vorschau aus der Textur und der 3D-Model-Datei, die in deiner map.txt definiert sind, erstellt wird.
+
+<img src="ballsel.jpg" />
+
+Wenn du den Text nicht siehst, musst du <a href="#kitinfoscreen">dorthin schalten</a>. Der Text unten sollte dann
+"Ball selection" sein.
+
+<img src="ballsel2.jpg" />
+
+</p>
+
+
+
+<!-- ### FACESERVER ### -->
+
+<h2 id="faceserver">FaceServer-Modul 5.2.1</h2>
+
+<h3>4.1 Einleitung</h3>
+<p>
+Faceserver ist ähnlich wie Kitserver und Ballserver, er macht es möglich so viele zusätzliche
+Gesichter und Haare aus der GDB zu laden wie du möchtest. Dank erneuten Änderungen an der internen
+Logik hat der Faceserver keine Probleme mehr mit Cut-Scenes (wie z.B. Auswechslungen) und dem
+Editor-Modus. Beachte jedoch, dass Faceserver von den Player-IDs abhängig ist. Da diese nicht
+mit Wiederholungen und aus der Meisterliga gesicherten Teams gespeichert werden, funktioniert
+er in diesen Situationen nicht. Ein neues Modul, das dies behebt ist schon in Arbeit, aber noch
+nicht fertig.</p>
+
+<h3>4.2 Wie zu benutzen</h3>
+<p>Als Folge der Änderungen kannst du jetzt in den Editor-Modus gehen und dir die Gesichter
+ansehen. Das solltest du auch tun bevor und nachdem du Gesichter einfügst, denn es gibt
+drei neue Anzeigen oben rechts.</p>
+
+<img src="faceseditmode.jpg" />
+
+<p>
+Das Beispielgesicht wurde von Chris79 gemacht. Die ID des Spielers ist die welche du auch in
+der PlayerList.txt findest und die notwendig ist, um die map.txt zu konfigurieren. Um ein Gesicht
+für diesen Spieler hinzuzufügen, merke dir die ID und gehe zu deinem <b>GDB\faces</b>-Ordner. Kopiere
+das Gesicht nach hier (extrahiere es vorher zu einer bin-Datei wenn du eine Zip-Datei heruntergeladen
+hast!) und öffne die <b>map.txt</b> mit Notepad. Füge eine neue Zeile nach dem Beispiel ein, im Format
+das im Kommentar im oberen Teil angegeben ist (die ID des Spielers gefolgt von der Datei in
+Anführungszeichen). Der Dateiname ist relativ zu "GDB\faces", du kannst also Unterordner benutzen
+(für Facepacks oder die einzelnen Teams, oder wie du willst). In der Ballserver-Anleitung findest
+du ein <a href="#relfolderexample">Beispiel</a> dafür.
+Das war's. Wenn du jetzt spieltst, hat der Spieler das Gesicht das du ihm zugewiesen hast. Um
+das zu kontrollieren, gehe zurück zum Editor-Modus und sehe nach oben. Wenn du einen Spieler mit
+einem neuen Gesicht auswählst, wird der Dateiname angezeigt. Wundere dich nicht darüber, dass das
+Gesicht nicht angezeigt wird wenn du einen Spieler editierst. Das zeigt nur, dass es nicht in der
+Optionfile gespeichert ist. Im Spiel wirst du es richtig sehen.<br /></p>
+<p>
+Einige Leute scheinen Problem mit dem Finden der PlayerList.txt zu haben. Obwohl sie nicht mehr wirklich
+gebraucht wird, ist sie trotzdem eine gute Übersicht über die Spieler. Du findest sie in deinem kitserver-Ordner,
+nachdem du das Spiel zum ersten Mal mit aktiviertem Faceserver gespielt und beendet hast. In der neuen
+Version habe ich mehr Informationen hinzugefügt, <b>du solltest also die alte Datei löschen, da sie sonst nicht
+überschrieben wird.</b><br /></p>
+Du wirst sicherlich bemerken dass die neuen Gesichter jetzt im Editor-Modus auswählbar sind. Sie sind
+nach den Standardgesichtern eingefügt. Trotzdem solltest du sie aus zwei Gründen nicht hier zuweisen.
+Erstens würde das in deine Optionfile gespeichert werden und eventuell Probleme auslösen, wenn du Faceserver
+deaktivierst oder neue Gesichter hinzufügst. Zweitens ist die gespeicherte Gesichtsnummer auf 512 beschränkt.
+Wenn du neue Gesichter mit der map.txt konfigurierst, gibt es diese Probleme nicht. Vielleicht werde ich in
+zukünftige Versionen eine Funktion einbauen, die den Spieler zur map.txt hinzufügt wenn du ein neues Gesicht
+für ihn auswählst, aber ich frage mich ob das komfortabler sein würde, da du immer noch die Datei in deine GDB
+kopieren und dem Faceserver mitteilen müsstest, dass er sie laden soll. Im Moment kannst du das also nur benutzen,
+um die eingefügten Gesichter zu überprüfen.<br /></p>
+<p>
+<p>
+Einem Spieler neue Haare zuzuweisen funktioniert sehr ähnlich: Finde die ID des Spielers heraus,
+kopiere die Haar-Datei nach <b>GDB\hair</b> und öffne die <b>GDB\hair\map.txt</b>. Das Format ist
+exact das gleiche wie für Gesichter, also sieh oben nach wie du eine Zeile für einen Spieler einfügst.
+Speichere die Datei ab und starte das Spiel. Wenn du alles richtig gemacht hast, wirst es im
+Editor-Modus an einer Anzeige an der gleichen Stelle wie bei den Gesichtern erkennen.
+</p>
+<div class="note">Die meisten Abstürze werden durch beschädigte Dateien oder falsche Map-Dateien
+verursacht. Überprüfe im Falle eines Absturzes bitte zuerst ob das der Grund ist, bevor du in die
+Foren schreibst.
+</div>
+
+
+
+<!-- ### STADIUM SERVER ### -->
+<h2 id="stadiumserver">Stadium Server Module 5.2.3 (stadium.dll)</h2>
+<h3>5.1 Einleitung</h3>
+<p>
+Der Stadium Server ist ein Plugin-Modul für den Kitserver. Es erlaubt zusätzliche Stadien zu
+benutzen, die in der GDB gespeichert sind - ähnlich wie bei Trikots, Bällen und Gesichtern.
+</p>
+
+<h3>5.2 Aufbau der GDB</h3>
+
+<div class="note">Dieser Abschnitt ist hauptsächlich für Stadien-Designer, so dass sie ihre
+Stadien so aufbauen können wie der Stadium Server es benötigt. Für die Benutzer wäre das
+Installieren neuer Stadien dann sehr einfach: Es wäre ein einfaches Kopieren eines Ordners.
+</div>
+
+<p>
+Um neue Stadien ins Spiel einzubauen musst du sie in der GDB in einer bestimmten Art abspeichern.
+Der <a href="#stadiumimporter">"Stadium Importer"</a> hilft dir dabei. Die GDB hat einen neuen Ordner
+namens <b>stadiums</b>, der alle Zusatz-Stadien beinhaltet:</p>
+
+<img src="gdb.gif" />
+
+<p>Im <b>stadiums</b>-Ordner hat jedes Stadion seinen eigenen Ordner. 
+Hier kannst du zum Beispiel 4 Stadien sehen (die map.txt wird später noch besprochen):</p>
+
+<img src="stadiums.gif" />
+
+<p>
+<div class="note">
+	WICHTIG: Der Namen des Ordners wird vom Stadium Server als Name des Stadions sowohl in Spielen
+	als auch im "Stadien ansehen"-Modus verwendet.
+</div>
+</p>
+
+<p>
+Innerhalb jedes Stadion-Ordners ist die Ordnerstruktur immer gleich. Jedes Stadion besteht aus
+68 Dateien: 66 Dateien für das Stadion selbst + 1 Werbebanden-Texturen BIN-Datei + 1 Informationsdatei
+(info.txt - das Baujahr, die Kapazität und die Stadt sind darin gespeichert). Die 66 Stadion-Dateien
+sind auf 6 Ordner aufgeteilt - einer für jedes der folgenden Wetterbedingungen: klarer Tag, regnerischer
+Tag, verschneiter Tag, klare Nacht, regnerische Nacht, verschneite Nacht. Die Ordner heißen:
+<b>1_day_fine</b>, <b>2_day_rain</b>, <b>3_day_snow</b>, <b>4_night_fine</b>, <b>5_night_rain</b>
+und <b>6_night_snow</b>. Die Werbebanden-Texturen BIN-Datei ist in einem Ordner mit dem Namen
+<b>adboards_tex</b> gespeichert.
+</p>
+
+<img src="bernabeu.gif" />
+
+<p>Die <b>info.txt</b> hat eine sehr einfache Struktur. Du kannst das Baujahr, die Kapazität und
+die Stadt in der es steht wie im Beispiel unten festlegen:</p>
+
+<pre>
+# Stadium info file
+
+built = 1999
+capacity = 16500
+city = London
+
+</pre>
+
+<p>In jedem der 6 Stadion-Ordner haben die Dateien festgelegte Namen, die beschreiben welchen Teil
+des Stadions sie enthalten. (Es ist wichtig dass du die Dateien in jedem der 6 Ordner EXAKT benennst,
+denn sonst ist der Stadium Server nicht in der Lage das Stadion richtig zu laden).
+Als Beispiel ist hier der Inhalt des <b>1_day_fine</b>-Ordners:</p>
+
+<img src="dayfine.gif" />
+
+<p>
+Einige Anmerkungen von Gwidon darüber was jede Datei enthält:
+<table>
+    <tr>
+        <th>Datei</th><th>Kommentare</th>
+    </tr>
+    <tr>
+        <td>crowd_a0.str</td>
+        <td>Auswärtszuschauer und -flaggen, wenn es keine Auswärtszuschauer gibt (0 Sterne)</td>
+    </tr>
+    <tr>
+        <td>crowd_a1.str</td>
+        <td>Auswärtszuschauer und -flaggen, wenn es wenige Auswärtszuschauer gibt (1 Stern)</td>
+    </tr>
+    <tr>
+        <td>crowd_a2.str</td>
+        <td>Auswärtszuschauer und -flaggen für eine große Menge an Auswärtszuschauern (2 Sterne)</td>
+    </tr>
+    <tr>
+        <td>crowd_a3.str</td>
+        <td>Auswärtszuschauer und -flaggen für die maximale Anzahl an Auswärtszuschauern (3 Sterne)</td>
+    </tr>
+    <tr>
+        <td>crowd_h0.str</td>
+        <td>Heimzuschauer und -flaggen, wenn es keine Heimzuschauer gibt (0 Sterne)</td>
+    </tr>
+    <tr>
+        <td>crowd_h1.str</td>
+        <td>Heimzuschauer und -flaggen, wenn es wenige Heimzuschauer gibt (1 Stern)</td>
+    </tr>
+    <tr>
+        <td>crowd_h2.str</td>
+        <td>Heimzuschauer und -flaggen für eine große Menge an Heimzuschauern (2 Sterne)</td>
+    </tr>
+    <tr>
+        <td>crowd_h3.str</td>
+        <td>Heimzuschauer und -flaggen für die maximale Anzahl an Heimzuschauern (3 Sterne)</td>
+    </tr>
+    <tr>
+        <td>stad1_main.bin</td>
+        <td>Haupt-Stadion-Datei, mit Texturen und 3D-Modellen</td>
+    </tr>
+    <tr>
+        <td>stad2_entrance.bin</td>
+        <td>Einlaufszene</td>
+    </tr>
+    <tr>
+        <td>stad3_adboards.bin</td>
+        <td>Werbebanden-Struktur</td>
+    </tr>
+</table>
+</p>
+
+<p>Der <b>adboards_tex</b>-Ordner enthält bis jetzt nur eine einzige Datei - <b>default.bin</b>,
+die die Werbebanden-Texturen enthält, die für das Stadion während des Spiels verwendet werden.
+(In Zukunft könnte dieser Ordner andere Textur-BIN-Dateien enthalten, so dass du verschiedene
+Werbebanden für verschiedene Arten von Spielen verwenden kannst... Aber das ist eine Funktion
+die es noch nicht gibt.)</p>
+
+<img src="adbtex.gif" />
+
+<h3 id="stadiumimporter">5.3 Stadium Importer</h3>
+<p>
+Ein neues Tool das du im Kitserver-Ordner finden kannst hilft die neue Stadien in deine GDB
+zu importieren. Es ist viel einfacher als alle Dateien per Hand umzubenennen. Extrahiere einfach
+alle 66 Dateien in einen Ordner namens <b>kitserver\stadimp\stadium</b> und kopiere die
+Werbebanden-Datei nach <b>kitserver\stadimp\adboards.bin</b>. Starte dann <b>stadimp.exe</b>.
+Gebe den Namen des Stadions ein und überprüfe ob die richtigen Dateien kopiert werden. Nur die
+ersten 66 Dateien werden kopiert, sortiert nach ihren Namen. Aus diesem Grund musst du dich
+nicht um die Dateierweiterungen kümmern.<br />
+Nach dem Kopieren fragt dich das Programm nach einigen Daten des Stadions, die in die info.txt
+gespeichert werden. Zuletzt kannst du die Dateien in <b>kitserver\stadimp</b> löschen lassen.
+</p>
+
+<h3>5.4 map.txt</h3>
+
+<p>
+Die <b>map.txt</b> im Stadium Server wird etwas anders benutzt im Vergleich zu anderen Modulen
+(wie Kitserver oder Ballserver, etc.). Um ein GDB-Stadion im Spiel zu benutzen brauchst du nicht
+unbedingt die map.txt-Datei. Sie erlaubt dir aber ein "Heim-Stadion" für ein Team auszuwählen.
+Dann wird der Stadium Server immer wenn er im "home team"-Modus ist (du kannst ihn mit der
+<b>[7]</b>-Taste ein- und ausschalten) untersuchen welches das Heim-Team ist und versuchen das
+entsprechende Stadion aus der GDB zu laden. Hier ist eine einfache map.txt, mit 2 Teams denen
+Heim-Stadien zugeordnet sind:</p>
+
+<pre>
+# Stadium Server map file
+# --------------------------------------------------------------
+# This config maps team number into its home stadium folder name
+# Format: <team-num>,"<folder name>"
+# Example: 170,"Santiago Bernabeu"
+
+170,"Santiago Bernabeu"
+184,"Saturn Ramenskoye"
+</pre>
+
+<div class="note">IMPORTANT: Double quotes are required - just so that there is no ambiguity about 
+folder name. For IDs for all the teams - see <a href="uni.txt">uni.txt</a> file</div>
+
+<h3>5.5. Modi</h3>
+
+<p>Während des Teamauswahl-Bildschirms siehst du jetzt einen Text der anzeigt, welches
+Stadion (oder Stadion-Modus) momentan ausgewählt ist, und 4 neue Hotkeys sind aktiviert:
+<b>[7],[8],[9],[0]</b>:
+<p>
+
+<img src="selected.jpg" />
+
+<p>Der Stadium Server hat grundsätzlich 2 Modi in denen er Stadien aus der GDB laden wird:
+der "Ausgewähltes Stadion"-Modus und der "Heim-Team-Stadion"-Modus. Mit den <b>[9]</b>- und
+<b>[0]</b>-Tasten kannst du zurück und vor zwischen den Stadien aus der GDB auswählen. Wenn
+du die <b>[7]</b>-Taste drückst, wählst du zwischen "game choice" und dem "Heim-Team-Stadion"-Modus.
+Wenn "game choice" ausgewählt ist wird das Stadion aus der AFS-Datei benutzt.</p>
+
+<img src="hometeam.jpg" />
+
+<h3>5.6. "Stadien ansehen"</h3>
+
+<p>Du kannst alle Stadien deiner GDB im "Stadien ansehen"-Modus betrachten. Um das zu tun,
+drücke einfach die <b>[1]</b>-Taste. Um das Wetter auszuwählen, benutze die <b>[2]</b>-Taste.
+</p>
+
+<img src="viewstadiums.gif" />
+
+
+
+<!-- ### LODMIXER ### -->
+
+<h2 id="lodmixer">LOD Mixer-Modul 5.2.3</h2>
+
+<h3>6.1 Wie zu benutzen</h3>
+
+<p>
+KitServer enthält nun ein neues Tool - LOD Mixer - als inegriertes Modul. Es erlaubt einige Tricks an der Grafikengine des
+Spiels durchzuführen, wie das Anpassen der Level-Of-Detail-Tabelle, Aktivierung der Zuschauer in allen Kameras, Auswahl
+von Wetter/Stadion/usw. für Liga-/Pokal-/Meisterliga-Spiele.
+</p>
+<p>Starte <b>lodcfg.exe</b>, um die LOD Mixer Einstellungen zu konfigurieren. Hier ist ein Screenshot wie das aussieht (sehr
+ähnlich zur älteren Standalone-Version des LOD Mixers 1.6):
+</p> 
+
+<img src="lodmixer.gif"/>
+
+<div class="NOTE">
+    Die komplette Dokumentation findest du in dieser Datei: <b><a href="lodmixer.txt">lodmixer.txt</a></b>
+</div>
+<p>
+Ab Version 5.2.3 kannst du einige Einstellungen des LOD-Mixers auch im Spiel ändern, wenn du
+die entsprechende Seite in der Teamauswahl auswählst (<a href="#kitinfoscreen">Anleitung hier</a>):
+</p>
+
+<img src="lodingame.jpg"/>
+
+<p>
+Die Steuerung ist recht simpel: Mit den Taste <b>[1]</b> und <b>[2]</b> suchst du den Eintrag
+aus, den du ändern möchtest. Mit <b>[+]</b> und <b>[-]</b> kannst du dann den Wert verändern.
+Die Einstellungen werden automatisch gespeichert und funktionieren jetzt auch in Freundschaftsspielen.
+</p>
+
+
+
+<!-- ### ADVANCED CONFIGURATION ### -->
+
+<h2 id="advconfig">Erweiterte Konfiguration</h2>
+
+<h3>7.1. Hauptkonfigurationsdatei: kload.cfg</h3>
+
+<p>
+Normalerweise musst du dies nicht ändern, außer du stellst Probleme fest oder willst selbst einzelne
+Module ein- oder ausschalten. Zum Beispiel, wenn du den Ballserver und LOD Mixer haben willst, aber
+nicht wirklich den Kitserver, kannst du dies einfach tun indem du die <b>kload.cfg</b>-Datei modifizierst.
+So sieht die Standard-Konfigurationsdatei aus:
+</p>
+
+<pre>
+# Loader configuration file
+
+gdb.dir = ".\"
+DLL.num = 8
+DLL.0 = "kitserver\zlib1.dll"
+DLL.1 = "kitserver\libpng13.dll"
+DLL.2 = "kitserver\kserv.dll"
+DLL.3 = "kitserver\bserv.dll"
+DLL.4 = "kitserver\fserv.dll"
+DLL.5 = "kitserver\lodmixer.dll"
+DLL.6 = "kitserver\stadium.dll"
+DLL.7 = "kitserver\dxtools.dll"
+
+# DirectX options
+dx.force-SW-TnL = 0
+dx.emulate-HW-TnL = 0
+#dx.fullscreen.width = 1920
+#dx.fullscreen.height = 1200
+</pre>
+
+<p>Die zwei oberen DLLs - <b>zlib1.dll</b> und <b>libpng13.dll</b> werden für die PNG-Bilder-Unterstützung
+benötigt, also entferne sie nicht. Die unteren vier sind unabhängige Module, die du nach deinem Willen
+aktivieren oder deaktivieren kannst. Zum Beispiel, um das Kitserver-Modul zu deaktivieren (<b>kserv.dll</b>),
+kommentiere es einfach mit einem "#"-Symbol am Anfang der Zeile aus:
+</p>
+
+<p>
+Die letzten beiden Optionen - <b>dx.fullscreen.width</b> und <b>dx.fullscreen.height</b> - können
+benutzt werden um eine eigene Auflösung im Vollbild-Modus festzulegen. <i>Beachte dass diese beiden
+Optionen standardmäßig deaktiviert sind; um sie zu aktivieren, entferne das Kommentarzeichen ('#')
+am Anfang der beiden Zeilen und gehe sicher dass du eine Auflösung einstellst, die dein Monitor
+unterstützt.</i>
+</p>
+
+<pre>
+DLL.num = 8
+DLL.0 = "kitserver\zlib1.dll"
+DLL.1 = "kitserver\libpng13.dll"
+#DLL.2 = "kitserver\kserv.dll"
+DLL.3 = "kitserver\bserv.dll"
+DLL.4 = "kitserver\fserv.dll"
+DLL.5 = "kitserver\lodmixer.dll"
+DLL.6 = "kitserver\stadium.dll"
+DLL.7 = "kitserver\dxtools.dll"
+</pre>
+
+<p>
+Die <b>dx.force-SW-TnL</b> und <b>dx.emulate-HW-TnL</b> Optionen ermöglichen Funktionalitäten ähnlich dem
+was 3DAnalyzer tut mit seinen "Force SW TnL" und "Emulate HW TnL Caps" Einstellungen. Wenn dein Spiel crasht
+(wegen einer alten Grafikkarte, oder anderen Kompatiblitätsproblemen), und du das Spiel nicht mit 3DAnalyzer
+starten kannst, probiere diese zwei Optionen - sie könnten alles sein, um das Spiel wieder ans Laufen zu bekommen.<br />
+Zum Aktivieren ändere einfach die Werte von 0 auf 1.
+</p>
+
+<hr>
+
+<h2>Credits</h2>
+
+<p>
+Programmierung: <b>juce</b> (KitServer, LOD Mixer, einige BallServer-Algorithmen, Stadium Server),
+<b>Robbie</b> (BallServer, Faceserver, einige KitServer-Funktionen, Stadium Importer)<br />
+Stadium Server GDB-Aufbau und "Heim-Team-Stadion"-Idee: <b>Gwidon</b><br />
+Informationen über Stadien in der AFS-Datei: <b>nt89</b><br />
+Tester: <b>biker_jim_uk, ntalex, Gwidon, nt89</b><br />
+Trikots: <b>Spark, kel, qiankun</b>.<br />
+Bälle: <b>DAMned</b>.<br />
+Ballmodels: <b>Ariel, Gwidon</b>.<br />
+Gesicht: <b>Chris79</b>.<br />
+"Saturn Ramenskoye"-Stadion: <b>Asiat</b><br />
+"Santiago Bernabeu"-Stadion: <b>Gwidon</b><br /></p>
+<p>Trikots, Bälle und Ballmodels sind alle von hier: <a href="http://www.wevolution.org">http://www.wevolution.org</a><br />
+Schriftarten, Nummern: Ursprüngliche Authoren unbekannt. Bilder entnommen von dieser Seite: 
+<a href="http://www.socsci.umn.edu/~jkoepp/pes5/">http://www.socsci.umn.edu/~jkoepp/pes5/</a>
+und aus dem Spiel selbst.<br/>
+Dokumentation: <b>TriAn</b> (Russischer Text), <b>juce</b> (Englischer Text + russischer Text Änderungen/Erweiterungen), 
+<b>Robbie</b> (Deutscher Text, englische BallServer und Faceserver Anleitung, Änderungen im englischen Text),
+<b>FabioS</b> (Italienischer Text)
+</p>
+
+<p>
+Kitserver und Ballserver benutzen die folgende Open-Source-Software:<br />
+<span class="soft">pngdib</span> von Jason Summers 
+<a href="http://entropymine.com/jason/pngdib/">http://entropymine.com/jason/pngdib/</a><br />
+<span class="soft">libpng</span> von Guy Eric Schalnat, Andreas Dilger, Glenn Randers-Pehrson, und anderen
+<a href="http://libpng.org/pub/png/libpng.html">http://libpng.org/pub/png/libpng.html</a><br />
+<span class="soft">zlib</span> von Jean-loup Gailly und Mark Adler, und anderen
+<a href="http://www.zlib.net/">http://www.zlib.net/</a><br />
+</p>
+
+</body>
+</html>
