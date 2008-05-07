@@ -6,8 +6,9 @@
 #include <string.h>
 #include <stdio.h>
 
-#define DLL_PATH "kitserver\\kload\0"
-#define OLD_DLL_PATH "kitserver\\kserv\0"
+#define DLL_NAME "kload\0"
+#define OLD_DLL_NAME "kserv\0"
+#define DEFAULT_EXE_NAME "pes5.exe\0"
 #define BUFLEN 4096
 
 #include "imageutil.h"
@@ -18,6 +19,11 @@
 HWND hWnd = NULL;
 bool g_noFiles = false;
 bool g_advancedMode = false;
+char mydir[BUFLEN];
+char patchFolderName[BUFLEN]={0};
+char patchExeName[BUFLEN]={0};
+char patchTitle[BUFLEN]={0};
+char installDllPath[BUFLEN]={0};
 
 // array of LoadLibrary address on diff. OS
 DWORD LoadLibraryAddr[] = {
@@ -91,7 +97,10 @@ KitServer will NOT be attached to it.", fileName);
 	// the address of LoadLibrary will always be the same.
 	HMODULE krnl = GetModuleHandle("kernel32.dll");
 	DWORD loadLib = (DWORD)GetProcAddress(krnl, "LoadLibraryA");
-	
+	// Well, this doesn't work for Vista, so we don't determine the
+	// address ourselves but use the one from the import table, for
+	// which we get the pointer with the getImportThunkRVA command
+
     /*
 	// get currently selected item in OS choices list
 	int osIdx = (int)SendMessage(g_osListControl, CB_GETCURSEL, 0, 0);
@@ -106,13 +115,15 @@ KitServer will NOT be attached to it.", fileName);
 	DWORD ep, ib;
 	DWORD dataOffset, dataVA;
 	DWORD codeOffset, codeVA;
-	DWORD loadLibAddr, kservAddr;
+	DWORD loadLibAddr, kservAddr, loadLibAddr1;
 	DWORD newEntryPoint;
 
 	FILE* f = fopen(fileName, "r+b");
 	if (f != NULL)
 	{
 		// Install
+		loadLibAddr1 = getImportThunkRVA(f, "kernel32.dll","LoadLibraryA");
+		
 		if (SeekEntryPoint(f))
 		{
 			fread(&ep, sizeof(DWORD), 1, f);
@@ -134,9 +145,9 @@ KitServer will NOT be attached to it.", fileName);
 			fread(&dataHeader, sizeof(IMAGE_SECTION_HEADER), 1, f);
 
             //adjust SizeOfRawData (needed for WE9LEK-nocd)
-            int rem = dataHeader.SizeOfRawData % 0x40;
+            int rem = dataHeader.SizeOfRawData % 0x80;
             if (rem > 0) {
-                dataHeader.SizeOfRawData += 0x40 - rem;
+                dataHeader.SizeOfRawData += 0x80 - rem;
                 fseek(f, -sizeof(IMAGE_SECTION_HEADER), SEEK_CUR);
                 fwrite(&dataHeader, sizeof(IMAGE_SECTION_HEADER), 1, f);
             }
@@ -171,13 +182,15 @@ KitServer will NOT be attached to it.", fileName);
 				DWORD* p = (DWORD*)buf;
 				p[0] = ep; // save old empty pointer for easy uninstall
 				p[1] = loadLib;
-				memcpy(buf + 8, DLL_PATH, lstrlen(DLL_PATH)+1);
+				memcpy(buf + 8, installDllPath, lstrlen(installDllPath)+1);
 				fwrite(buf, 0x20, 1, f);
-
+				
 				loadLibAddr = ib + dataVA + sizeof(DWORD);
 				//printf("loadLibAddr = %08x\n", loadLibAddr);
 				kservAddr = loadLibAddr + sizeof(DWORD);
 				//printf("kservAddr = %08x\n", kservAddr);
+				
+				loadLibAddr = ib + loadLibAddr1;
 			}
 			else
 			{
@@ -203,7 +216,9 @@ KitServer 5 is already installed (1) for\n\
 		codeVA = 0;
 
 		// find empty space at the end of .text
-		if (SeekSectionHeader(f, ".text")) {
+        bool textFound = SeekSectionHeader(f, ".text");
+        if (!textFound) textFound = SeekSectionHeader(f,"");
+		if (textFound) {
 			fread(&textHeader, sizeof(IMAGE_SECTION_HEADER), 1, f);
 
             //adjust SizeOfRawData (needed for WE9LEK-nocd)
@@ -288,7 +303,7 @@ KitServer 5 is already installed (2) for\n\
 		fclose(f);
 
 		SendMessage(g_exeInfoControl, WM_SETTEXT, (WPARAM)0, 
-				(LPARAM)"KitServer INSTALLED");
+				(LPARAM)"KitServer INSTALLED correctly for this folder.\0");
 		EnableWindow(g_installButtonControl, FALSE);
 		EnableWindow(g_removeButtonControl, TRUE);
 
@@ -305,7 +320,7 @@ Setup has installed KitServer 5 for\n\
 	else
 	{
 		SendMessage(g_exeInfoControl, WM_SETTEXT, (WPARAM)0, 
-				(LPARAM)"[ERROR: install failed]");
+				(LPARAM)"[ERROR: install failed]\0");
 		EnableWindow(g_installButtonControl, TRUE);
 		EnableWindow(g_removeButtonControl, FALSE);
 
@@ -417,7 +432,9 @@ KitServer 5 is not installed for\n\
 		codeVA = 0;
 
 		// find empty space at the end of .text
-		if (SeekSectionHeader(f, ".text")) {
+        bool textFound = SeekSectionHeader(f, ".text");
+        if (!textFound) textFound = SeekSectionHeader(f,"");
+		if (textFound) {
 			fread(&textHeader, sizeof(IMAGE_SECTION_HEADER), 1, f);
 
 			codeVA = textHeader.VirtualAddress + textHeader.SizeOfRawData;
@@ -473,7 +490,7 @@ KitServer 5 is not installed for\n\
 		fclose(f);
 
 		SendMessage(g_exeInfoControl, WM_SETTEXT, (WPARAM)0, 
-				(LPARAM)"KitServer not installed");
+				(LPARAM)"KitServer not installed\0");
 		EnableWindow(g_installButtonControl, TRUE);
 		EnableWindow(g_removeButtonControl, FALSE);
 
@@ -490,7 +507,7 @@ Setup has removed KitServer 5 from\n\
 	else
 	{
 		SendMessage(g_exeInfoControl, WM_SETTEXT, (WPARAM)0, 
-				(LPARAM)"[ERROR: remove failed]");
+				(LPARAM)"[ERROR: remove failed]\0");
 		EnableWindow(g_installButtonControl, FALSE);
 		EnableWindow(g_removeButtonControl, TRUE);
 
@@ -533,7 +550,8 @@ void UpdateInfo(void)
 	if (GetGameVersion(fileName) == -1)
 	{
 		SendMessage(g_exeInfoControl, WM_SETTEXT, (WPARAM)0, 
-				(LPARAM)"Unknown EXE-file");
+				(LPARAM)"Unknown EXE-file, this is not a valid executable "
+				"of Pro Evolution Soccer 5!\0");
 		EnableWindow(g_installButtonControl, FALSE);
 		EnableWindow(g_removeButtonControl, FALSE);
 		return;
@@ -580,19 +598,54 @@ void UpdateInfo(void)
 			ZeroMemory(buf, 0x18);
 			fseek(f, sizeof(DWORD), SEEK_CUR);
 			fread(buf, 0x18, 1, f);
+			char* dllFilename=strrchr(buf,'\\')+1;
+			bool isInstalled=false, isInstalledOld=false;
+			
+			if (savedEntryPoint != 0 && dllFilename != (char*)1) {
+				if (lstrcmp(dllFilename, DLL_NAME) == 0) {
+					isInstalled=true;
+				} else if (lstrcmp(dllFilename, OLD_DLL_NAME) == 0) {
+					isInstalledOld=true;
+				};
+			};
+				
 
-			if (savedEntryPoint != 0 && 
-                    (lstrcmp(buf, DLL_PATH) == 0 || lstrcmp(buf, OLD_DLL_PATH) == 0))
+			if (isInstalled)
+			{
+				char exeFolderName[BUFLEN];
+				ZeroMemory(exeFolderName,BUFLEN);
+				strncpy(exeFolderName,buf,dllFilename-buf-1);
+
+				if (lstrcmp(exeFolderName, patchFolderName) == 0) {
+					SendMessage(g_exeInfoControl, WM_SETTEXT, (WPARAM)0, 
+							(LPARAM)"KitServer INSTALLED correctly for this folder.\0");
+					EnableWindow(g_installButtonControl, FALSE);
+					EnableWindow(g_removeButtonControl, TRUE);
+				}
+				else
+				{
+					char temp[BUFLEN];
+					ZeroMemory(temp,BUFLEN);
+					sprintf(temp, "KitServer INSTALLED, but for folder \"%s\".\0", exeFolderName);
+					
+					SendMessage(g_exeInfoControl, WM_SETTEXT, (WPARAM)0, 
+							(LPARAM)temp);
+					EnableWindow(g_installButtonControl, FALSE);
+					EnableWindow(g_removeButtonControl, TRUE);
+				};
+			}
+			else if (isInstalledOld)
 			{
 				SendMessage(g_exeInfoControl, WM_SETTEXT, (WPARAM)0, 
-						(LPARAM)"KitServer INSTALLED");
+						(LPARAM)"KitServer INSTALLED for an OLD version. Please remove and "
+						"install again!\0");
 				EnableWindow(g_installButtonControl, FALSE);
 				EnableWindow(g_removeButtonControl, TRUE);
 			}
 			else
 			{
 				SendMessage(g_exeInfoControl, WM_SETTEXT, (WPARAM)0, 
-						(LPARAM)"KitServer not installed");
+						(LPARAM)"KitServer not installed.\0");
 				EnableWindow(g_installButtonControl, TRUE);
 				EnableWindow(g_removeButtonControl, FALSE);
 
@@ -601,14 +654,14 @@ void UpdateInfo(void)
 		else
 		{
 			SendMessage(g_exeInfoControl, WM_SETTEXT, (WPARAM)0,
-					(LPARAM)"Information unavailable");
+					(LPARAM)"Information unavailable\0");
 		}
 		fclose(f);
 	}
 	else
 	{
 		SendMessage(g_exeInfoControl, WM_SETTEXT, (WPARAM)0, 
-				(LPARAM)"[ERROR: Can't open file.]");
+				(LPARAM)"[ERROR: Can't open file.]\0");
 	}
 }
 
@@ -638,11 +691,11 @@ void InitControls(void)
 		{
 			SendMessage(g_exeListControl, CB_ADDSTRING, (WPARAM)0, (LPARAM)fData.cFileName);
 			SendMessage(g_exeListControl, WM_SETTEXT, (WPARAM)0, (LPARAM)fData.cFileName);
+			count++; //only count the listed exe files
 		}
-        if (lstrcmpi(fData.cFileName, "pes5.exe") == 0) { // auto-select pes5.exe
-            selectedIndex = count;
+        if (lstrcmpi(fData.cFileName, patchExeName) == 0) { // auto-select pes5.exe
+            selectedIndex = count - 1;
         }
-        count++;
 
 		// proceed to next file
 		if (!FindNextFile(hff, &fData)) break;
@@ -743,7 +796,7 @@ HWND BuildWindow(int nCmdShow)
 
 	retval = CreateWindowEx(xstyle,
         "SETUPCLS",      // class name
-        SETUP_WINDOW_TITLE, // title for our window (appears in the titlebar)
+        patchTitle, // title for our window (appears in the titlebar)
         style,
         CW_USEDEFAULT,  // initial x coordinate
         CW_USEDEFAULT,  // initial y coordinate
@@ -759,6 +812,65 @@ HWND BuildWindow(int nCmdShow)
 	return retval; // return its handle for future use.
 }
 
+void ReadPatchInfo()
+{
+	char patchFile[BUFLEN];
+	sprintf(patchFile,"%s\\patch.cfg",mydir);
+	
+	FILE* cfg = fopen(patchFile, "rt");
+	if (cfg == NULL) return;
+
+	char str[BUFLEN];
+	char name[BUFLEN];
+	int value = 0;
+
+	char *pName = NULL, *pValue = NULL, *comment = NULL;
+	while (!feof(cfg))
+	{
+		ZeroMemory(str, BUFLEN);
+		fgets(str, BUFLEN-1, cfg);
+
+		// skip comments
+		comment = strstr(str, "#");
+		if (comment != NULL) comment[0] = '\0';
+
+		// parse the line
+		pName = pValue = NULL;
+		ZeroMemory(name, BUFLEN); value = 0;
+		char* eq = strstr(str, "=");
+		if (eq == NULL || eq[1] == '\0') continue;
+
+		eq[0] = '\0';
+		pName = str; pValue = eq + 1;
+
+		ZeroMemory(name, NULL); 
+		sscanf(pName, "%s", name);
+
+		if (lstrcmp(name, "Title")==0)
+		{
+			char* startQuote = strstr(pValue, "\"");
+			if (startQuote == NULL) continue;
+			char* endQuote = strstr(startQuote + 1, "\"");
+			if (endQuote == NULL) continue;
+
+			strcat(patchTitle, " - \0");
+            memcpy(patchTitle + lstrlen(patchTitle), startQuote + 1, endQuote - startQuote - 1);
+		}
+		else if (lstrcmp(name, "ExeFilename")==0)
+		{
+			char* startQuote = strstr(pValue, "\"");
+			if (startQuote == NULL) continue;
+			char* endQuote = strstr(startQuote + 1, "\"");
+			if (endQuote == NULL) continue;
+				
+            memcpy(patchExeName, startQuote + 1, endQuote - startQuote - 1);
+		}
+	}
+	fclose(cfg);
+
+	return;
+}
+
 int APIENTRY WinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
                      LPSTR     lpCmdLine,
@@ -768,6 +880,27 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 
  	if(InitApp(hInstance, lpCmdLine) == false)
 		return 0;
+		
+	//detect the folder setup is executed from
+	char temp[BUFLEN];
+	ZeroMemory(temp, BUFLEN);
+	GetModuleFileName(hInstance, temp, BUFLEN);
+	char *q = temp + lstrlen(temp);
+	while ((q != mydir) && (*q != '\\')) { *q = '\0'; q--; }
+	*q = '\0';
+	strcpy(mydir, temp);
+	while ((q != temp) && (*q != '\\')) { q--; }
+	strcpy(patchFolderName, q+1);
+	
+	sprintf(installDllPath,"%s\\%s", patchFolderName, DLL_NAME);
+	
+	ZeroMemory(patchTitle, BUFLEN);
+	strcpy(patchTitle, SETUP_WINDOW_TITLE);
+	ZeroMemory(patchExeName, BUFLEN);
+	strcpy(patchExeName, DEFAULT_EXE_NAME);
+	
+	//Look for information of a patch
+	ReadPatchInfo();
 
 	hWnd = BuildWindow(nCmdShow);
 	if(hWnd == NULL)
