@@ -24,10 +24,11 @@
 <body>
 <h2>KitServer 5.2 Manual</h2>
 <div>
-August 9, 2006<br />	
+April 17, 2008<br />	
 Module Versions: <a href="#kitserver">KitServer 5.2.3</a>, <a href="#ballserver">BallServer: 5.2.3</a>, 
-    <a href="#faceserver">Faceserver: 5.2.3</a>, <a href="#stadiumserver">Stadium Server: 5.2.3</a>, 
-    <a href="#lodmixer">LOD Mixer: 5.2.3</a>
+    <a href="#faceserver">Faceserver: 5.2.4</a>, <a href="#stadiumserver">Stadium Server: 5.2.3</a>, 
+    <a href="#lodmixer">LOD Mixer: 5.2.5</a>,
+    <a href="#bootserver">Bootserver 5.5.5</a>
 </div><hr>
 
 
@@ -42,13 +43,13 @@ KitServer Module 5.2.3 provides the alternative way of managing players and goal
 outside of the game's AFS file: you organize the PNG or BMP kit images into an external
 database, which is basically a collection of folders and files that follows few simple rules.
 You are not restricted to just 1st and 2nd kit for each team - you can have as many as you like.
-The BallServer Module 5.2.0 does similar things to KitServer, it offers the
+The BallServer Module 5.2.3 does similar things to KitServer, it offers the
 possibility of chosing a ball from the external database. Of course it is possible to store
 more than the eight standard balls. Another extension is the FaceServer Module 5.2.3. As the name
 says, it allows to use more faces and hair from an external database without overwriting existing
 ones. With StadiumServer 5.2.3, you can choose additional stadiums from your GDB. Furthermore the
 LOD Mixer Module 5.2.3 enables more detailed graphics and controlling of match aspects in Leagues
-and Cups.
+and Cups. <i>Bootserver was backported from Kitserver 6, and currently works only with WE9LE.</i>
 </p>
 
 <h3>1.2 Installation</h3>
@@ -789,13 +790,72 @@ you want to change. With <b>[+]</b> and <b>[-]</b> you can change the value now.
 The configuration is saved automatically and also works for friendly matches now.
 </p>
 
+<!-- ### Bootserver ### -->
+
+<h2 id="bootserver">Bootserver module 5.5.5 (bootserv.dll)</h2>
+
+<h3>7.1. Introduction</h3>
+
+<p>The idea of Bootserver is similar to Faceserver: you use a map where you assign 
+boot images to playes, using player IDs. This allows to overcome the limitation of 9 slots that
+the game has for boots - with bootserver, each player can have his own boots. As with faceserver, the bootserver currently doesn't work in Museum Replays,
+although ingame instant replays, highlights, and other cut-scenes are fully supported.
+</p>
+
+<p>Similar to other modules that use <b>map.txt</b>, you put a player ID and the filename
+for the boot texture on one line, separating them by a comma. You can find out the ID for
+each player in the Edit Mode: the <b>Player ID:</b> text will be displayed at the top of
+the screen. Texture filename needs to be a pathname relative to <b>GDB\boots</b>, so you can 
+organize your boots into subfolders if you want, or just have a flat structure with all boots
+placed in the "boots" folder itself. It's up to you.<br />
+Here is an example of simple map:
+</p>
+
+<pre>
+# Bootserver map
+################
+
+185,"adidas_00.png"  # Barthez
+186,"adidas_01.png"  # Thuram
+194,"puma.png"       # Zidane
+195,"adidas_02.png"  # Henry
+217,"Germany\adidas_yellow.png"  # Klose
+1791,"adidas_00.png" # Davids
+</pre>
+
+<p>
+<div class="note">IMPORTANT: In order for bootserver to function 
+properly, you need to go to "Edit Boots" menu in Edit mode, and set the <b>Type 1</b> to 
+"Editable" boots. (One easy way to accomplish this is to reset all boot types to Default).</div>
+</p>
+
+
+<h3>7.2. "Random boots" setting</h3>
+
+<p>
+Bootserver configuration file (bootserv.cfg) contains a setting called <b>random-boots.enabled</b>, which
+allows to activate random selection of boots for those players, who don't have a GDB boot assigned
+in map.txt. So say, for example, you have a large collection of boot textures, but you don't
+fancy writing a long map.txt, specifying boots for hundreds if not thousands of players. Instead
+you can just assign boots to a limited number of players that you really care about (players of your Master League team, for example) and let bootserver choose the boots randomly 
+for all others. This random choice will occur every match, so it's likely that a player without
+specific boots assigned in map.txt, will wear very something new every time.
+</p>
+
+<p>By default, this option is disabled (set to <b>0</b>). To enable it, just change its value 
+to <b>1</b> in bootserv.cfg:
+
+<pre>
+random-boots.enabled = 1
+</pre>
+</p>
 
 
 <!-- ### ADVANCED CONFIGURATION ### -->
 
 <h2 id="advconfig">Advanced configuration</h2>
 
-<h3>7.1. Master configuration file: kload.cfg</h3>
+<h3>8.1. Master configuration file: kload.cfg</h3>
 
 <p>
 Typically, you wouldn't need to modify that, unless you're running into problems, or
@@ -808,7 +868,7 @@ do that by modifying the <b>kload.cfg</b> file. Here's how the default config lo
 # Loader configuration file
 
 gdb.dir = ".\"
-DLL.num = 8
+DLL.num = 9
 DLL.0 = "kitserver\zlib1.dll"
 DLL.1 = "kitserver\libpng13.dll"
 DLL.2 = "kitserver\kserv.dll"
@@ -817,6 +877,7 @@ DLL.4 = "kitserver\fserv.dll"
 DLL.5 = "kitserver\lodmixer.dll"
 DLL.6 = "kitserver\stadium.dll"
 DLL.7 = "kitserver\dxtools.dll"
+DLL.8 = "kitserver\bootserv.dll"
 
 # DirectX options
 dx.force-SW-TnL = 0
@@ -832,7 +893,7 @@ just comment it out with a "#" symbol at the beginning of the line:
 </p>
 
 <pre>
-DLL.num = 8
+DLL.num = 9
 DLL.0 = "kitserver\zlib1.dll"
 DLL.1 = "kitserver\libpng13.dll"
 #DLL.2 = "kitserver\kserv.dll"
@@ -841,6 +902,7 @@ DLL.4 = "kitserver\fserv.dll"
 DLL.5 = "kitserver\lodmixer.dll"
 DLL.6 = "kitserver\stadium.dll"
 DLL.7 = "kitserver\dxtools.dll"
+DLL.8 = "kitserver\bootserv.dll"
 </pre>
 
 <p>
@@ -864,11 +926,10 @@ sure you specify resolution that your monitor supports.</i>
 <h2>Credits</h2>
 
 <p>
-Programming: <b>juce</b> (KitServer, LOD Mixer, some BallServer algorithms, Stadium Server),
-<b>Robbie</b> (BallServer, Faceserver, some KitServer functions, Stadium Importer)<br />
+Programming: <b>juce</b>, <b>Robbie</b><br />
+Testing: <b>biker_jim_uk, ntalex, Gwidon, nt89</b><br />
 Stadium Server GDB organization and "home team stadium" idea: <b>Gwidon</b><br />
 Information about stadiums in AFS: <b>nt89</b><br />
-Testing: <b>biker_jim_uk, ntalex, Gwidon, nt89</b><br />
 Kits: <b>Spark, kel, qiankun</b>.<br />
 Balls: <b>DAMned</b>.<br />
 Ball models: <b>Ariel, Gwidon</b>.<br />
@@ -880,9 +941,13 @@ Kits, balls and ball models all from here: <a href="http://www.wevolution.org">h
 Fonts, numbers: original authors unknown. Images taken from this site: 
 <a href="http://www.socsci.umn.edu/~jkoepp/pes5/">http://www.socsci.umn.edu/~jkoepp/pes5/</a>
 and from the game itself.<br/>
-Documentation: <b>TriAn</b> (Russian text), <b>juce</b> (English text + Russian text mods/additions), 
-<b>Robbie</b> (German text, English BallServer and Faceserver manual, English text changes),
-<b>FabioS</b> (Italian text)
+<br />
+
+Documentation:<br />
+Russian: <b>TriAn</b>, <b>juce</b><br />
+German: <b>Robbie</b><br />
+English: <b>juce</b>, <b>Robbie</b><br />
+Italian: <b>FabioS</b><br />
 </p>
 
 <p>
