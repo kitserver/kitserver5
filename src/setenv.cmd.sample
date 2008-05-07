@@ -1,3 +1,7 @@
+rem ----------- You MUST use Visual Studio C++ 6.0 compiler ------------
+rem -- several modules (including fserv, bserv) don't work correctly ---
+rem -- when built with newer compilers. --------------------------------
+
 @echo off
 echo Setting kitserver compile environment
 @call "c:\Program Files\Microsoft Visual Studio\VC98\bin\vcvars32.bat"
