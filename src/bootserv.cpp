@@ -28,19 +28,19 @@ DWORD dataArray[][DATALEN] = {
     },
     // PES5 
     {
-        0, 0, 0,
-        0, 0, 0, 0,
-        0, 0,
-        0, 0, 0,
-        0, 0, 0,
+        0, 0, 0x38f9520,
+        0x38f97f8, 0x38f9ae4, 0x38f9be8, 0x3937218,
+        0x3bcfb10, 0x3bd3e00,
+        0x290, 0x60, 0x344,
+        0x1a, 0xf0, 0x0f,
     },
     // WE9 
     {
-        0, 0, 0,
-        0, 0, 0, 0,
-        0, 0,
-        0, 0, 0,
-        0, 0, 0,
+        0, 0, 0x38f9520,
+        0x38f97f8, 0x38f9ae4, 0x38f9be8, 0x3937218,
+        0x3bcfb10, 0x3bd3e00,
+        0x290, 0x60, 0x344,
+        0x1a, 0xf0, 0x0f,
     },
     // WE9LE
     {
@@ -82,13 +82,13 @@ DWORD codeArray[][CODELEN] = {
     },
     // PES5
     {
-        0,
-        0,
+        0x4dd5c0,
+        0x50730a,
     },
     // WE9
     {
-        0,
-        0,
+        0x4dd5c0,
+        0x50730a,
     },
     // WE9LE
     {
@@ -169,8 +169,8 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		Log(&k_boot,"Attaching dll...");
 
 		switch (GetPESInfo()->GameVersion) {
-			//case gvPES5PC: //support for PES5 PC...
-			//case gvWE9PC: //... and WE9 PC
+			case gvPES5PC: //support for PES5 PC...
+			case gvWE9PC: //... and WE9 PC
             case gvWE9LEPC: //... and WE9:LE PC
 				break;
 

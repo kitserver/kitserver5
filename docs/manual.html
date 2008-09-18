@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title>KitServer 5.2 Manual</title>
+    <title>KitServer 5.3 Manual</title>
     <style>
         img { display:block;margin:10px 0 10px 0;border:1px solid #000; }
         div.note { background-color:#ffc;color:#800;padding:5px; }
@@ -22,13 +22,13 @@
     </style>
 </head>
 <body>
-<h2>KitServer 5.2 Manual</h2>
+<h2>KitServer 5.3 Manual</h2>
 <div>
-April 17, 2008<br />	
+September 18, 2008<br />	
 Module Versions: <a href="#kitserver">KitServer 5.2.3</a>, <a href="#ballserver">BallServer: 5.2.3</a>, 
     <a href="#faceserver">Faceserver: 5.2.4</a>, <a href="#stadiumserver">Stadium Server: 5.2.3</a>, 
     <a href="#lodmixer">LOD Mixer: 5.2.5</a>,
-    <a href="#bootserver">Bootserver 5.5.5</a>
+    <a href="#bootserver">Bootserver 5.5.6</a>
 </div><hr>
 
 
@@ -37,7 +37,7 @@ Module Versions: <a href="#kitserver">KitServer 5.2.3</a>, <a href="#ballserver"
 
 <h3>1.1 Introduction</h3>
 <p>
-KitServer 5.2 is an add-on program for Pro Evolution Soccer 5, Winning Eleven 9, and
+KitServer 5.3 is an add-on program for Pro Evolution Soccer 5, Winning Eleven 9, and
 Winning Eleven 9 Liveware Evolution. It is a loader and manager for various modules.
 KitServer Module 5.2.3 provides the alternative way of managing players and goalkeeper kits
 outside of the game's AFS file: you organize the PNG or BMP kit images into an external
@@ -49,7 +49,7 @@ more than the eight standard balls. Another extension is the FaceServer Module 5
 says, it allows to use more faces and hair from an external database without overwriting existing
 ones. With StadiumServer 5.2.3, you can choose additional stadiums from your GDB. Furthermore the
 LOD Mixer Module 5.2.3 enables more detailed graphics and controlling of match aspects in Leagues
-and Cups. <i>Bootserver was backported from Kitserver 6, and currently works only with WE9LE.</i>
+and Cups. Bootserver (backported from Kitserver 6) allows to assign each player personalized boots from GDB.
 </p>
 
 <h3>1.2 Installation</h3>
@@ -792,7 +792,7 @@ The configuration is saved automatically and also works for friendly matches now
 
 <!-- ### Bootserver ### -->
 
-<h2 id="bootserver">Bootserver module 5.5.5 (bootserv.dll)</h2>
+<h2 id="bootserver">Bootserver module 5.5.6 (bootserv.dll)</h2>
 
 <h3>7.1. Introduction</h3>
 
@@ -828,6 +828,8 @@ Here is an example of simple map:
 properly, you need to go to "Edit Boots" menu in Edit mode, and set the <b>Type 1</b> to 
 "Editable" boots. (One easy way to accomplish this is to reset all boot types to Default).</div>
 </p>
+
+<p>Another limitation of bootserver which may confuse people initially: during matches, it doesn't matter which type of boots (1 through 9) the player has assigned - the bootserver will display correct GDB boots. However, in the Edit Mode, the GDB boots will only show, if you set your player's boot type to Type 1.</p>
 
 
 <h3>7.2. "Random boots" setting</h3>

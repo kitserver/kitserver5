@@ -2,7 +2,7 @@ CC=cl
 LINK=link
 RC=rc
 
-CFLAGS=/nologo /GX /wd4731 $(EXTRA_CFLAGS) /DUSE_HASHMAPS
+CFLAGS=/nologo /GX $(EXTRA_CFLAGS) /DUSE_HASHMAPS
 LFLAGS=/NOLOGO /NODEFAULTLIB:libcmt.lib
 LIBS=user32.lib gdi32.lib advapi32.lib
 LIBSDLL=pngdib.obj libpng.lib zdll.lib $(LIBS)
