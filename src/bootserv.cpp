@@ -38,7 +38,7 @@ DWORD dataArray[][DATALEN] = {
     {
         0, 0, 0x38f9520,
         0x38f97f8, 0x38f9ae4, 0x38f9be8, 0x3937218,
-        0x3bcfb10, 0x3bd3e00,
+        0x3bcfb30, 0x3bd3e20,
         0x290, 0x60, 0x344,
         0x1a, 0xf0, 0x0f,
     },
@@ -83,12 +83,12 @@ DWORD codeArray[][CODELEN] = {
     // PES5
     {
         0x4dd5c0,
-        0x50730a,
+        0x50730a, //? - might be unnecessary
     },
     // WE9
     {
-        0x4dd5c0,
-        0x50730a,
+        0x4dda10,
+        0x50777a, //?
     },
     // WE9LE
     {
