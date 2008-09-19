@@ -1,6 +1,6 @@
-LOD Mixer Module for Kitserver 5                                  May 23,2006
+LOD Mixer Module for Kitserver 5                                August 9,2006
 =============================================================================
-Version 5.2.0 
+Version 5.2.3 
 
 
 1. SUPPORTED GAME VERSIONS
@@ -116,11 +116,11 @@ much detail/texture as you can do with PES5/WE9.
 For me the following configuration works quite well: 1,1,1,2,2
 (Which means that the five drop-downs look like this:
 
-LOD #1 - #1: Very high-detail models, big (512x256) textures",
-LOD #1 - #1: Very high-detail models, big (512x256) textures",
-LOD #1 - #1: Very high-detail models, big (512x256) textures",
-LOD #2 - #2: High-detail models, medium (256x128) textures",
-LOD #2 - #2: High-detail models, medium (256x128) textures",
+LOD #1 - 1: Very high-detail models, big (512x256) textures",
+LOD #2 - 1: Very high-detail models, big (512x256) textures",
+LOD #3 - 1: Very high-detail models, big (512x256) textures",
+LOD #4 - 2: High-detail models, medium (256x128) textures",
+LOD #5 - 2: High-detail models, medium (256x128) textures",
 
 Numbers on shorts (and - for national teams - on players chests) are 
 always there, no more "fake" baldness, captain armbands are always visible, 
