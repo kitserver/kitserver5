@@ -802,6 +802,8 @@ the game has for boots - with bootserver, each player can have his own boots. As
 although ingame instant replays, highlights, and other cut-scenes are fully supported.
 </p>
 
+<img src="boot.jpg" />
+
 <p>Similar to other modules that use <b>map.txt</b>, you put a player ID and the filename
 for the boot texture on one line, separating them by a comma. You can find out the ID for
 each player in the Edit Mode: the <b>Player ID:</b> text will be displayed at the top of
@@ -812,15 +814,17 @@ Here is an example of simple map:
 </p>
 
 <pre>
-# Bootserver map
-################
+# This file configures the boots of the players
+# ---------------------------------------------
+# Format: <player id>,"<filename>"
+# Example: 205,"puma.png"
+# More information about player numbers in
+# the manual
 
-185,"adidas_00.png"  # Barthez
-186,"adidas_01.png"  # Thuram
-194,"puma.png"       # Zidane
-195,"adidas_02.png"  # Henry
-217,"Germany\adidas_yellow.png"  # Klose
-1791,"adidas_00.png" # Davids
+144,"Adidas Predator Absolute BlueSilverLam.png" # Lampard
+145,"Adidas Predator Absolute BlackWhiteRed.png" # Gerrard
+146,"Adidas Predator Absolute Swerve WhiteBlack.png" # Beckham
+302,"Nike AZT IV Supremacy Italy GoldBlue.png" # Cannavaro
 </pre>
 
 <p>
