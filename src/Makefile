@@ -26,7 +26,7 @@ all_apps: apps
 pngdib.obj:
 	(cd soft\pngdib && nmake EXTRA_CFLAGS=$(EXTRA_CFLAGS))
 
-dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll bserv_preview.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll
+dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll bserv_preview.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll
 apps: setup.exe lodcfg.exe filedec.exe diag.exe afsexport.exe afswalk.exe afstest.exe
 
 release:
@@ -123,6 +123,14 @@ savegames.obj: savegames.cpp savegames.h SGF.h
 
 savegames.res: 
 	rc -r -fo savegames.res savegames.rc
+
+clock.lib: clock.obj
+clock.dll: clock.lib clock.res
+	$(LINK) $(LFLAGS) /out:clock.dll /DLL clock.obj kload.lib d3dx8.lib clock.res $(LIBS)
+clock.obj: clock.cpp clock.h
+
+bootserv.res: 
+	$(RC) -r -fo bootserv.res bootserv.rc
 
 setupgui.obj: setupgui.cpp setupgui.h
 setup.exe: setup.obj detect.obj setupgui.obj imageutil.obj
