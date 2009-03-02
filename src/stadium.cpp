@@ -23,6 +23,35 @@ KMOD k_stadium={MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG};
 HINSTANCE hInst;
 HHOOK g_hKeyboardHook=NULL;
 
+///// multi-step reads //////////
+
+typedef struct _MultiStepReadKey {
+    HANDLE hfile;
+    DWORD dwOffset;
+} MultiStepReadKey;
+
+typedef struct _MultiStepRead {
+    DWORD dwOffset;
+    DWORD bytesRead;
+    DWORD afsId;
+    DWORD fileId;
+    MEMITEMINFO* info;
+} MultiStepRead;
+
+bool operator<(const MultiStepReadKey& a, const MultiStepReadKey& b) 
+{
+    if (a.hfile<b.hfile) return true;
+    else if (a.hfile==b.hfile && a.dwOffset<b.dwOffset) return true;
+    return false;
+}
+
+bool operator==(const MultiStepReadKey& a, const MultiStepReadKey& b)
+{
+    return a.hfile==b.hfile && a.dwOffset==b.dwOffset;
+}
+
+map<MultiStepReadKey,MultiStepRead> _msrs;
+
 ///// Graphics //////////////////
 
 struct CUSTOMVERTEX { 
@@ -106,13 +135,14 @@ hook_point g_hp_WriteCapacity;
 #define MAP_FIND(map,key) map[key]
 #define MAP_CONTAINS(map,key) (map.count(key)>0)
 
-#define CODELEN 14
+#define CODELEN 15
 enum {
     C_GETFILEFROMAFS_CS, C_GETFILEFROMAFS, C_READFILE_CS,
     C_GETSTRING, C_GETSTRING_CS,
     C_GETSTRING2, C_GETSTRING2_CS,
     C_WRITENUM, C_WRITENUM_CS1, C_WRITENUM_CS2,
     C_SETLCM_CS, C_SETLCM, C_STADIUMCHANGE, C_ADVANCESTADIUM,
+    C_READNUMPAGES,
 };
 static DWORD codeArray[][CODELEN] = {
 	// PES5 DEMO 2
@@ -121,6 +151,7 @@ static DWORD codeArray[][CODELEN] = {
      0, 0,
      0, 0, 0,
      0, 0, 0, 0,
+     0, 
      },
 	// PES5
 	{0x5b7ea2, 0x873f40, 0x877994,
@@ -128,6 +159,7 @@ static DWORD codeArray[][CODELEN] = {
      0x9c4d10, 0x9b1243,
      0x89e511, 0x5298f2, 0x52999e,
      0x52a1e8, 0x529a10, 0x529d16, 0x529d22,
+     0x874767,
      },
 	// WE9
 	{0x5b82b2, 0x874410, 0x877e74,
@@ -135,6 +167,7 @@ static DWORD codeArray[][CODELEN] = {
      0x9c5020, 0x9b1523,
      0x89e9e1, 0x529d22, 0x529dce,
      0x52a618, 0x529e40, 0x52a146, 0x52a152,
+     0x874c37,
      },
 	// WE9:LE
 	{0x5df692, 0x5a9150, 0x59ade4,
@@ -142,6 +175,7 @@ static DWORD codeArray[][CODELEN] = {
      0x9c7da0, 0x9b3ec3,
      0x89a209, 0x524522, 0x5245ce,
      0x524e18, 0x524640, 0x524946, 0x524952,
+     0x5a9977,
      },
 };
 
@@ -181,7 +215,7 @@ static DWORD dataArray[][DATALEN] = {
      },
     // WE9:LE
 	{66, 35, 9099, 9703, 4, 
-     9084, 14, 9092,
+     9082, 16, 9092,
      0x3adef40,
      0x3b68a80, 0x37f20b4, 0x37f20b8, 10357,
      0x37f20cc, 61, 0x3adb168,
@@ -262,6 +296,7 @@ static char* FILE_NAMES[] = {
 };
 
 #define STAD_MAIN(x) (x==8 || x==19 || x==30 || x==41 || x==52 || x==63)
+#define STAD_ADBOARDS(x) (x==10 || x==21 || x==32 || x==43 || x==54 || x==65)
 #define ADBOARDS 66
 
 // comparator for string pointers
@@ -314,8 +349,6 @@ void SafeRelease(LPVOID ppObj);
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
 void InitStadiumServer();
 DWORD stadGetFileFromAFS(DWORD param0, DWORD afsId);
-void stadReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
-  LPDWORD lpNumberOfBytesRead,  LPOVERLAPPED lpOverlapped);
 void stadAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
   LPDWORD lpNumberOfBytesRead,  LPOVERLAPPED lpOverlapped);
 DWORD stadGetString(DWORD param0, DWORD text);
@@ -346,6 +379,11 @@ HRESULT InvalidateDeviceObjects(IDirect3DDevice8* dev);
 HRESULT DeleteDeviceObjects(IDirect3DDevice8* dev);
 HRESULT RestoreDeviceObjects(IDirect3DDevice8* dev);
 void DrawPreview(IDirect3DDevice8* dev);
+
+KEXPORT void HookCallPoint(DWORD addr, void* func, int codeShift, int numNops, bool addRetn);
+void stadReadNumPagesCallPoint();
+KEXPORT DWORD stadReadNumPages(DWORD base, DWORD fileId, DWORD orgNumPages);
+void safeMemset(void* dest, char c, size_t n);
 
 // Calls IUnknown::Release() on an instance
 void SafeRelease(LPVOID ppObj)
@@ -557,7 +595,6 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		RegisterKModule(&k_stadium);
 		
 		HookFunction(hk_D3D_Create,(DWORD)InitStadiumServer);
-		HookFunction(hk_ReadFile,(DWORD)stadReadFile);
 		HookFunction(hk_AfterReadFile,(DWORD)stadAfterReadFile);
 
 		HookFunction(hk_DrawKitSelectInfo,(DWORD)stadShowMenu);
@@ -593,7 +630,6 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
         
 
 		UnhookFunction(hk_D3D_Create,(DWORD)InitStadiumServer);
-		UnhookFunction(hk_ReadFile,(DWORD)stadReadFile);
 		UnhookFunction(hk_AfterReadFile,(DWORD)stadAfterReadFile);
 
 		UnhookFunction(hk_DrawKitSelectInfo,(DWORD)stadShowMenu);
@@ -617,7 +653,8 @@ void InitStadiumServer()
     ZeroMemory(g_stadFileSpec, BUFLEN);
 
     // hook code[C_GETFILEFROMAFS]
-    MasterHookFunction(code[C_GETFILEFROMAFS_CS], 2, stadGetFileFromAFS);
+    //MasterHookFunction(code[C_GETFILEFROMAFS_CS], 2, stadGetFileFromAFS);
+    HookCallPoint(code[C_READNUMPAGES], stadReadNumPagesCallPoint, 6, 2, false);
     
     Log(&k_stadium, "GetFileFromAFS hooked");
 
@@ -714,8 +751,14 @@ DWORD FindAdboardsFile(char* filename)
     // force full stadium reload next time
     BYTE* randomStad = (BYTE*)data[RANDOM_STADIUM_FLAG];
     *randomStad = *randomStad | 0x01;
+    Log(&k_stadium, "Flag set for full stadium reload.");
 
-    if (g_gameChoice && !(isViewStadiumMode && viewGdbStadiums)) {
+    if (isViewStadiumMode && viewGdbStadiums)
+    {
+        return 0; // don't use adboards texture in "View Stadiums"
+    }
+    else if (g_gameChoice) 
+    {
         return 0; //game choice stadium
     }
 
@@ -755,6 +798,9 @@ DWORD FindStadiumFile(DWORD stadFileId, char* filename)
     if (isViewStadiumMode) {
         if (!viewGdbStadiums) {
             return 0; // not a gdb stadium - in "View Stadiums"
+        }
+        else if (STAD_ADBOARDS(stadFileId)) {
+            return 0; // don't load adboards for GDB stads in "View Stadiums"
         }
     } else if (g_gameChoice) {
         return 0; //game choice stadium - not in "View Stadiums"
@@ -813,37 +859,51 @@ MEMITEMINFO* FindMemItemInfoByOffset(DWORD offset)
     return info;
 }
 
-DWORD _dwOffset1;
-
-void stadReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
-  LPDWORD lpNumberOfBytesRead,  LPOVERLAPPED lpOverlapped)
-{
-	// get current file pointer
-	_dwOffset1 = SetFilePointer(hFile, 0, NULL, FILE_CURRENT);  
-    //LogWithNumber(&k_stadium, "OnReadFile: dwOffset = %08x", _dwOffset1);
-    
-	return;
-}
-
 void stadAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
   LPDWORD lpNumberOfBytesRead,  LPOVERLAPPED lpOverlapped)
 {
-	// search for such offset
-	MEMITEMINFO* info = FindMemItemInfoByOffset(_dwOffset1);
+	MEMITEMINFO* info = NULL;
 
-	if (info != NULL && info->id == g_fileId && g_afsId == 1) {
-        LogWithNumber(&k_stadium,"OnReadFile: info->id = %d", info->id);
-        LogWithNumber(&k_stadium,"OnReadFile: lpBuffer = %08x", (DWORD)lpBuffer);
-        LogWithNumber(&k_stadium,"OnReadFile: nNumberOfBytesToRead = %08x", nNumberOfBytesToRead);
+    DWORD _dwOffset1 = SetFilePointer(hFile, 0, NULL, FILE_CURRENT)
+        - (*lpNumberOfBytesRead);
+    //LogWithThreeNumbers(&k_stadium,"stadAfterReadFile: f=%08x, off=%08x, btr=%08x", (DWORD)hFile, _dwOffset1, nNumberOfBytesToRead);
+
+    // check multi-step-read map first
+    bool multiStepReadNext = false;
+    map<MultiStepReadKey,MultiStepRead>::iterator mit;
+    MultiStepReadKey mkey;
+    mkey.hfile = hFile;
+    mkey.dwOffset = _dwOffset1;
+    //LogWithTwoNumbers(&k_stadium, "Looking for entry with key (%08x,%08x)...",
+    //        (DWORD)mkey.hfile, mkey.dwOffset);
+    mit = _msrs.find(mkey);
+    if (mit != _msrs.end())
+    {
+        info = mit->second.info;
+        g_afsId = mit->second.afsId;
+        g_fileId = mit->second.fileId;
+        multiStepReadNext = true;
+    }
+    else
+    {
+        // search for such offset
+        info = FindMemItemInfoByOffset(_dwOffset1);
+    }
+
+	//if (info != NULL && info->id == g_fileId && g_afsId == 1) {
+	if (info != NULL) {
+        LogWithNumber(&k_stadium,"stadAfterReadFile: info->id = %d", info->id);
+        LogWithNumber(&k_stadium,"stadAfterReadFile: lpBuffer = %08x", (DWORD)lpBuffer);
+        LogWithNumber(&k_stadium,"stadAfterReadFile: nNumberOfBytesToRead = %08x", nNumberOfBytesToRead);
 
         //bool switchStadium = false;
         if (info->id >= data[STAD_FIRST] ) {
             int stadId = GetStadId(info->id);
             int fileId = GetFileId(info->id);
-            LogWithNumber(&k_stadium,"OnReadFile: stadium: %d", stadId);
-            LogWithString(&k_stadium,"OnReadFile: file: %s", FILE_NAMES[fileId]);
+            LogWithNumber(&k_stadium,"stadAfterReadFile: stadium: %d", stadId);
+            LogWithString(&k_stadium,"stadAfterReadFile: file: %s", FILE_NAMES[fileId]);
         } else {
-            LogWithString(&k_stadium,"OnReadFile: file: %s", FILE_NAMES[ADBOARDS]);
+            LogWithString(&k_stadium,"stadAfterReadFile: file: %s", FILE_NAMES[ADBOARDS]);
         }
 
         if (strlen(g_stadFileSpec)>0) {
@@ -855,12 +915,67 @@ void stadAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead
                 OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
             if (hfile!=INVALID_HANDLE_VALUE) {
                 fsize = GetFileSize(hfile,NULL);
-                ReadFile(hfile,lpBuffer,fsize,&bytesread,NULL);
-                LogWithNumber(&k_stadium,"OnReadFile: bytesread = %08x", bytesread);
-                CloseHandle(hfile);
-            }
+                if (multiStepReadNext)
+                {
+                    // seek proper position
+                    DWORD newPos = SetFilePointer(hfile, mit->second.bytesRead, NULL, FILE_BEGIN);
+                    LogWithNumber(&k_stadium, "New file pointer: %08x", newPos);
+                    fsize -= mit->second.bytesRead;
+                    LogWithNumber(&k_stadium, "Bytes remain in the file: %08x", fsize);
+                }
+                int bytesToRead = min(fsize, nNumberOfBytesToRead);
+                LogWithNumber(&k_stadium,"stadAfterReadFile: trying to read %08x bytes...", bytesToRead);
+                ZeroMemory(lpBuffer,nNumberOfBytesToRead);
+                ReadFile(hfile,lpBuffer,bytesToRead,&bytesread,NULL);
+                LogWithNumber(&k_stadium,"stadAfterReadFile: bytesread = %08x", bytesread);
 
-            g_stadFileSpec[0]='\0';
+                // check if reached the end
+                DWORD curPos = SetFilePointer(hfile, 0, NULL, FILE_CURRENT);
+                DWORD endPos = SetFilePointer(hfile, 0, NULL, FILE_END);
+                bool allRead = curPos == endPos;
+                LogWithNumber(&k_stadium, "allRead = %d", allRead);
+                CloseHandle(hfile);
+
+                // multi-step reads
+                // ================
+                if (multiStepReadNext || bytesToRead < fsize)
+                {
+                    if (multiStepReadNext)
+                    {
+                        _msrs.erase(mit);
+                        LogWithTwoNumbers(&k_stadium, "Erased multi-step-read entry for key: (%08x,%08x)", (DWORD)mit->first.hfile, mit->first.dwOffset);
+                    }
+
+                    if (!allRead)
+                    {
+                        MultiStepReadKey msrKey;
+                        msrKey.hfile = hFile;
+                        msrKey.dwOffset = _dwOffset1 + bytesread;
+
+                        MultiStepRead msr;
+                        msr.dwOffset = _dwOffset1;
+                        if (multiStepReadNext)
+                            msr.bytesRead = mit->second.bytesRead + bytesread;
+                        else
+                            msr.bytesRead = bytesread;
+                        msr.afsId = g_afsId;
+                        msr.fileId = g_fileId;
+                        msr.info = info;
+
+                        LogWithTwoNumbers(&k_stadium,"stadAfterReadFile: putting new entry with key: (%08x,%08x)", (DWORD)msrKey.hfile, msrKey.dwOffset);
+                        _msrs[msrKey] = msr;
+                    }
+                    else 
+                    {
+                        //if (multiStepReadNext)
+                        //    __asm { int 3 }
+                    }
+                }
+                else
+                    g_stadFileSpec[0]='\0';
+            }
+            else
+                g_stadFileSpec[0]='\0';
         }
 
         g_afsId = 0xffffffff;
@@ -1030,8 +1145,8 @@ void stadKeyboardProc(int code1, WPARAM wParam, LPARAM lParam)
 			
 			//by nopping out these commands, we force a full
 			//reload of the stadium with going to the next one
-			memset((BYTE*)(code[C_STADIUMCHANGE]),0x90,6);
-			memset((BYTE*)(code[C_ADVANCESTADIUM]),0x90,1);
+			safeMemset((BYTE*)(code[C_STADIUMCHANGE]),0x90,6);
+			safeMemset((BYTE*)(code[C_ADVANCESTADIUM]),0x90,1);
 		};
 		
 		return;
@@ -1642,3 +1757,150 @@ DWORD stadSetLCM(DWORD p1)
 	
 	return result;
 };
+
+KEXPORT void HookCallPoint(DWORD addr, void* func, int codeShift, int numNops, bool addRetn)
+{
+    DWORD target = (DWORD)func + codeShift;
+	if (addr && target)
+	{
+	    BYTE* bptr = (BYTE*)addr;
+	    DWORD protection = 0;
+	    DWORD newProtection = PAGE_EXECUTE_READWRITE;
+	    if (VirtualProtect(bptr, 16, newProtection, &protection)) {
+	        bptr[0] = 0xe8;
+	        DWORD* ptr = (DWORD*)(addr + 1);
+	        ptr[0] = target - (DWORD)(addr + 5);
+            // padding with NOPs
+            for (int i=0; i<numNops; i++) bptr[5+i] = 0x90;
+            if (addRetn)
+                bptr[5+numNops]=0xc3;
+	        TRACE2X(&k_stadium, "Function (%08x) HOOKED at address (%08x)", target, addr);
+	    }
+	}
+}
+
+void safeMemset(void* dest, char c, size_t n)
+{
+    BYTE* bptr = (BYTE*)dest;
+    DWORD protection = 0;
+    DWORD newProtection = PAGE_EXECUTE_READWRITE;
+    if (VirtualProtect(bptr, n, newProtection, &protection)) {
+        memset(dest, c, n);
+    }
+    else {
+        TRACE2X(&k_stadium, "memset (%08x <-- %02x)", (DWORD)dest, (DWORD)c);
+    }
+}
+
+void stadReadNumPagesCallPoint()
+{
+    __asm {
+        pushfd 
+        push ebp
+        push ebx
+        push ecx
+        push edx
+        push esi
+        push edi
+        mov eax, dword ptr ds:[edi+ebx*4+0x11c]
+        push eax // org numpages
+        push ebx // fileId
+        push edi // base 
+        call stadReadNumPages
+        add esp, 0x0c  // pop parameters
+        pop edi
+        pop esi
+        pop edx
+        pop ecx
+        pop ebx
+        pop ebp
+        popfd
+        retn
+    }
+}
+
+DWORD GetAfsIdByBase(DWORD base)
+{
+    DWORD* pageLenTable = (DWORD*)data[AFS_PAGELEN_TABLE];
+    for (DWORD i=0; i<16; i++)
+        if (pageLenTable[i]==base)
+            return i;
+    return 0xffffffff;
+}
+
+KEXPORT DWORD stadReadNumPages(DWORD base, DWORD fileId, DWORD orgNumPages)
+{
+    DWORD afsId = GetAfsIdByBase(base);
+    DWORD fileSize = 0;
+
+    g_afsId = afsId;
+    g_fileId = fileId;
+
+    if (!bOthersHooked) {
+        MasterHookFunction(code[C_GETSTRING_CS], 2, stadGetString);
+        Log(&k_stadium, "hooked GetString");
+        MasterHookFunction(code[C_GETSTRING2_CS], 8, stadGetString2);
+        Log(&k_stadium, "hooked GetString2");
+
+        MasterHookFunction(code[C_WRITENUM_CS1], 3, stadWriteBuilt);
+        Log(&k_stadium, "hooked WriteBuilt");
+        MasterHookFunction(code[C_WRITENUM_CS2], 3, stadWriteCapacity);
+        Log(&k_stadium, "hooked WriteCapacity");
+
+        MasterHookFunction(code[C_SETLCM_CS], 1, stadSetLCM);
+        Log(&k_stadium, "hooked SetLCM");
+
+        bOthersHooked = true;
+    }
+
+    if (afsId == 1) { // 0_text.afs
+        if (MAP_CONTAINS(g_AFS_idMap, fileId)) {
+            LogWithTwoNumbers(&k_stadium,"stadReadNumPages: afsId=%d, fileId=%d", afsId, fileId);
+            if (fileId < data[STAD_FIRST]) {
+                // adboard textures
+                if (g_stadId != 0xffffffff) {
+                    // we know the stadium id
+
+                    // force Della Alpi adboards
+                    //fileId = data[DELLA_ALPI_ADBOARDS];
+
+                    //g_stadFileSpec[0]='\0';
+                    fileSize = FindAdboardsFile(g_stadFileSpec);
+                }
+            } else {
+                // stadium files
+
+                // check if stadium file exists
+                int stadId = GetStadId(fileId);
+                int stadFileId = GetFileId(fileId);
+
+                LogWithTwoNumbers(&k_stadium,"stadReadNumPages: stadId=%d, stadFileId=%d", stadId, stadFileId);
+
+                // force Della Alpi stadium
+                //fileId = stadFileId + data[DELLA_ALPI];
+
+                // remember current stadium ID
+                if (STAD_MAIN(stadFileId)) {
+                    g_stadId = stadId;
+                }
+                
+                fileSize = FindStadiumFile(stadFileId, g_stadFileSpec);
+            }
+
+            if (fileSize > 0) {
+                LogWithString(&k_stadium, "stadReadNumPages: found GDB stadium file: %s", g_stadFileSpec);
+
+                LogWithTwoNumbers(&k_stadium,"stadReadNumPages: had size: %08x pages (%08x bytes)", 
+                        orgNumPages, orgNumPages*0x800);
+
+                // adjust buffer size to fit GDB stadium file
+                DWORD numPages = fileSize / 0x800 + 1;
+                LogWithTwoNumbers(&k_stadium,"stadReadNumPages: new size: %08x pages (%08x bytes)", 
+                        numPages, numPages*0x800);
+                return numPages;
+            }
+        }
+    }
+    return orgNumPages;
+}
+

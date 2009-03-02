@@ -129,9 +129,6 @@ clock.dll: clock.lib clock.res
 	$(LINK) $(LFLAGS) /out:clock.dll /DLL clock.obj kload.lib d3dx8.lib clock.res $(LIBS)
 clock.obj: clock.cpp clock.h
 
-bootserv.res: 
-	$(RC) -r -fo bootserv.res bootserv.rc
-
 setupgui.obj: setupgui.cpp setupgui.h
 setup.exe: setup.obj detect.obj setupgui.obj imageutil.obj
 	$(LINK) $(LFLAGS) /out:setup.exe setup.obj detect.obj setupgui.obj imageutil.obj $(LIBS)
