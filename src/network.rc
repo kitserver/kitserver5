@@ -17,10 +17,13 @@ BEGIN
 	BEGIN
 		BLOCK "040904b0"
 		BEGIN
-			VALUE "FileDescription", "Roster Module\0"
+			VALUE "FileDescription", "Network Module\0"
 			VALUE "FileVersion", "5.3.2\0"
 			VALUE "LegalCopyright", "Copyright © 2010 Juce\0"
-			VALUE "Comments", "Keeps roster up-to-date for online play.\0"
+			VALUE "Comments", "Several utility functions for \
+online play: redirection of main network server and STUN-server,
+also ability to automatically updates roster upon entering \
+the network mode.\0"
 		END
 	END
 	BLOCK "VarFileInfo"

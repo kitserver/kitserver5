@@ -1,41 +1,50 @@
-// roster.cpp
+// network.cpp
 #include <windows.h>
 #include <stdio.h>
 #include "curl.h"
-#include "roster.h"
+#include "network.h"
 #include "kload_exp.h"
 #include "afsreplace.h"
 
-KMOD k_roster={MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG};
+KMOD k_network={MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG};
 
 HINSTANCE hInst;
 DWORD _rosterOffset(0xffffffff);
 bool _networkMode(false);
-//bool _showMessages(false);
 bool _downloading(false);
 
 
-#define DATALEN 1
+#define DATALEN 5
 enum {
-    MAIN_MENU_MODE
+    MAIN_MENU_MODE,
+    STUN_SERVER, STUN_SERVER_BUFLEN,
+    GAME_SERVER, GAME_SERVER_BUFLEN,
 };
 
 static DWORD dataArray[][DATALEN] = {
     // PES5 DEMO 2
     {
         0,
+        0, 0,
+        0, 0,
     },
     // PES5
     {
         0xfde858,
+        0xadadd8, 28,
+        0xada608, 32,
     },
     // WE9
     {
         0xfde860,
+        0xadadf4, 28,
+        0xada620, 32,
     },
     // WE9:LE
     {
         0xf187f0,
+        0xadb0a8, 28,
+        0xada920, 32,
     },
 };
 
@@ -48,34 +57,35 @@ enum {
     ROSTER_BIN_ETAG,
 };
 
-static char* rosterNames[][4] = {
+static char* rosterNames[] = {
     // PES5 DEMO 2
-    {"","","",""},
+    "",
     // PES5
-    {
-        "http://pes5-club.pesgame.net/updates/roster-pes5.bin",
-        "\\GDB\\network\\roster-pes5.bin",
-        "\\GDB\\network\\roster-pes5.bin.tmp",
-        "\\GDB\\network\\roster-pes5.bin.etag",
-    },
+    "roster-pes5.bin",
     // WE9
-    {
-        "http://pes5-club.pesgame.net/updates/roster-we9.bin",
-        "\\GDB\\network\\roster-we9.bin",
-        "\\GDB\\network\\roster-we9.bin.tmp",
-        "\\GDB\\network\\roster-we9.bin.etag",
-    },
+    "roster-we9.bin",
     // WE9:LE
-    {
-        "http://pes5-club.pesgame.net/updates/roster-we9le.bin",
-        "\\GDB\\network\\roster-we9le.bin",
-        "\\GDB\\network\\roster-we9le.bin.tmp",
-        "\\GDB\\network\\roster-we9le.bin.etag",
-    },
+    "roster-we9le.bin",
+};
+
+class network_config_t
+{
+public:
+    network_config_t() : 
+        debug(false),
+        updateEnabled(false)
+    {}
+
+    bool debug;
+    bool updateEnabled;
+    string updateBaseURI;
+    string stunServer;
+    string server;
 };
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
 void initModule();
+bool readConfig(network_config_t& config);
 size_t HeaderFunction( void *ptr, size_t size, size_t nmemb, void *stream);
 size_t WriteChunkCallback(void *ptr, size_t size, size_t nmemb, void *data);
 bool rosterReadNumPages(DWORD afsId, DWORD fileId, 
@@ -101,6 +111,7 @@ typedef struct _META_INFO
     CURL* hCurl;
 } META_INFO;
 
+
 bool getRosterMetaInfo(META_INFO* pMetaInfo);
 bool downloadRoster(META_INFO* pMetaInfo);
 bool getLocalEtag(META_INFO* pMetaInfo);
@@ -109,6 +120,18 @@ bool setLocalEtag(META_INFO* pMetaInfo);
 // global meta-info
 META_INFO _metaInfo;
 
+// global config
+network_config_t _config;
+
+
+static void string_strip(string& s)
+{
+    static const char* empties = " \t\n\r\"";
+    int e = s.find_last_not_of(empties);
+    s.erase(e + 1);
+    int b = s.find_first_not_of(empties);
+    s.erase(0,b);
+}
 
 size_t HeaderFunction( void *ptr, size_t size, size_t nmemb, void *stream)
 {
@@ -126,7 +149,7 @@ size_t HeaderFunction( void *ptr, size_t size, size_t nmemb, void *stream)
         if (crlf) {
             crlf[0]='\0';
         }
-        //LOG(&k_roster, "Header:: {%s} --> {%s}", 
+        //LOG(&k_network, "Header:: {%s} --> {%s}", 
         //        headerName, headerValue);
 
         META_INFO* pMetaInfo = (META_INFO*)stream;
@@ -168,7 +191,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 	
 	if (dwReason == DLL_PROCESS_ATTACH)
 	{
-		Log(&k_roster,"Attaching dll...");
+		Log(&k_network,"Attaching dll...");
 		
 		hInst=hInstance;
 		
@@ -185,7 +208,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		//Everything is OK!
 		GameVersIsOK:
 
-		RegisterKModule(&k_roster);
+		RegisterKModule(&k_network);
 
         // initialize addresses
         memcpy(data, dataArray[v], sizeof(data));
@@ -194,10 +217,82 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 	}
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
-		Log(&k_roster,"Detaching dll...");
-		Log(&k_roster,"Detaching done.");
+		Log(&k_network,"Detaching dll...");
+		Log(&k_network,"Detaching done.");
 	}
 	
+	return true;
+}
+
+/**
+ * Returns true if successful.
+ */
+bool readConfig(network_config_t& config)
+{
+    string cfgFile(GetPESInfo()->mydir);
+    cfgFile += "\\network.cfg";
+
+	FILE* cfg = fopen(cfgFile.c_str(), "rt");
+	if (cfg == NULL) return false;
+
+	char str[BUFLEN];
+	char name[BUFLEN];
+	int value = 0;
+	float dvalue = 0.0f;
+
+	char *pName = NULL, *pValue = NULL, *comment = NULL;
+	while (true)
+	{
+		ZeroMemory(str, BUFLEN);
+		fgets(str, BUFLEN-1, cfg);
+		if (feof(cfg)) break;
+
+		// skip comments
+		comment = strstr(str, "#");
+		if (comment != NULL) comment[0] = '\0';
+
+		// parse the line
+		pName = pValue = NULL;
+		ZeroMemory(name, BUFLEN); value = 0;
+		char* eq = strstr(str, "=");
+		if (eq == NULL || eq[1] == '\0') continue;
+
+		eq[0] = '\0';
+		pName = str; pValue = eq + 1;
+
+		ZeroMemory(name, NULL); 
+		sscanf(pName, "%s", name);
+
+		if (strcmp(name, "debug")==0)
+		{
+			if (sscanf(pValue, "%d", &value)!=1) continue;
+			config.debug = value;
+		}
+        else if (strcmp(name, "network.roster.update")==0)
+		{
+			if (sscanf(pValue, "%d", &value)!=1) continue;
+			config.updateEnabled = (value > 0);
+		}
+        else if (strcmp(name, "network.roster.update.baseurl")==0)
+        {
+            string value(pValue);
+            string_strip(value);
+            config.updateBaseURI = value;
+        }
+		else if (strcmp(name, "network.stun-server")==0)
+		{
+            string value(pValue);
+            string_strip(value);
+            config.stunServer = value.substr(0, data[STUN_SERVER_BUFLEN]-1);
+		}
+		else if (strcmp(name, "network.server")==0)
+		{
+            string value(pValue);
+            string_strip(value);
+            config.server = value.substr(0, data[GAME_SERVER_BUFLEN]-1);
+		}
+	}
+	fclose(cfg);
 	return true;
 }
 
@@ -207,7 +302,47 @@ void initModule()
     HookFunction(hk_AfterReadFile,(DWORD)rosterAfterReadFile);
 
 	curl_global_init(CURL_GLOBAL_ALL);
-    Log(&k_roster, "Roster module initialized.");
+    Log(&k_network, "Network module initialized.");
+
+    // read configuration
+    readConfig(_config);
+
+    LOG(&k_network, "_config.debug = %d", _config.debug);
+    LOG(&k_network, "_config.updateEnabled = %d", _config.updateEnabled);
+    LOG(&k_network, "_config.updateBaseURI = {%s}", 
+            _config.updateBaseURI.c_str());
+    LOG(&k_network, "_config.stunServer = {%s}", 
+            _config.stunServer.c_str());
+    LOG(&k_network, "_config.server = {%s}", 
+            _config.server.c_str());
+
+    // overwrite host-names
+    DWORD protection = 0;
+    DWORD newProtection = PAGE_EXECUTE_READWRITE;
+
+    if (!_config.server.empty()) {
+        char* gameServerString = (char*)data[GAME_SERVER];
+	    if (VirtualProtect(gameServerString, data[GAME_SERVER_BUFLEN], 
+                    newProtection, &protection)) {
+            strncpy(gameServerString, 
+                    _config.server.c_str(), data[GAME_SERVER_BUFLEN]);
+        }
+        else {
+            LOG(&k_network, "ERROR: cannot set game server host");
+        }
+
+    }
+    if (!_config.stunServer.empty()) {
+        char* stunServerString = (char*)data[STUN_SERVER];
+        if (VirtualProtect(stunServerString, data[STUN_SERVER_BUFLEN],
+                    newProtection, &protection)) {
+            strncpy(stunServerString, 
+                    _config.stunServer.c_str(), data[STUN_SERVER_BUFLEN]);
+        }
+        else {
+            LOG(&k_network, "ERROR: cannot set stun server host");
+        }
+    }
 }
 
 bool rosterReadNumPages(DWORD afsId, DWORD fileId, 
@@ -219,7 +354,7 @@ bool rosterReadNumPages(DWORD afsId, DWORD fileId,
             *(DWORD*)data[MAIN_MENU_MODE] == 7) {
         _networkMode = !_networkMode;
         if (_networkMode) {
-            Log(&k_roster,"Loading online roster ...");
+            Log(&k_network,"Loading online roster ...");
             //getRosterMetaInfo(&_metaInfo);
             if (_rosterOffset == 0xffffffff)
                 _rosterOffset = GetOffsetByFileId(afsId, fileId);
@@ -241,7 +376,7 @@ void rosterAfterReadFile(HANDLE hFile,
 
     //DWORD offset = SetFilePointer(hFile, 0, NULL, FILE_CURRENT)
     //    - (*lpNumberOfBytesRead);
-    //LogWithThreeNumbers(&k_roster, 
+    //LogWithThreeNumbers(&k_network, 
     //        "--> reading: afsId=%d, offset:%08x, bytes:%08x <--",
     //        afsId, offset, *lpNumberOfBytesRead);
 
@@ -252,23 +387,23 @@ void rosterAfterReadFile(HANDLE hFile,
 
         if (_rosterOffset == offset &&
                 *(DWORD*)data[MAIN_MENU_MODE] == 7 && _networkMode) {
-            LOG(&k_roster, 
+            LOG(&k_network, 
                     "--> READING ONLINE ROSTER: offset:%08x, bytes:%08x <--",
                     offset, *lpNumberOfBytesRead);
 
             // fetch new roster, if available
             META_INFO metaInfo;
             memset(metaInfo.etag,0,sizeof(metaInfo.etag));
-            getLocalEtag(&metaInfo);
-            //_showMessages = true;
+
             HookFunction(hk_D3D_Present, (DWORD)rosterPresent);
+            getLocalEtag(&metaInfo);
             downloadRoster(&metaInfo);
             UnhookFunction(hk_D3D_Present, (DWORD)rosterPresent);
-            //_showMessages = false;
 
             // feed it to the game
             string filename(GetPESInfo()->gdbDir);
-            filename += rosterNames[GetPESInfo()->GameVersion][ROSTER_BIN];
+            filename += "\\GDB\\network\\";
+            filename += rosterNames[GetPESInfo()->GameVersion];
             HANDLE rosterHandle = CreateFile(
                         filename.c_str(), 
                         GENERIC_READ,
@@ -292,7 +427,9 @@ void rosterAfterReadFile(HANDLE hFile,
 bool getLocalEtag(META_INFO* pMetaInfo)
 {
     string filename(GetPESInfo()->gdbDir);
-    filename += rosterNames[GetPESInfo()->GameVersion][ROSTER_BIN_ETAG];
+    filename += "\\GDB\\network\\";
+    filename += rosterNames[GetPESInfo()->GameVersion];
+    filename += ".etag";
 
     FILE* f = fopen(filename.c_str(),"rt");
     if (f) {
@@ -308,7 +445,9 @@ bool getLocalEtag(META_INFO* pMetaInfo)
 bool setLocalEtag(META_INFO* pMetaInfo)
 {
     string filename(GetPESInfo()->gdbDir);
-    filename += rosterNames[GetPESInfo()->GameVersion][ROSTER_BIN_ETAG];
+    filename += "\\GDB\\network\\";
+    filename += rosterNames[GetPESInfo()->GameVersion];
+    filename += ".etag";
 
     FILE* f = fopen(filename.c_str(),"wt");
     if (f) {
@@ -321,10 +460,13 @@ bool setLocalEtag(META_INFO* pMetaInfo)
 
 bool downloadRoster(META_INFO* pMetaInfo)
 {
-    string url(rosterNames[GetPESInfo()->GameVersion][ROSTER_URL]);
+    string url(_config.updateBaseURI);
+    url += rosterNames[GetPESInfo()->GameVersion];
 
     string filename(GetPESInfo()->gdbDir);
-    filename += rosterNames[GetPESInfo()->GameVersion][ROSTER_BIN_TEMP];
+    filename += "\\GDB\\network\\";
+    filename += rosterNames[GetPESInfo()->GameVersion];
+    filename += ".temp";
 
     _downloading = false;
 
@@ -338,7 +480,7 @@ bool downloadRoster(META_INFO* pMetaInfo)
                 NULL);
     if (hFile == INVALID_HANDLE_VALUE)
     {
-        LOG(&k_roster, "ERROR: unable to create file: %s", 
+        LOG(&k_network, "ERROR: unable to create file: %s", 
                 filename.c_str());
         return false;
     }
@@ -365,7 +507,7 @@ bool downloadRoster(META_INFO* pMetaInfo)
     if (pMetaInfo->etag[0]!='\0') {
         // make a conditional GET
         IfNoneMatchHeader += pMetaInfo->etag;
-        LOG(&k_roster, "%s", IfNoneMatchHeader.c_str());
+        LOG(&k_network, "%s", IfNoneMatchHeader.c_str());
         slist = curl_slist_append(slist, IfNoneMatchHeader.c_str());
 
         curl_easy_setopt(hCurl, CURLOPT_HTTPHEADER, slist);
@@ -373,28 +515,28 @@ bool downloadRoster(META_INFO* pMetaInfo)
 
     CURLcode code = curl_easy_perform(hCurl);
     if (code != CURLE_OK) {
-        LOG(&k_roster, "downloadRoster:: curl-code: %d", code);
+        LOG(&k_network, "downloadRoster:: curl-code: %d", code);
     }
 	else
     {
         // get status code
         long statusCode;
         curl_easy_getinfo(hCurl, CURLINFO_RESPONSE_CODE, &statusCode);
-        LOG(&k_roster, "status code: %d", statusCode);
+        LOG(&k_network, "status code: %d", statusCode);
         if (statusCode >= 200 && statusCode < 300) {
-            LOG(&k_roster, "fetched roster: %s", filename.c_str());
-            LOG(&k_roster, "Content-Length: %d", chunkRead.totalFetched);
+            LOG(&k_network, "fetched roster: %s", filename.c_str());
+            LOG(&k_network, "Content-Length: %d", chunkRead.totalFetched);
             setLocalEtag(pMetaInfo);
             
             // copy file
             CloseHandle(hFile);
             string rosterFilename(GetPESInfo()->gdbDir);
-            rosterFilename += rosterNames[
-                    GetPESInfo()->GameVersion][ROSTER_BIN];
+            rosterFilename += "\\GDB\\network\\";
+            rosterFilename += rosterNames[GetPESInfo()->GameVersion];
             CopyFile(filename.c_str(), rosterFilename.c_str(), false);
         }
         else if (statusCode == 304) {
-            LOG(&k_roster, "roster already up-to-date.");
+            LOG(&k_network, "roster already up-to-date.");
         }
     }
 

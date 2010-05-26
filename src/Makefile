@@ -28,7 +28,7 @@ all_apps: apps
 pngdib.obj:
 	(cd soft\pngdib && nmake EXTRA_CFLAGS=$(EXTRA_CFLAGS))
 
-dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll bserv_preview.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll roster.dll
+dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll bserv_preview.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll network.dll
 apps: setup.exe lodcfg.exe filedec.exe diag.exe afsexport.exe afswalk.exe afstest.exe
 
 release:
@@ -131,10 +131,10 @@ clock.dll: clock.lib clock.res
 	$(LINK) $(LFLAGS) /out:clock.dll /DLL clock.obj kload.lib d3dx8.lib clock.res $(LIBS)
 clock.obj: clock.cpp clock.h
 
-roster.lib: roster.obj
-roster.dll: roster.lib roster.res
-	$(LINK) $(LFLAGS) /out:roster.dll /DLL roster.obj kload.lib d3dx8.lib libcurl.lib roster.res $(LIBS) /LIBPATH:$(LPCURL)
-roster.obj: roster.cpp roster.h
+network.lib: network.obj
+network.dll: network.lib network.res
+	$(LINK) $(LFLAGS) /out:network.dll /DLL network.obj kload.lib d3dx8.lib libcurl.lib network.res $(LIBS) /LIBPATH:$(LPCURL)
+network.obj: network.cpp network.h
 
 setupgui.obj: setupgui.cpp setupgui.h
 setup.exe: setup.obj detect.obj setupgui.obj imageutil.obj
