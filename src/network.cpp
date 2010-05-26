@@ -17,11 +17,12 @@ bool _success(false);
 string _error;
 
 
-#define DATALEN 5
+#define DATALEN 6
 enum {
     MAIN_MENU_MODE,
     STUN_SERVER, STUN_SERVER_BUFLEN,
     GAME_SERVER, GAME_SERVER_BUFLEN,
+    ROSTER_FILEID,
 };
 
 static DWORD dataArray[][DATALEN] = {
@@ -30,24 +31,28 @@ static DWORD dataArray[][DATALEN] = {
         0,
         0, 0,
         0, 0,
+        0,
     },
     // PES5
     {
         0xfde858,
         0xadadd8, 28,
         0xada608, 32,
+        22,
     },
     // WE9
     {
         0xfde860,
         0xadadf4, 28,
         0xada620, 32,
+        22,
     },
     // WE9:LE
     {
         0xf187f0,
         0xadb0a8, 28,
         0xada920, 32,
+        28,
     },
 };
 
@@ -354,7 +359,7 @@ bool rosterReadNumPages(DWORD afsId, DWORD fileId,
 {
     DWORD fileSize = 0;
 
-    if (afsId == 1 && fileId == 28 &&
+    if (afsId == 1 && fileId == data[ROSTER_FILEID] &&
             *(DWORD*)data[MAIN_MENU_MODE] == 7) {
         _networkMode = !_networkMode;
         if (_networkMode) {
