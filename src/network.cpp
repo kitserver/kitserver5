@@ -466,7 +466,7 @@ bool downloadRoster(META_INFO* pMetaInfo)
     string filename(GetPESInfo()->gdbDir);
     filename += "\\GDB\\network\\";
     filename += rosterNames[GetPESInfo()->GameVersion];
-    filename += ".temp";
+    filename += ".tmp";
 
     _downloading = false;
 
