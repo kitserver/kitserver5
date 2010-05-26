@@ -32,3 +32,4 @@ KEXPORT bool MasterHookFunction(DWORD call_site, DWORD numArgs, void* target);
 KEXPORT bool MasterUnhookFunction(DWORD call_site, void* target);
 DWORD MasterCallFirst(...);
 KEXPORT DWORD MasterCallNext(...);
+KEXPORT DWORD GetAfsIdByOpenHandle(HANDLE handle);

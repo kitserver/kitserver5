@@ -203,8 +203,8 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		
 		RegisterKModule(&k_bserv);
 		
-		memcpy(code, codeArray[GetPESInfo()->GameVersion-1], sizeof(code));
-		memcpy(data, dataArray[GetPESInfo()->GameVersion-1], sizeof(data));
+		memcpy(code, codeArray[GetPESInfo()->GameVersion], sizeof(code));
+		memcpy(data, dataArray[GetPESInfo()->GameVersion], sizeof(data));
 		
 		char tmp[BUFLEN];
 		
@@ -321,18 +321,24 @@ void bservReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
   LPDWORD lpNumberOfBytesRead,  LPOVERLAPPED lpOverlapped)
 {
 	_dwOffset1 = SetFilePointer(hFile, 0, NULL, FILE_CURRENT);
-	return;
-};
+}
 
 void bservAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
   LPDWORD lpNumberOfBytesRead,  LPOVERLAPPED lpOverlapped)
 {
 	int found=-1;
 	char tmp[BUFLEN];
+
+    DWORD afsId = GetAfsIdByOpenHandle(hFile);
+    if (afsId != 1)
+        return;
+
+    DWORD offset = SetFilePointer(hFile, 0, NULL, FILE_CURRENT)
+        - (*lpNumberOfBytesRead);
 	
 	for (int i=0;i<data[NUM_BALL_FILES];i++) {
 		if (AFSArray[i].Buffer==(DWORD)lpBuffer) AFSArray[i].Buffer=0;
-		if (AFSArray[i].AFSAddr==_dwOffset1) {found=i;break;};
+		if (AFSArray[i].AFSAddr==offset) {found=i;break;};
 	};
 	if (found!=-1) {
 		AFSArray[found].Buffer=(DWORD)lpBuffer;
@@ -422,7 +428,8 @@ DWORD bservGetFileFromAFS(DWORD afsId, DWORD fileId)
                     orgNumPages, orgNumPages*0x800);
 
             // adjust buffer size to fit GDB ball model file
-            DWORD numPages = max(fileSize / 0x800 + 1, orgNumPages);
+            //DWORD numPages = max(fileSize / 0x800 + 1, orgNumPages);
+            DWORD numPages = fileSize/0x800 + ((fileSize&0x7ff)!=0);
             pPageLenTable[fileId] = numPages;
             LogWithTwoNumbers(&k_bserv,"bservGetFileFromAFS: new size: %08x pages (%08x bytes)", 
                     numPages, numPages*0x800);

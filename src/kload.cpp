@@ -11,6 +11,7 @@
 #include "imageutil.h"
 #include "detect.h"
 #include "kload.h"
+#include "apihijack.h"
 
 #include <map>
 
@@ -26,6 +27,9 @@ SAVEGAMEEXPFUNCS SavegameExpFuncs[numSaveGameExpModules];
 std::map<DWORD,THREEDWORDS> g_SpecialAfsIds;
 std::map<DWORD,THREEDWORDS>::iterator g_SpecialAfsIdsIterator;
 DWORD currSpecialAfsId=0;
+
+// last known handles for AFS files
+HANDLE _afsHandles[8] = {0,0,0,0,0,0,0,0};
 
 // global hook manager
 static hook_manager _hook_manager;
@@ -46,6 +50,25 @@ extern char* GAME[];
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
 void SetPESInfo();
+
+#ifndef __in
+#define __in
+#endif
+#ifndef __in_opt
+#define __in_opt
+#endif
+
+KEXPORT HANDLE WINAPI Override_CreateFileA(
+  __in      LPCSTR lpFileName,
+  __in      DWORD dwDesiredAccess,
+  __in      DWORD dwShareMode,
+  __in_opt  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+  __in      DWORD dwCreationDisposition,
+  __in      DWORD dwFlagsAndAttributes,
+  __in_opt  HANDLE hTemplateFile);
+
+KEXPORT BOOL WINAPI Override_CloseHandle(
+  __in  HANDLE hObject);
 
 /*******************/
 /* DLL Entry Point */
@@ -125,7 +148,19 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
         // The hooking of game routines should happen later:
         // when the game calls Direct3DCreate8. This is a requirement
         // for SECUROM-encrypted executables (such as WE9.exe, WE9LEK.exe)        
-	}
+        // hook CreateFileA to monitor file handles
+        SDLLHook Kernel32Hook = 
+        {
+            "KERNEL32.DLL",
+            false, NULL,		// Default hook disabled, NULL function pointer.
+            {
+                { "CreateFileA", Override_CreateFileA },
+                { "CloseHandle", Override_CloseHandle },
+                { NULL, NULL }
+            }
+        };
+        HookAPICalls( &Kernel32Hook );
+    }
 
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
@@ -473,5 +508,59 @@ KEXPORT DWORD MasterCallNext(...)
 	__asm mov eax, result
 	
 	return result;
+}
+
+KEXPORT DWORD GetAfsIdByOpenHandle(HANDLE handle)
+{
+    for (int i=0; i<8; i++) {
+        if (_afsHandles[i] == handle) 
+            return i;
+    }
+    return 0xffffffff;
+}
+
+KEXPORT HANDLE WINAPI Override_CreateFileA(
+  __in      LPCSTR lpFileName,
+  __in      DWORD dwDesiredAccess,
+  __in      DWORD dwShareMode,
+  __in_opt  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+  __in      DWORD dwCreationDisposition,
+  __in      DWORD dwFlagsAndAttributes,
+  __in_opt  HANDLE hTemplateFile)
+{
+    HANDLE handle = CreateFileA(
+            lpFileName,
+            dwDesiredAccess,
+            dwShareMode,
+            lpSecurityAttributes,
+            dwCreationDisposition,
+            dwFlagsAndAttributes,
+            hTemplateFile);
+
+    char* shortName = strrchr(lpFileName,'\\');
+    if (shortName) {
+        if (_strnicmp(shortName+1,"0_so",4)==0)
+            _afsHandles[0] = handle;
+        else if (_strnicmp(shortName+1,"0_te",4)==0)
+            _afsHandles[1] = handle;
+        else if (_strnicmp(shortName+2,"_so",3)==0)
+            _afsHandles[2] = handle;
+        else if (_strnicmp(shortName+2,"_te",3)==0)
+            _afsHandles[3] = handle;
+    }
+    return handle;
+}
+
+KEXPORT BOOL WINAPI Override_CloseHandle(
+  __in HANDLE hObject)
+{
+    BOOL result = CloseHandle(hObject);
+
+    for (int i=0; i<8; i++) {
+        if (_afsHandles[i] == hObject)
+            _afsHandles[i] = INVALID_HANDLE_VALUE;
+    }
+
+    return result;
 }
 

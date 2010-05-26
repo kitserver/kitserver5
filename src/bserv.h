@@ -1,7 +1,7 @@
 // bserv.h
 
 #define MODID 101
-#define NAMELONG "Ballserver 5.2.4.0"
+#define NAMELONG "Ballserver 5.3.2.0"
 #define NAMESHORT "BSERV"
 
 #define DEFAULT_DEBUG 1
@@ -14,6 +14,9 @@ enum {
 };
 
 static DWORD codeArray[][CODELEN] = {
+	// PES5 Demo 2
+	{0, 0,
+     },
 	// PES5
 	{0x5b7ea2, 0x9b1078,
      },
@@ -31,6 +34,10 @@ enum {
 };
 
 static DWORD dataArray[][DATALEN] = {
+	// PES5 Demo 2
+	{
+	 0, 0
+     },
 	// PES5
 	{
 	 0x3bfff00, 16

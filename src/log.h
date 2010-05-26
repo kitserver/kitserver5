@@ -23,6 +23,7 @@ KEXPORT void TestFunc();
 #define TRACE2X(i,x,a,b) DebugWithTwoNumbers(i,x,a,b)
 #define TRACEX(i,x,a,b,c) DebugWithThreeNumbers(i,x,a,b,c)
 #endif
+#define LOG _Log
 
 KEXPORT void OpenLog(char* logName);
 KEXPORT void CloseLog();
@@ -30,6 +31,7 @@ KEXPORT void CloseLog();
 KEXPORT void OpenMLog(DWORD size, char* filename);
 KEXPORT void CloseMLog(char* filename);
 
+KEXPORT void _Log(KMOD *caller, const char* format, ...);
 KEXPORT void MasterLog(KMOD *caller,char* logfile, char* procfile, char* msg);
 KEXPORT void Log(KMOD *caller,char* msg);
 KEXPORT void LogWithNumber(KMOD *caller,char* msg, DWORD number);

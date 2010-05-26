@@ -7,7 +7,7 @@
 #define BUFLEN 4096
 
 #define MODID 0
-#define NAMELONG "Module Loader 5.2.4"
+#define NAMELONG "Module Loader 5.3.2"
 #define NAMESHORT "KLOAD"
 #define CONFIG_FILE "kload.cfg"
 

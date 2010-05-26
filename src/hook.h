@@ -120,6 +120,9 @@ bool HookProc(DWORD proc, DWORD proc_cs, DWORD newproc, char* sproc, char* sproc
 bool UnhookProc(bool flag, DWORD proc, DWORD proc_cs, char* sproc, char* sproc_cs);
 bool HookProcAtAddr(DWORD proc, DWORD proc_cs, DWORD newproc, char* sproc, char* sproc_cs);
 bool UnhookProcAtAddr(bool flag, DWORD proc, DWORD proc_cs, char* sproc, char* sproc_cs);
+KEXPORT void HookCallPoint(DWORD addr, 
+        void* func, int codeShift, int numNops, bool addRetn);
+KEXPORT void safeMemset(void* dest, char c, size_t n);
 
 DWORD NewGetClubTeamInfo(DWORD id);
 DWORD NewGetClubTeamInfoML1(DWORD id);
@@ -236,6 +239,7 @@ enum HOOKS {
 	hk_UniSplit,
 	hk_AfterReadFile,
 	hk_D3D_UnlockRect,
+    hk_GetNumPages,
 };
 
 KEXPORT void HookFunction(HOOKS h,DWORD addr);

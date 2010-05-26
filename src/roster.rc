@@ -17,11 +17,10 @@ BEGIN
 	BEGIN
 		BLOCK "040904b0"
 		BEGIN
-			VALUE "FileDescription", "BallServer 5 Module\0"
+			VALUE "FileDescription", "Roster Module\0"
 			VALUE "FileVersion", "5.3.2\0"
-			VALUE "LegalCopyright", "Copyright © 2005-2010 Juce, Robbie\0"
-			VALUE "Comments", "Add-on component for PES5, WE9, WE9LE:\
-selection of new balls.\0"
+			VALUE "LegalCopyright", "Copyright © 2010 Juce\0"
+			VALUE "Comments", "Keeps roster up-to-date for online play.\0"
 		END
 	END
 	BLOCK "VarFileInfo"

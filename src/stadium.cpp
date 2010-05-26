@@ -4,6 +4,7 @@
 #include "stadium.h"
 #include "kload_exp.h"
 #include "hooklib.h"
+#include "afsreplace.h"
 
 //0x5052a0
 //0x5c73b6: call 858950
@@ -348,7 +349,6 @@ static bool isSelectMode=false;
 void SafeRelease(LPVOID ppObj);
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
 void InitStadiumServer();
-DWORD stadGetFileFromAFS(DWORD param0, DWORD afsId);
 void stadAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
   LPDWORD lpNumberOfBytesRead,  LPOVERLAPPED lpOverlapped);
 DWORD stadGetString(DWORD param0, DWORD text);
@@ -379,11 +379,8 @@ HRESULT InvalidateDeviceObjects(IDirect3DDevice8* dev);
 HRESULT DeleteDeviceObjects(IDirect3DDevice8* dev);
 HRESULT RestoreDeviceObjects(IDirect3DDevice8* dev);
 void DrawPreview(IDirect3DDevice8* dev);
-
-KEXPORT void HookCallPoint(DWORD addr, void* func, int codeShift, int numNops, bool addRetn);
-void stadReadNumPagesCallPoint();
-KEXPORT DWORD stadReadNumPages(DWORD base, DWORD fileId, DWORD orgNumPages);
-void safeMemset(void* dest, char c, size_t n);
+bool stadReadNumPages(DWORD base, DWORD fileId, 
+        DWORD orgNumPages, DWORD* numPages);
 
 // Calls IUnknown::Release() on an instance
 void SafeRelease(LPVOID ppObj)
@@ -555,6 +552,8 @@ static void InitStadiumMaps()
         }
     }
     fclose(map);
+
+
 }
 
 /**
@@ -596,6 +595,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		
 		HookFunction(hk_D3D_Create,(DWORD)InitStadiumServer);
 		HookFunction(hk_AfterReadFile,(DWORD)stadAfterReadFile);
+        HookFunction(hk_GetNumPages, (DWORD)stadReadNumPages);
 
 		HookFunction(hk_DrawKitSelectInfo,(DWORD)stadShowMenu);
         HookFunction(hk_OnShowMenu,(DWORD)stadBeginUniSelect);
@@ -612,9 +612,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		Log(&k_stadium,"Detaching dll...");
         DeleteCriticalSection(&g_cs);
 
-        MasterUnhookFunction(code[C_GETFILEFROMAFS_CS], stadGetFileFromAFS);
-        Log(&k_stadium, "GetFileFromAFS unhooked.");
-
+        /*
         MasterUnhookFunction(code[C_GETSTRING_CS], stadGetString);
         Log(&k_stadium, "GetString unhooked.");
         MasterUnhookFunction(code[C_GETSTRING2_CS], stadGetString2);
@@ -637,6 +635,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
         UnhookFunction(hk_OnHideMenu,(DWORD)stadEndUniSelect);   
         
         UnhookFunction(hk_D3D_Present,(DWORD)stadPresent);
+        */
 	};
 
 	return true;
@@ -651,12 +650,6 @@ void InitStadiumServer()
 
     // reset stadium filename buffer
     ZeroMemory(g_stadFileSpec, BUFLEN);
-
-    // hook code[C_GETFILEFROMAFS]
-    //MasterHookFunction(code[C_GETFILEFROMAFS_CS], 2, stadGetFileFromAFS);
-    HookCallPoint(code[C_READNUMPAGES], stadReadNumPagesCallPoint, 6, 2, false);
-    
-    Log(&k_stadium, "GetFileFromAFS hooked");
 
     FILE* f = fopen("dat\\0_text.afs","rb");
     if (!f) {
@@ -864,30 +857,38 @@ void stadAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead
 {
 	MEMITEMINFO* info = NULL;
 
-    DWORD _dwOffset1 = SetFilePointer(hFile, 0, NULL, FILE_CURRENT)
-        - (*lpNumberOfBytesRead);
-    //LogWithThreeNumbers(&k_stadium,"stadAfterReadFile: f=%08x, off=%08x, btr=%08x", (DWORD)hFile, _dwOffset1, nNumberOfBytesToRead);
+    DWORD afsId = GetAfsIdByOpenHandle(hFile);
+    //LogWithNumber(&k_stadium, "stadAfterReadFile:: afsId=%d", afsId);
 
-    // check multi-step-read map first
     bool multiStepReadNext = false;
     map<MultiStepReadKey,MultiStepRead>::iterator mit;
     MultiStepReadKey mkey;
     mkey.hfile = hFile;
-    mkey.dwOffset = _dwOffset1;
-    //LogWithTwoNumbers(&k_stadium, "Looking for entry with key (%08x,%08x)...",
-    //        (DWORD)mkey.hfile, mkey.dwOffset);
-    mit = _msrs.find(mkey);
-    if (mit != _msrs.end())
-    {
-        info = mit->second.info;
-        g_afsId = mit->second.afsId;
-        g_fileId = mit->second.fileId;
-        multiStepReadNext = true;
-    }
-    else
-    {
-        // search for such offset
-        info = FindMemItemInfoByOffset(_dwOffset1);
+    DWORD _dwOffset1(0);
+    
+    // ensure it is 0_TEXT.afs
+    if (afsId == 1) {
+        _dwOffset1 = SetFilePointer(hFile, 0, NULL, FILE_CURRENT)
+            - (*lpNumberOfBytesRead);
+        //LogWithThreeNumbers(&k_stadium,"stadAfterReadFile: f=%08x, off=%08x, btr=%08x", (DWORD)hFile, _dwOffset1, nNumberOfBytesToRead);
+
+        // check multi-step-read map first
+        mkey.dwOffset = _dwOffset1;
+        //LogWithTwoNumbers(&k_stadium, "Looking for entry with key (%08x,%08x)...",
+        //        (DWORD)mkey.hfile, mkey.dwOffset);
+        mit = _msrs.find(mkey);
+        if (mit != _msrs.end())
+        {
+            info = mit->second.info;
+            g_afsId = mit->second.afsId;
+            g_fileId = mit->second.fileId;
+            multiStepReadNext = true;
+        }
+        else
+        {
+            // search for such offset
+            info = FindMemItemInfoByOffset(_dwOffset1);
+        }
     }
 
 	//if (info != NULL && info->id == g_fileId && g_afsId == 1) {
@@ -985,97 +986,6 @@ void stadAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead
 	CheckViewStadiumMode();
 
 	return;
-}
-
-DWORD stadGetFileFromAFS(DWORD afsId, DWORD fileId)
-{
-    DWORD orgNumPages = 0;
-    DWORD fileSize = 0;
-    DWORD* pPageLenTable = NULL;
-
-    TRACE2X(&k_stadium,"stadGetFileFromAFS: afsId=%d, fileId=%d", afsId, fileId); 
-
-    if (!bOthersHooked) {
-        MasterHookFunction(code[C_GETSTRING_CS], 2, stadGetString);
-        Log(&k_stadium, "hooked GetString");
-        MasterHookFunction(code[C_GETSTRING2_CS], 8, stadGetString2);
-        Log(&k_stadium, "hooked GetString2");
-
-        MasterHookFunction(code[C_WRITENUM_CS1], 3, stadWriteBuilt);
-        Log(&k_stadium, "hooked WriteBuilt");
-        MasterHookFunction(code[C_WRITENUM_CS2], 3, stadWriteCapacity);
-        Log(&k_stadium, "hooked WriteCapacity");
-
-        MasterHookFunction(code[C_SETLCM_CS], 1, stadSetLCM);
-        Log(&k_stadium, "hooked SetLCM");
-
-        bOthersHooked = true;
-    }
-
-    if (afsId == 1) { // 0_text.afs
-        if (MAP_CONTAINS(g_AFS_idMap, fileId)) {
-            LogWithTwoNumbers(&k_stadium,"stadGetFileFromAFS: afsId=%d, fileId=%d", afsId, fileId);
-            if (fileId < data[STAD_FIRST]) {
-                // adboard textures
-                if (g_stadId != 0xffffffff) {
-                    // we know the stadium id
-
-                    // force Della Alpi adboards
-                    //fileId = data[DELLA_ALPI_ADBOARDS];
-
-                    fileSize = FindAdboardsFile(g_stadFileSpec);
-                }
-            } else {
-                // stadium files
-
-                // check if stadium file exists
-                int stadId = GetStadId(fileId);
-                int stadFileId = GetFileId(fileId);
-
-                LogWithTwoNumbers(&k_stadium,"stadGetFileFromAFS: stadId=%d, stadFileId=%d", stadId, stadFileId);
-
-                // force Della Alpi stadium
-                //fileId = stadFileId + data[DELLA_ALPI];
-
-                // remember current stadium ID
-                if (STAD_MAIN(stadFileId)) {
-                    g_stadId = stadId;
-                }
-                
-                fileSize = FindStadiumFile(stadFileId, g_stadFileSpec);
-            }
-
-            if (fileSize > 0) {
-                LogWithString(&k_stadium, "stadGetFileFromAFS: found GDB stadium file: %s", g_stadFileSpec);
-
-                // find buffer size (in pages)
-                g_pageLenTable = (DWORD*)data[AFS_PAGELEN_TABLE];
-                pPageLenTable = (DWORD*)(g_pageLenTable[afsId] + 0x11c);
-                orgNumPages = pPageLenTable[fileId];
-                LogWithTwoNumbers(&k_stadium,"stadGetFileFromAFS: had size: %08x pages (%08x bytes)", 
-                        orgNumPages, orgNumPages*0x800);
-
-                // adjust buffer size to fit GDB stadium file
-                DWORD numPages = fileSize / 0x800 + 1;
-                pPageLenTable[fileId] = numPages;
-                LogWithTwoNumbers(&k_stadium,"stadGetFileFromAFS: new size: %08x pages (%08x bytes)", 
-                        numPages, numPages*0x800);
-            }
-
-            g_afsId = afsId;
-            g_fileId = fileId;
-        }
-    }
-
-    // call original
-    DWORD result = MasterCallNext(afsId, fileId);
-
-    // restore original filesize in pagelen-table
-    if (pPageLenTable) {
-        pPageLenTable[fileId] = orgNumPages;
-    }
-
-    return result;
 }
 
 void stadBeginUniSelect()
@@ -1758,80 +1668,12 @@ DWORD stadSetLCM(DWORD p1)
 	return result;
 };
 
-KEXPORT void HookCallPoint(DWORD addr, void* func, int codeShift, int numNops, bool addRetn)
+bool stadReadNumPages(DWORD afsId, DWORD fileId, 
+        DWORD orgNumPages, DWORD* numPages)
 {
-    DWORD target = (DWORD)func + codeShift;
-	if (addr && target)
-	{
-	    BYTE* bptr = (BYTE*)addr;
-	    DWORD protection = 0;
-	    DWORD newProtection = PAGE_EXECUTE_READWRITE;
-	    if (VirtualProtect(bptr, 16, newProtection, &protection)) {
-	        bptr[0] = 0xe8;
-	        DWORD* ptr = (DWORD*)(addr + 1);
-	        ptr[0] = target - (DWORD)(addr + 5);
-            // padding with NOPs
-            for (int i=0; i<numNops; i++) bptr[5+i] = 0x90;
-            if (addRetn)
-                bptr[5+numNops]=0xc3;
-	        TRACE2X(&k_stadium, "Function (%08x) HOOKED at address (%08x)", target, addr);
-	    }
-	}
-}
-
-void safeMemset(void* dest, char c, size_t n)
-{
-    BYTE* bptr = (BYTE*)dest;
-    DWORD protection = 0;
-    DWORD newProtection = PAGE_EXECUTE_READWRITE;
-    if (VirtualProtect(bptr, n, newProtection, &protection)) {
-        memset(dest, c, n);
-    }
-    else {
-        TRACE2X(&k_stadium, "memset (%08x <-- %02x)", (DWORD)dest, (DWORD)c);
-    }
-}
-
-void stadReadNumPagesCallPoint()
-{
-    __asm {
-        pushfd 
-        push ebp
-        push ebx
-        push ecx
-        push edx
-        push esi
-        push edi
-        mov eax, dword ptr ds:[edi+ebx*4+0x11c]
-        push eax // org numpages
-        push ebx // fileId
-        push edi // base 
-        call stadReadNumPages
-        add esp, 0x0c  // pop parameters
-        pop edi
-        pop esi
-        pop edx
-        pop ecx
-        pop ebx
-        pop ebp
-        popfd
-        retn
-    }
-}
-
-DWORD GetAfsIdByBase(DWORD base)
-{
-    DWORD* pageLenTable = (DWORD*)data[AFS_PAGELEN_TABLE];
-    for (DWORD i=0; i<16; i++)
-        if (pageLenTable[i]==base)
-            return i;
-    return 0xffffffff;
-}
-
-KEXPORT DWORD stadReadNumPages(DWORD base, DWORD fileId, DWORD orgNumPages)
-{
-    DWORD afsId = GetAfsIdByBase(base);
     DWORD fileSize = 0;
+    //LogWithNumber(&k_stadium, "stadReadNumPages CALLED with afsId=%d",
+    //        afsId);
 
     g_afsId = afsId;
     g_fileId = fileId;
@@ -1894,13 +1736,13 @@ KEXPORT DWORD stadReadNumPages(DWORD base, DWORD fileId, DWORD orgNumPages)
                         orgNumPages, orgNumPages*0x800);
 
                 // adjust buffer size to fit GDB stadium file
-                DWORD numPages = fileSize / 0x800 + 1;
+                *numPages = fileSize/0x800 + ((fileSize&0x7ff)!=0);
                 LogWithTwoNumbers(&k_stadium,"stadReadNumPages: new size: %08x pages (%08x bytes)", 
-                        numPages, numPages*0x800);
-                return numPages;
+                        *numPages, (*numPages)*0x800);
+                return true;
             }
         }
     }
-    return orgNumPages;
+    return false;
 }
 

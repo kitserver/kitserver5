@@ -8,9 +8,11 @@ LIBS=user32.lib gdi32.lib advapi32.lib
 LIBSDLL=pngdib.obj libpng.lib zdll.lib $(LIBS)
 
 INCPNGDIB=soft\pngdib
+INCCURL=soft\curl\include
 LPPNGDIB=soft\pngdib 
 LPLIBPNG=soft\libpng-1.2.8-lib\lib
 LPZLIB=soft\zlib123-dll\lib
+LPCURL=soft\curl\lib
 
 all: dlls apps
 	if exist output (rd /S /Q output)
@@ -26,7 +28,7 @@ all_apps: apps
 pngdib.obj:
 	(cd soft\pngdib && nmake EXTRA_CFLAGS=$(EXTRA_CFLAGS))
 
-dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll bserv_preview.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll
+dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll bserv_preview.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll roster.dll
 apps: setup.exe lodcfg.exe filedec.exe diag.exe afsexport.exe afswalk.exe afstest.exe
 
 release:
@@ -37,9 +39,9 @@ setup: setup.exe
 imageutil.obj: imageutil.cpp imageutil.h
 detect.obj: detect.cpp detect.h
 
-kload.lib: kload.obj detect.obj d3dfont.obj imageutil.obj log.obj kload_config.obj hook.obj  hooklib.obj dxutil.obj
+kload.lib: kload.obj detect.obj d3dfont.obj imageutil.obj log.obj kload_config.obj hook.obj  hooklib.obj dxutil.obj afsreplace.obj apihijack.obj
 kload.dll: kload.lib kload.res
-	$(LINK) $(LFLAGS) /out:kload.dll /DLL kload.obj d3dfont.obj dxutil.obj detect.obj imageutil.obj log.obj kload_config.obj hook.obj hooklib.obj kload.res $(LIBS) d3dx8.lib winmm.lib
+	$(LINK) $(LFLAGS) /out:kload.dll /DLL kload.obj d3dfont.obj dxutil.obj detect.obj imageutil.obj log.obj kload_config.obj hook.obj hooklib.obj afsreplace.obj apihijack.obj kload.res $(LIBS) d3dx8.lib winmm.lib
 kload.obj: kload.cpp kload.h
 detect.obj: detect.cpp detect.h
 kload.res: 
@@ -129,6 +131,11 @@ clock.dll: clock.lib clock.res
 	$(LINK) $(LFLAGS) /out:clock.dll /DLL clock.obj kload.lib d3dx8.lib clock.res $(LIBS)
 clock.obj: clock.cpp clock.h
 
+roster.lib: roster.obj
+roster.dll: roster.lib roster.res
+	$(LINK) $(LFLAGS) /out:roster.dll /DLL roster.obj kload.lib d3dx8.lib libcurl.lib roster.res $(LIBS) /LIBPATH:$(LPCURL)
+roster.obj: roster.cpp roster.h
+
 setupgui.obj: setupgui.cpp setupgui.h
 setup.exe: setup.obj detect.obj setupgui.obj imageutil.obj
 	$(LINK) $(LFLAGS) /out:setup.exe setup.obj detect.obj setupgui.obj imageutil.obj $(LIBS)
@@ -164,7 +171,7 @@ diag.obj: diag.cpp diag.h diaggui.h
 
 	
 .cpp.obj:
-	$(CC) $(CFLAGS) -c $(INC) /I $(INCPNGDIB) $<
+	$(CC) $(CFLAGS) -c $(INC) /I $(INCPNGDIB) /I $(INCCURL) $<
 
 clean:
 	del /Q /F *.exp *.lib *.obj *.res *.dll *.exe

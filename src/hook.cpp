@@ -6,12 +6,16 @@
 #include "manage.h"
 #include "hook.h"
 #include "kload_config.h"
+#include "afsreplace.h"
+#include "apihijack.h"
+
 
 extern KMOD k_kload;
 extern PESINFO g_pesinfo;
 extern KLOAD_CONFIG g_config;
+extern CALLLINE l_GetNumPages;
 
-#define CODELEN 42
+#define CODELEN 43
 
 enum {
 	C_UNIDECODE, C_UNIDECODE_CS,C_UNIDECODE_CS2,
@@ -32,6 +36,7 @@ enum {
     C_UNISPLIT, C_UNISPLIT_CS1, C_UNISPLIT_CS2,
     C_UNISPLIT_CS3, C_UNISPLIT_CS4, C_UNISPLIT_CS5,
     C_UNISPLIT_CS6, C_UNISPLIT_CS7, C_UNISPLIT_CS8,
+    C_READNUMPAGES,
 };
 
 // Code addresses.
@@ -55,6 +60,7 @@ DWORD codeArray[][CODELEN] = {
       0, 0, 0,
       0, 0, 0,
       0, 0, 0,
+      0,
       },
 	// PES5 
 	{ 0x829360, 0x84c522, 0x85032d, //C_UNIDECODE_CS2 is not used anymore at the moment
@@ -75,6 +81,7 @@ DWORD codeArray[][CODELEN] = {
       0x8d5600, 0x84c5bd, 0x84c5d9,
       0x84c63e, 0x84c65d, 0x84c7d2,
       0x84c7f5, 0x84c834, 0x84c86f,
+      0x874767,
       },
 	// WE9 
 	{ 0x8297e0, 0x84c9d2, 0x8507dd,
@@ -95,6 +102,7 @@ DWORD codeArray[][CODELEN] = {
       0x8d5b60, 0x84ca6d, 0x84ca89,
       0x84caee, 0x84cb0d, 0x84cc82,
       0x84cca5, 0x84cce4, 0x84cd1f,
+      0x874c37,
       },
    	// WE9:LE
 	{ 0x850ac0, 0x873c82, 0x877a8d,
@@ -115,6 +123,7 @@ DWORD codeArray[][CODELEN] = {
       0x8d4d90, 0x873d1d, 0x873d39,
       0x873d9e, 0x873dbd, 0x873f32,
       0x873f55, 0x873f94, 0x873fcf,
+      0x5a9977,
       },
 };
 
@@ -307,6 +316,7 @@ void HookDirect3DCreate8()
 
 void HookReadFile()
 {
+    /*
 	// hook code[C_READFILE]
 	if (code[C_READFILE_CS] != 0)
 	{
@@ -325,6 +335,19 @@ void HookReadFile()
 	    }
 	}
 	return;
+    */
+
+    // hook ReadFile
+    SDLLHook Kernel32Hook = 
+    {
+        "KERNEL32.DLL",
+        false, NULL,		// Default hook disabled, NULL function pointer.
+        {
+            { "ReadFile", NewReadFile },
+            { NULL, NULL }
+        }
+    };
+    HookAPICalls( &Kernel32Hook );
 };
 
 void UnhookReadFile()
@@ -1101,6 +1124,10 @@ BOOL STDMETHODCALLTYPE NewReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberO
 	
 	// call original function		
 	BOOL result=ReadFile(hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped);
+    if (lpOverlapped) {
+        LogWithNumber(&k_kload, "ReadFile:: lpOverlapped=%08x", 
+                (DWORD)lpOverlapped);
+    }
 	
 	for (i=0;i<(l_AfterReadFile.num);i++)
 	if (l_AfterReadFile.addr[i]!=0) {
@@ -1159,6 +1186,7 @@ IDirect3D8* STDMETHODCALLTYPE NewDirect3DCreate8(UINT sdkVersion)
 		}
     }
 
+    HookCallPoint(code[C_READNUMPAGES], newReadNumPagesCallPoint, 6, 2, false);
     HookReadFile();
     HookOthers();
     if (g_hKeyboardHook == NULL) {
@@ -1760,7 +1788,10 @@ void AddToLine(CALLLINE* cl,DWORD addr)
 	if (addr==0) return;
 	
 	for (int i=0;i<(cl->num);i++) {
-		if (cl->addr[i]==0) continue;
+		if (cl->addr[i]==0) {/*continue;*/
+            cl->addr[i]=addr;
+            return;
+        }
 		if (cl->addr[i]==addr) {
 			if (cl==&l_DrawKitSelectInfo)
 				lastAddedDrawKitSelectInfo=i;
@@ -1896,6 +1927,7 @@ CALLLINE* LineFromID(HOOKS h)
 		case hk_UniSplit: cl = &l_UniSplit; break;
 		case hk_AfterReadFile: cl = &l_AfterReadFile; break;
 		case hk_D3D_UnlockRect: cl = &l_D3D_UnlockRect; break;
+		case hk_GetNumPages: cl = &l_GetNumPages; break;
 	};
 	return cl;
 };
@@ -1905,6 +1937,7 @@ void InitAddresses(int v)
 	// select correct addresses
 	memcpy(code, codeArray[v], sizeof(code));
 	memcpy(gpi, gpiArray[v], sizeof(gpi));
+    afsreplace_init(v);
 
 	// assign pointers	
 	BeginUniSelect = (BEGINUNISELECT)code[C_BEGINUNISELECT];
@@ -1922,3 +1955,40 @@ void InitAddresses(int v)
 	
 	return;
 };
+
+KEXPORT void HookCallPoint(DWORD addr, 
+        void* func, int codeShift, int numNops, bool addRetn)
+{
+    DWORD target = (DWORD)func + codeShift;
+	if (addr && target)
+	{
+	    BYTE* bptr = (BYTE*)addr;
+	    DWORD protection = 0;
+	    DWORD newProtection = PAGE_EXECUTE_READWRITE;
+	    if (VirtualProtect(bptr, 16, newProtection, &protection)) {
+	        bptr[0] = 0xe8;
+	        DWORD* ptr = (DWORD*)(addr + 1);
+	        ptr[0] = target - (DWORD)(addr + 5);
+            // padding with NOPs
+            for (int i=0; i<numNops; i++) bptr[5+i] = 0x90;
+            if (addRetn)
+                bptr[5+numNops]=0xc3;
+	        TRACE2X(&k_kload, "Function (%08x) HOOKED at address (%08x)", 
+                    target, addr);
+	    }
+	}
+}
+
+KEXPORT void safeMemset(void* dest, char c, size_t n)
+{
+    BYTE* bptr = (BYTE*)dest;
+    DWORD protection = 0;
+    DWORD newProtection = PAGE_EXECUTE_READWRITE;
+    if (VirtualProtect(bptr, n, newProtection, &protection)) {
+        memset(dest, c, n);
+    }
+    else {
+        TRACE2X(&k_kload, "memset (%08x <-- %02x)", (DWORD)dest, (DWORD)c);
+    }
+}
+
