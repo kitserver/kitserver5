@@ -12,6 +12,9 @@ HINSTANCE hInst;
 DWORD _rosterOffset(0xffffffff);
 bool _networkMode(false);
 bool _downloading(false);
+bool _checking(false);
+bool _success(false);
+string _error;
 
 
 #define DATALEN 5
@@ -162,6 +165,7 @@ size_t HeaderFunction( void *ptr, size_t size, size_t nmemb, void *stream)
                     CURLINFO_RESPONSE_CODE, &statusCode);
             if (statusCode >= 200 && statusCode < 300) {
                 _downloading = true;
+                _checking = false;
             }
         }
         else if (stricmp(headerName,"Etag")==0) {
@@ -391,14 +395,17 @@ void rosterAfterReadFile(HANDLE hFile,
                     "--> READING ONLINE ROSTER: offset:%08x, bytes:%08x <--",
                     offset, *lpNumberOfBytesRead);
 
-            // fetch new roster, if available
-            META_INFO metaInfo;
-            memset(metaInfo.etag,0,sizeof(metaInfo.etag));
+            // if enabled, check for roster updates
+            if (_config.updateEnabled && !_config.updateBaseURI.empty()) {
+                // fetch new roster, if an update exists
+                META_INFO metaInfo;
+                memset(metaInfo.etag,0,sizeof(metaInfo.etag));
 
-            HookFunction(hk_D3D_Present, (DWORD)rosterPresent);
-            getLocalEtag(&metaInfo);
-            downloadRoster(&metaInfo);
-            UnhookFunction(hk_D3D_Present, (DWORD)rosterPresent);
+                HookFunction(hk_D3D_Present, (DWORD)rosterPresent);
+                getLocalEtag(&metaInfo);
+                downloadRoster(&metaInfo);
+                UnhookFunction(hk_D3D_Present, (DWORD)rosterPresent);
+            }
 
             // feed it to the game
             string filename(GetPESInfo()->gdbDir);
@@ -468,7 +475,10 @@ bool downloadRoster(META_INFO* pMetaInfo)
     filename += rosterNames[GetPESInfo()->GameVersion];
     filename += ".tmp";
 
+    _checking = true;
     _downloading = false;
+    _success = false;
+    _error = "";
 
     HANDLE hFile = CreateFile(
                 filename.c_str(), 
@@ -516,6 +526,9 @@ bool downloadRoster(META_INFO* pMetaInfo)
     CURLcode code = curl_easy_perform(hCurl);
     if (code != CURLE_OK) {
         LOG(&k_network, "downloadRoster:: curl-code: %d", code);
+        char buf[128];
+        _snprintf(buf,128,"Communication error: %d", code);
+        _error = buf;
     }
 	else
     {
@@ -534,16 +547,33 @@ bool downloadRoster(META_INFO* pMetaInfo)
             rosterFilename += "\\GDB\\network\\";
             rosterFilename += rosterNames[GetPESInfo()->GameVersion];
             CopyFile(filename.c_str(), rosterFilename.c_str(), false);
+            _success = true;
         }
         else if (statusCode == 304) {
             LOG(&k_network, "roster already up-to-date.");
+            _success = true;
+        }
+        else if (statusCode == 404) {
+            char buf[128];
+            _error = "Roster update unavailable.";
+        }
+        else {
+            char buf[128];
+            _snprintf(buf,128,"Unexpected HTTP status: %d", statusCode);
+            _error = buf;
         }
     }
+    _downloading = false;
+    _checking = false;
 
     curl_slist_free_all(slist);
 
     CloseHandle(hFile);
     DeleteFile(filename.c_str());
+
+    // let the status message show up on the screen
+    // for a couple of seconds
+    Sleep(2000);
     return code == CURLE_OK;
 }
 
@@ -556,13 +586,28 @@ void rosterPresent(IDirect3DDevice8* self,
 		KDrawText(59,44,0xff000000,20,"Downloading new roster...");
 		KDrawText(61,42,0xff000000,20,"Downloading new roster...");
 		KDrawText(60,43,0xffffffc0,20,"Downloading new roster...");
-	} else {
+	} 
+    else if (_checking) {
 		KDrawText(59,42,0xff000000,20,"Checking for roster update...");
 		KDrawText(61,44,0xff000000,20,"Checking for roster update...");
 		KDrawText(59,44,0xff000000,20,"Checking for roster update...");
 		KDrawText(61,42,0xff000000,20,"Checking for roster update...");
 		KDrawText(60,43,0xffcccccc,20,"Checking for roster update...");
-	};
+	}
+    else if (_success) {
+		KDrawText(59,42,0xff000000,20,"Roster is up-to-date");
+		KDrawText(61,44,0xff000000,20,"Roster is up-to-date");
+		KDrawText(59,44,0xff000000,20,"Roster is up-to-date");
+		KDrawText(61,42,0xff000000,20,"Roster is up-to-date");
+		KDrawText(60,43,0xffccffcc,20,"Roster is up-to-date");
+    }
+    else {
+		KDrawText(59,42,0xff000000,20,(char*)_error.c_str());
+		KDrawText(61,44,0xff000000,20,(char*)_error.c_str());
+		KDrawText(59,44,0xff000000,20,(char*)_error.c_str());
+		KDrawText(61,42,0xff000000,20,(char*)_error.c_str());
+		KDrawText(60,43,0xffffcccc,20,(char*)_error.c_str());
+    }
 }
 
 
