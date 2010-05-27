@@ -15,6 +15,18 @@ extern PESINFO g_pesinfo;
 extern KLOAD_CONFIG g_config;
 extern CALLLINE l_GetNumPages;
 
+EXTERN_C HANDLE WINAPI Override_CreateFileA(
+  LPCSTR lpFileName,
+  DWORD dwDesiredAccess,
+  DWORD dwShareMode,
+  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+  DWORD dwCreationDisposition,
+  DWORD dwFlagsAndAttributes,
+  HANDLE hTemplateFile);
+
+EXTERN_C KEXPORT BOOL WINAPI Override_CloseHandle(
+  HANDLE hObject);
+
 #define CODELEN 43
 
 enum {
@@ -1185,6 +1197,19 @@ IDirect3D8* STDMETHODCALLTYPE NewDirect3DCreate8(UINT sdkVersion)
 			Log(&k_kload,"GetDeviceCaps hooked.");
 		}
     }
+
+    // hook CreateFileA to monitor file handles
+    SDLLHook Kernel32Hook = 
+    {
+        "KERNEL32.DLL",
+        false, NULL,		// Default hook disabled, NULL function pointer.
+        {
+            { "CreateFileA", Override_CreateFileA },
+            { "CloseHandle", Override_CloseHandle },
+            { NULL, NULL }
+        }
+    };
+    HookAPICalls( &Kernel32Hook );
 
     HookCallPoint(code[C_READNUMPAGES], newReadNumPagesCallPoint, 6, 2, false);
     HookReadFile();

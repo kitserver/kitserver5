@@ -148,18 +148,6 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
         // The hooking of game routines should happen later:
         // when the game calls Direct3DCreate8. This is a requirement
         // for SECUROM-encrypted executables (such as WE9.exe, WE9LEK.exe)        
-        // hook CreateFileA to monitor file handles
-        SDLLHook Kernel32Hook = 
-        {
-            "KERNEL32.DLL",
-            false, NULL,		// Default hook disabled, NULL function pointer.
-            {
-                { "CreateFileA", Override_CreateFileA },
-                { "CloseHandle", Override_CloseHandle },
-                { NULL, NULL }
-            }
-        };
-        HookAPICalls( &Kernel32Hook );
     }
 
 	else if (dwReason == DLL_PROCESS_DETACH)
