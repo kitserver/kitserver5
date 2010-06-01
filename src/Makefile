@@ -2,16 +2,18 @@ CC=cl
 LINK=link
 RC=rc
 
-CFLAGS=/nologo /GX $(EXTRA_CFLAGS) /DUSE_HASHMAPS
+CFLAGS=/nologo /GX $(EXTRA_CFLAGS) /DUSE_HASHMAPS /D_WIN32
 LFLAGS=/NOLOGO /NODEFAULTLIB:libcmt.lib
 LIBS=user32.lib gdi32.lib advapi32.lib
 LIBSDLL=pngdib.obj libpng.lib zdll.lib $(LIBS)
 
 INCPNGDIB=soft\pngdib
 INCCURL=soft\curl\include
+INCARCHIVE=soft\libarchive-2.4.12-1\include
 LPPNGDIB=soft\pngdib 
 LPLIBPNG=soft\libpng-1.2.8-lib\lib
 LPZLIB=soft\zlib123-dll\lib
+LPARCHIVE=soft\libarchive-2.4.12-1\lib
 LPCURL=soft\curl\lib
 
 all: dlls apps
@@ -28,7 +30,7 @@ all_apps: apps
 pngdib.obj:
 	(cd soft\pngdib && nmake EXTRA_CFLAGS=$(EXTRA_CFLAGS))
 
-dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll bserv_preview.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll network.dll
+dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll bserv_preview.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll network.dll speeder.dll
 apps: setup.exe lodcfg.exe filedec.exe diag.exe afsexport.exe afswalk.exe afstest.exe
 
 release:
@@ -133,8 +135,13 @@ clock.obj: clock.cpp clock.h
 
 network.lib: network.obj
 network.dll: network.lib network.res
-	$(LINK) $(LFLAGS) /out:network.dll /DLL network.obj kload.lib d3dx8.lib libcurl.lib network.res $(LIBS) /LIBPATH:$(LPCURL)
+	$(LINK) $(LFLAGS) /out:network.dll /DLL network.obj kload.lib d3dx8.lib libcurl.lib libarchive.lib network.res $(LIBS) /LIBPATH:$(LPCURL) /LIBPATH:$(LPARCHIVE)
 network.obj: network.cpp network.h
+
+speeder.lib: speeder.obj apihijack.obj
+speeder.dll: speeder.lib speeder.res
+	$(LINK) $(LFLAGS) /out:speeder.dll /DLL speeder.obj kload.lib apihijack.obj speeder.res $(LIBS) 
+speeder.obj: speeder.cpp speeder.h apihijack.h
 
 setupgui.obj: setupgui.cpp setupgui.h
 setup.exe: setup.obj detect.obj setupgui.obj imageutil.obj
@@ -171,7 +178,7 @@ diag.obj: diag.cpp diag.h diaggui.h
 
 	
 .cpp.obj:
-	$(CC) $(CFLAGS) -c $(INC) /I $(INCPNGDIB) /I $(INCCURL) $<
+	$(CC) $(CFLAGS) -c $(INC) /I $(INCPNGDIB) /I $(INCCURL) /I $(INCARCHIVE) $<
 
 clean:
 	del /Q /F *.exp *.lib *.obj *.res *.dll *.exe

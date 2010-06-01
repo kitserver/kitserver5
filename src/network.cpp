@@ -1,6 +1,8 @@
 // network.cpp
 #include <windows.h>
 #include <stdio.h>
+#include "archive.h"
+#include "archive_entry.h"
 #include "curl.h"
 #include "network.h"
 #include "kload_exp.h"
@@ -9,20 +11,23 @@
 KMOD k_network={MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG};
 
 HINSTANCE hInst;
-DWORD _rosterOffset(0xffffffff);
 bool _networkMode(false);
 bool _downloading(false);
 bool _checking(false);
 bool _success(false);
+char _checkingText[128];
+char _downloadingText[128];
 string _error;
 
 
-#define DATALEN 6
+#define DATALEN 12
 enum {
     MAIN_MENU_MODE,
     STUN_SERVER, STUN_SERVER_BUFLEN,
     GAME_SERVER, GAME_SERVER_BUFLEN,
-    ROSTER_FILEID,
+    DB_FILE1, DB_FILE2, DB_FILE3,
+    ROSTER_FILEID, 
+    DB_FILE5, DB_FILE6, DB_FILE7,
 };
 
 static DWORD dataArray[][DATALEN] = {
@@ -31,28 +36,28 @@ static DWORD dataArray[][DATALEN] = {
         0,
         0, 0,
         0, 0,
-        0,
+        0,0,0,0,0,0,0,
     },
     // PES5
     {
         0xfde858,
         0xadadd8, 28,
         0xada608, 32,
-        22,
+        17,18,19,22,23,24,25,
     },
     // WE9
     {
         0xfde860,
         0xadadf4, 28,
         0xada620, 32,
-        22,
+        17,18,19,22,23,24,25,
     },
     // WE9:LE
     {
         0xf187f0,
         0xadb0a8, 28,
         0xada920, 32,
-        28,
+        23,24,25,28,29,30,31,
     },
 };
 
@@ -65,15 +70,26 @@ enum {
     ROSTER_BIN_ETAG,
 };
 
-static char* rosterNames[] = {
+static char* urlDirNames[] = {
     // PES5 DEMO 2
-    "",
+    "pes5demo2/",
     // PES5
-    "roster-pes5.bin",
+    "pes5/",
     // WE9
-    "roster-we9.bin",
+    "we9/",
     // WE9:LE
-    "roster-we9le.bin",
+    "we9le/",
+};
+
+static char* dirNames[] = {
+    // PES5 DEMO 2
+    "pes5demo2\\",
+    // PES5
+    "pes5\\",
+    // WE9
+    "we9\\",
+    // WE9:LE
+    "we9le\\",
 };
 
 class network_config_t
@@ -120,10 +136,11 @@ typedef struct _META_INFO
 } META_INFO;
 
 
-bool getRosterMetaInfo(META_INFO* pMetaInfo);
-bool downloadRoster(META_INFO* pMetaInfo);
-bool getLocalEtag(META_INFO* pMetaInfo);
-bool setLocalEtag(META_INFO* pMetaInfo);
+bool getRosterMetaInfo(META_INFO* pMetaInfo, const char* shortName);
+bool downloadArchive(META_INFO* pMetaInfo, const char* shortName);
+bool extractArchive(const string& shortName);
+bool getLocalEtag(META_INFO* pMetaInfo, const char* shortName);
+bool setLocalEtag(META_INFO* pMetaInfo, const char* shortName);
 
 // global meta-info
 META_INFO _metaInfo;
@@ -359,14 +376,18 @@ bool rosterReadNumPages(DWORD afsId, DWORD fileId,
 {
     DWORD fileSize = 0;
 
-    if (afsId == 1 && fileId == data[ROSTER_FILEID] &&
-            *(DWORD*)data[MAIN_MENU_MODE] == 7) {
-        _networkMode = !_networkMode;
+    if (afsId == 1 
+            && ((fileId >= data[DB_FILE1] && fileId <= data[DB_FILE3])
+                || (fileId >= data[ROSTER_FILEID] && fileId <= data[DB_FILE7]))
+            && *(DWORD*)data[MAIN_MENU_MODE] == 7) {
+
+        if (fileId == data[DB_FILE3]) {
+            _networkMode = !_networkMode;
+            if (_networkMode)
+                LOG(&k_network,"Loading online db ...");
+        }
+
         if (_networkMode) {
-            Log(&k_network,"Loading online roster ...");
-            //getRosterMetaInfo(&_metaInfo);
-            if (_rosterOffset == 0xffffffff)
-                _rosterOffset = GetOffsetByFileId(afsId, fileId);
             *numPages = 0x200; // 1mb should always be enough
             return true;
         }
@@ -393,29 +414,38 @@ void rosterAfterReadFile(HANDLE hFile,
     if (afsId == 1) {
         DWORD offset = SetFilePointer(hFile, 0, NULL, FILE_CURRENT)
             - (*lpNumberOfBytesRead);
+        DWORD fileId = GetFileIdByOffset(afsId, offset);
 
-        if (_rosterOffset == offset &&
-                *(DWORD*)data[MAIN_MENU_MODE] == 7 && _networkMode) {
+        if ((fileId >= data[DB_FILE1] && fileId <= data[DB_FILE3] 
+                    || (fileId >= data[ROSTER_FILEID] 
+                        && fileId <= data[DB_FILE7]))
+                && *(DWORD*)data[MAIN_MENU_MODE] == 7 && _networkMode) {
             LOG(&k_network, 
-                    "--> READING ONLINE ROSTER: offset:%08x, bytes:%08x <--",
-                    offset, *lpNumberOfBytesRead);
+                    "--> READING ONLINE DB (%d): offset:%08x, bytes:%08x <--",
+                    fileId, offset, *lpNumberOfBytesRead);
 
-            // if enabled, check for roster updates
+            char shortName[30];
+            memset(shortName,0,sizeof(shortName));
+            sprintf(shortName,"db_%d.bin",fileId);
+
+            // if enabled, check for db-update
             if (_config.updateEnabled && !_config.updateBaseURI.empty()) {
-                // fetch new roster, if an update exists
-                META_INFO metaInfo;
-                memset(metaInfo.etag,0,sizeof(metaInfo.etag));
+                if (fileId == data[DB_FILE3]) {
+                    META_INFO metaInfo;
+                    memset(metaInfo.etag,0,sizeof(metaInfo.etag));
 
-                HookFunction(hk_D3D_Present, (DWORD)rosterPresent);
-                getLocalEtag(&metaInfo);
-                downloadRoster(&metaInfo);
-                UnhookFunction(hk_D3D_Present, (DWORD)rosterPresent);
+                    HookFunction(hk_D3D_Present, (DWORD)rosterPresent);
+                    getLocalEtag(&metaInfo, "db.zip");
+                    downloadArchive(&metaInfo, "db.zip");
+                    UnhookFunction(hk_D3D_Present, (DWORD)rosterPresent);
+                }
             }
 
             // feed it to the game
             string filename(GetPESInfo()->gdbDir);
             filename += "\\GDB\\network\\";
-            filename += rosterNames[GetPESInfo()->GameVersion];
+            filename += dirNames[GetPESInfo()->GameVersion];
+            filename += shortName;
             HANDLE rosterHandle = CreateFile(
                         filename.c_str(), 
                         GENERIC_READ,
@@ -436,11 +466,12 @@ void rosterAfterReadFile(HANDLE hFile,
     }
 }
 
-bool getLocalEtag(META_INFO* pMetaInfo)
+bool getLocalEtag(META_INFO* pMetaInfo, const char* shortName)
 {
     string filename(GetPESInfo()->gdbDir);
     filename += "\\GDB\\network\\";
-    filename += rosterNames[GetPESInfo()->GameVersion];
+    filename += dirNames[GetPESInfo()->GameVersion];
+    filename += shortName;
     filename += ".etag";
 
     FILE* f = fopen(filename.c_str(),"rt");
@@ -454,11 +485,12 @@ bool getLocalEtag(META_INFO* pMetaInfo)
     return false;
 }
 
-bool setLocalEtag(META_INFO* pMetaInfo)
+bool setLocalEtag(META_INFO* pMetaInfo, const char* shortName)
 {
     string filename(GetPESInfo()->gdbDir);
     filename += "\\GDB\\network\\";
-    filename += rosterNames[GetPESInfo()->GameVersion];
+    filename += dirNames[GetPESInfo()->GameVersion];
+    filename += shortName;
     filename += ".etag";
 
     FILE* f = fopen(filename.c_str(),"wt");
@@ -470,20 +502,63 @@ bool setLocalEtag(META_INFO* pMetaInfo)
     return false;
 }
 
-bool downloadRoster(META_INFO* pMetaInfo)
+bool extractArchive(const string& filename)
+{
+    struct archive* x = archive_read_new();
+    if (!x) {
+        LOG(&k_network,"ERROR: archive_read_new FAILED.");
+        return false;
+    }
+
+    archive_read_support_compression_all(x);
+    archive_read_support_format_all(x);
+
+    if (archive_read_open_filename(x, filename.c_str(), filename.size())
+            == ARCHIVE_OK) {
+        struct archive_entry* e;
+        while (archive_read_next_header(x, &e) != ARCHIVE_EOF) {
+            int code;
+            if ((code = archive_read_extract(x, e, 0)) == ARCHIVE_OK) {
+                LOG(&k_network, "Extracted: %s", archive_entry_pathname(e));
+            }
+            else {
+                LOG(&k_network, "Extraction of entry FAILED: %d", code);
+            }
+        }
+        archive_read_close(x);
+        archive_read_finish(x);
+    }
+    else {
+        LOG(&k_network,"ERROR: archive_read_open_filename FAILED.");
+        archive_read_finish(x);
+        return false;
+    }
+
+    return true;
+}
+
+bool downloadArchive(META_INFO* pMetaInfo, const char* shortName)
 {
     string url(_config.updateBaseURI);
-    url += rosterNames[GetPESInfo()->GameVersion];
+    url += urlDirNames[GetPESInfo()->GameVersion];
+    url += shortName;
 
-    string filename(GetPESInfo()->gdbDir);
-    filename += "\\GDB\\network\\";
-    filename += rosterNames[GetPESInfo()->GameVersion];
+    string dbDir(GetPESInfo()->gdbDir);
+    dbDir += "\\GDB\\network\\";
+    dbDir += dirNames[GetPESInfo()->GameVersion];
+    // TODO: auto-create dirs
+    
+    string filename(dbDir);
+    filename += shortName;
     filename += ".tmp";
 
     _checking = true;
     _downloading = false;
     _success = false;
     _error = "";
+
+    sprintf(_checkingText,"Checking for updates: %s", shortName);
+    sprintf(_downloadingText,"Downloading: %s", shortName);
 
     HANDLE hFile = CreateFile(
                 filename.c_str(), 
@@ -495,8 +570,19 @@ bool downloadRoster(META_INFO* pMetaInfo)
                 NULL);
     if (hFile == INVALID_HANDLE_VALUE)
     {
+        _checking = false;
+        _error = "ERROR: unable to create file: ";
+        _error += shortName;
+        _error += ".tmp (check log)";
+
         LOG(&k_network, "ERROR: unable to create file: %s", 
                 filename.c_str());
+        LOG(&k_network, "Make sure this directory exists: %s", 
+                dbDir.c_str());
+
+        // let the error message show up on the screen
+        // for a couple of seconds
+        Sleep(2000);
         return false;
     }
 
@@ -530,7 +616,7 @@ bool downloadRoster(META_INFO* pMetaInfo)
 
     CURLcode code = curl_easy_perform(hCurl);
     if (code != CURLE_OK) {
-        LOG(&k_network, "downloadRoster:: curl-code: %d", code);
+        LOG(&k_network, "downloadArchive:: curl-code: %d", code);
         char buf[128];
         _snprintf(buf,128,"Communication error: %d", code);
         _error = buf;
@@ -542,25 +628,37 @@ bool downloadRoster(META_INFO* pMetaInfo)
         curl_easy_getinfo(hCurl, CURLINFO_RESPONSE_CODE, &statusCode);
         LOG(&k_network, "status code: %d", statusCode);
         if (statusCode >= 200 && statusCode < 300) {
-            LOG(&k_network, "fetched roster: %s", filename.c_str());
+            LOG(&k_network, "fetched db file: %s", filename.c_str());
             LOG(&k_network, "Content-Length: %d", chunkRead.totalFetched);
-            setLocalEtag(pMetaInfo);
+            setLocalEtag(pMetaInfo, shortName);
             
             // copy file
             CloseHandle(hFile);
-            string rosterFilename(GetPESInfo()->gdbDir);
-            rosterFilename += "\\GDB\\network\\";
-            rosterFilename += rosterNames[GetPESInfo()->GameVersion];
-            CopyFile(filename.c_str(), rosterFilename.c_str(), false);
+            string dbDir(GetPESInfo()->gdbDir);
+            dbDir += "\\GDB\\network\\";
+            dbDir += dirNames[GetPESInfo()->GameVersion];
+            string dbFile(dbDir);
+            dbFile += shortName;
+            CopyFile(filename.c_str(), dbFile.c_str(), false);
+
+            // unpack db archive
+            char currDir[1024];
+            memset(currDir,0,sizeof(currDir));
+            GetCurrentDirectory(sizeof(currDir), currDir);
+            SetCurrentDirectory(dbDir.c_str());
+            extractArchive(dbFile);
+            SetCurrentDirectory(currDir);
+
+            DeleteFile(dbFile.c_str());
             _success = true;
         }
         else if (statusCode == 304) {
-            LOG(&k_network, "roster already up-to-date.");
+            LOG(&k_network, "DB already up-to-date.");
             _success = true;
         }
         else if (statusCode == 404) {
             char buf[128];
-            _error = "Roster update unavailable.";
+            _error = "DB update unavailable.";
         }
         else {
             char buf[128];
@@ -586,25 +684,35 @@ void rosterPresent(IDirect3DDevice8* self,
         CONST RECT* src, CONST RECT* dest, HWND hWnd, LPVOID unused)
 {
 	if (_downloading) {
-		KDrawText(59,42,0xff000000,20,"Downloading new roster...");
-		KDrawText(61,44,0xff000000,20,"Downloading new roster...");
-		KDrawText(59,44,0xff000000,20,"Downloading new roster...");
-		KDrawText(61,42,0xff000000,20,"Downloading new roster...");
-		KDrawText(60,43,0xffffffc0,20,"Downloading new roster...");
+		//KDrawText(59,42,0xff000000,20,"Downloading new DB...");
+		//KDrawText(61,44,0xff000000,20,"Downloading new DB...");
+		//KDrawText(59,44,0xff000000,20,"Downloading new DB...");
+		//KDrawText(61,42,0xff000000,20,"Downloading new DB...");
+		//KDrawText(60,43,0xffffffc0,20,"Downloading new DB...");
+		KDrawText(59,42,0xff000000,20,_downloadingText);
+		KDrawText(61,44,0xff000000,20,_downloadingText);
+		KDrawText(59,44,0xff000000,20,_downloadingText);
+		KDrawText(61,42,0xff000000,20,_downloadingText);
+		KDrawText(60,43,0xffffffc0,20,_downloadingText);
 	} 
     else if (_checking) {
-		KDrawText(59,42,0xff000000,20,"Checking for roster update...");
-		KDrawText(61,44,0xff000000,20,"Checking for roster update...");
-		KDrawText(59,44,0xff000000,20,"Checking for roster update...");
-		KDrawText(61,42,0xff000000,20,"Checking for roster update...");
-		KDrawText(60,43,0xffcccccc,20,"Checking for roster update...");
+		//KDrawText(59,42,0xff000000,20,"Checking for DB update...");
+		//KDrawText(61,44,0xff000000,20,"Checking for DB update...");
+		//KDrawText(59,44,0xff000000,20,"Checking for DB update...");
+		//KDrawText(61,42,0xff000000,20,"Checking for DB update...");
+		//KDrawText(60,43,0xffcccccc,20,"Checking for DB update...");
+		KDrawText(59,42,0xff000000,20,_checkingText);
+		KDrawText(61,44,0xff000000,20,_checkingText);
+		KDrawText(59,44,0xff000000,20,_checkingText);
+		KDrawText(61,42,0xff000000,20,_checkingText);
+		KDrawText(60,43,0xffcccccc,20,_checkingText);
 	}
     else if (_success) {
-		KDrawText(59,42,0xff000000,20,"Roster is up-to-date");
-		KDrawText(61,44,0xff000000,20,"Roster is up-to-date");
-		KDrawText(59,44,0xff000000,20,"Roster is up-to-date");
-		KDrawText(61,42,0xff000000,20,"Roster is up-to-date");
-		KDrawText(60,43,0xffccffcc,20,"Roster is up-to-date");
+		KDrawText(59,42,0xff000000,20,"DB is up-to-date");
+		KDrawText(61,44,0xff000000,20,"DB is up-to-date");
+		KDrawText(59,44,0xff000000,20,"DB is up-to-date");
+		KDrawText(61,42,0xff000000,20,"DB is up-to-date");
+		KDrawText(60,43,0xffccffcc,20,"DB is up-to-date");
     }
     else {
 		KDrawText(59,42,0xff000000,20,(char*)_error.c_str());
