@@ -15,7 +15,19 @@ extern PESINFO g_pesinfo;
 extern KLOAD_CONFIG g_config;
 extern CALLLINE l_GetNumPages;
 
-EXTERN_C HANDLE WINAPI Override_CreateFileA(
+LARGE_INTEGER _performanceFrequency = {0,0};
+
+// last known handles for AFS files
+HANDLE _afsHandles[8] = {0,0,0,0,0,0,0,0};
+
+#ifndef __in
+#define __in
+#endif
+#ifndef __in_opt
+#define __in_opt
+#endif
+
+KEXPORT HANDLE WINAPI Override_CreateFileA(
   LPCSTR lpFileName,
   DWORD dwDesiredAccess,
   DWORD dwShareMode,
@@ -24,7 +36,16 @@ EXTERN_C HANDLE WINAPI Override_CreateFileA(
   DWORD dwFlagsAndAttributes,
   HANDLE hTemplateFile);
 
-EXTERN_C KEXPORT BOOL WINAPI Override_CloseHandle(
+KEXPORT HANDLE WINAPI Override_CreateFileW(
+  LPCWSTR lpFileName,
+  DWORD dwDesiredAccess,
+  DWORD dwShareMode,
+  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+  DWORD dwCreationDisposition,
+  DWORD dwFlagsAndAttributes,
+  HANDLE hTemplateFile);
+
+KEXPORT BOOL WINAPI Override_CloseHandle(
   HANDLE hObject);
 
 #define CODELEN 43
@@ -296,6 +317,7 @@ CALLLINE l_OnHideMenu={0,NULL};
 CALLLINE l_UniSplit={0,NULL};
 CALLLINE l_AfterReadFile={0,NULL};
 CALLLINE l_D3D_UnlockRect={0,NULL};
+CALLLINE l_CreateOption={0,NULL};
 
 void HookDirect3DCreate8()
 {
@@ -1150,6 +1172,12 @@ BOOL STDMETHODCALLTYPE NewReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberO
 	return result;
 }
 
+KEXPORT bool GetOriginalFrequency(LARGE_INTEGER* lpPerformanceFrequency)
+{
+    *lpPerformanceFrequency = _performanceFrequency;
+    return _performanceFrequency.LowPart || _performanceFrequency.HighPart;
+}
+
 /**
  * Tracker for Direct3DCreate8 function.
  */
@@ -1163,6 +1191,9 @@ IDirect3D8* STDMETHODCALLTYPE NewDirect3DCreate8(UINT sdkVersion)
 	// put back saved code fragment
 	dest[0] = g_codeFragment[0];
 	*((DWORD*)(dest + 1)) = *((DWORD*)(g_codeFragment + 1));
+
+    // get clock frequency
+    QueryPerformanceFrequency(&_performanceFrequency);
 
 	for (int i=0;i<(l_D3D_Create.num);i++)
 		if (l_D3D_Create.addr[i]!=0) {
@@ -1205,6 +1236,7 @@ IDirect3D8* STDMETHODCALLTYPE NewDirect3DCreate8(UINT sdkVersion)
         false, NULL,		// Default hook disabled, NULL function pointer.
         {
             { "CreateFileA", Override_CreateFileA },
+            { "CreateFileW", Override_CreateFileW },
             { "CloseHandle", Override_CloseHandle },
             { NULL, NULL }
         }
@@ -1242,6 +1274,16 @@ HRESULT STDMETHODCALLTYPE NewGetDeviceCaps(IDirect3D8* self, UINT Adapter,
     return result;
 }
 
+void write_dword(DWORD addr, BYTE* data)
+{
+	DWORD protection = 0;
+	DWORD newProtection = PAGE_EXECUTE_READWRITE;
+    if (VirtualProtect((BYTE*)addr, 8, newProtection, &protection))
+    {
+        memcpy((BYTE*)addr, &data, sizeof(DWORD));
+    }
+}
+   
 /**
  * CreateDevice hijacker.
  */
@@ -1321,6 +1363,37 @@ HRESULT STDMETHODCALLTYPE NewCreateDevice(IDirect3D8* self, UINT Adapter,
 			NextCall(self, Adapter, DeviceType, hFocusWindow,
             	BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
 		};
+
+
+    //static BUFFER move
+    if (0) {
+        BYTE* static_buffer = (BYTE*)HeapAlloc(
+                GetProcessHeap(), HEAP_ZERO_MEMORY, 0x20000);
+        LOG(&k_kload, "static_buffer = %08x", static_buffer);
+        write_dword(0x5a79b2+1, static_buffer);
+        write_dword(0x5a79df+2, static_buffer);
+        write_dword(0x5a79e6+1, static_buffer);
+        write_dword(0x5a9de7+1, static_buffer);
+        write_dword(0x5a9e1e+2, static_buffer);
+        write_dword(0x5a9e31+1, static_buffer);
+        write_dword(0x5a9e72+1, static_buffer);
+        write_dword(0x5a9e8d+1, static_buffer);
+        write_dword(0x5ac820+3, static_buffer);
+        write_dword(0x5ac838+3, static_buffer);
+        write_dword(0x5ac873+3, static_buffer);
+        write_dword(0xac369b+1, static_buffer);
+        write_dword(0xac36b0+2, static_buffer);
+        write_dword(0xac36bc+2, static_buffer);
+        write_dword(0xac36d8+3, static_buffer);
+        write_dword(0xac36ea+1, static_buffer);
+        write_dword(0xac372a+1, static_buffer);
+        write_dword(0xac3741+2, static_buffer);
+        write_dword(0xac374f+1, static_buffer+2);
+        write_dword(0xac37e7+3, static_buffer);
+        write_dword(0xac37ef+3, static_buffer);
+        write_dword(0xac3840+3, static_buffer);
+        write_dword(0xac38b7+1, static_buffer);
+    }
 		
     return result;
 };
@@ -1953,6 +2026,7 @@ CALLLINE* LineFromID(HOOKS h)
 		case hk_AfterReadFile: cl = &l_AfterReadFile; break;
 		case hk_D3D_UnlockRect: cl = &l_D3D_UnlockRect; break;
 		case hk_GetNumPages: cl = &l_GetNumPages; break;
+		case hk_CreateOption: cl = &l_CreateOption; break;
 	};
 	return cl;
 };
@@ -2015,5 +2089,146 @@ KEXPORT void safeMemset(void* dest, char c, size_t n)
     else {
         TRACE2X(&k_kload, "memset (%08x <-- %02x)", (DWORD)dest, (DWORD)c);
     }
+}
+
+KEXPORT DWORD GetAfsIdByOpenHandle(HANDLE handle)
+{
+    for (int i=0; i<8; i++) {
+        if (_afsHandles[i] == handle) 
+            return i;
+    }
+    return 0xffffffff;
+}
+
+KEXPORT HANDLE WINAPI Override_CreateFileA(
+  __in      LPCSTR lpFileName,
+  __in      DWORD dwDesiredAccess,
+  __in      DWORD dwShareMode,
+  __in_opt  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+  __in      DWORD dwCreationDisposition,
+  __in      DWORD dwFlagsAndAttributes,
+  __in_opt  HANDLE hTemplateFile)
+{
+    HANDLE handle = INVALID_HANDLE_VALUE;
+
+    if (_strnicmp(lpFileName+strlen(lpFileName)-3,"OPT",3)==0)
+    {
+        //LOG(&k_kload, "CreateFileA: OPTION FILE");
+        PFNCREATEOPTION NextCall=NULL;
+        for (int i=0;i<(l_CreateOption.num);i++)
+        if (l_CreateOption.addr[i]!=0) {
+            NextCall=(PFNCREATEOPTION)l_CreateOption.addr[i];
+            HANDLE newHandle = NextCall(dwDesiredAccess, 
+                                        dwShareMode,
+                                        lpSecurityAttributes,
+                                        dwCreationDisposition,
+                                        dwFlagsAndAttributes,
+                                        hTemplateFile);
+            if (newHandle != INVALID_HANDLE_VALUE)
+            {
+                handle = newHandle;
+                break;
+            }
+        } // end-if
+    }
+
+    if (handle == INVALID_HANDLE_VALUE) {
+        handle = CreateFileA(lpFileName,
+                             dwDesiredAccess,
+                             dwShareMode,
+                             lpSecurityAttributes,
+                             dwCreationDisposition,
+                             dwFlagsAndAttributes,
+                             hTemplateFile);
+
+        char* shortName = strrchr(lpFileName,'_');
+        if (shortName && lpFileName!=shortName) shortName--;
+        if (shortName) {
+            if (_strnicmp(shortName,"0_so",4)==0)
+                _afsHandles[0] = handle;
+            else if (_strnicmp(shortName,"0_te",4)==0)
+                _afsHandles[1] = handle;
+            else if (_strnicmp(shortName+1,"_so",3)==0)
+                _afsHandles[2] = handle;
+            else if (_strnicmp(shortName+1,"_te",3)==0)
+                _afsHandles[3] = handle;
+        }
+    }
+
+    //LOG(&k_kload, "CreateFile: {%s} --> %d", lpFileName, (DWORD)handle);
+    return handle;
+}
+
+KEXPORT HANDLE WINAPI Override_CreateFileW(
+  __in      LPCWSTR lpFileName,
+  __in      DWORD dwDesiredAccess,
+  __in      DWORD dwShareMode,
+  __in_opt  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+  __in      DWORD dwCreationDisposition,
+  __in      DWORD dwFlagsAndAttributes,
+  __in_opt  HANDLE hTemplateFile)
+{
+    HANDLE handle = INVALID_HANDLE_VALUE;
+
+    if (_wcsnicmp(lpFileName+wcslen(lpFileName)-3,L"OPT",3)==0)
+    {
+        //LOG(&k_kload, "CreateFileW: OPTION FILE");
+        PFNCREATEOPTION NextCall=NULL;
+        for (int i=0;i<(l_CreateOption.num);i++)
+        if (l_CreateOption.addr[i]!=0) {
+            NextCall=(PFNCREATEOPTION)l_CreateOption.addr[i];
+            HANDLE newHandle = NextCall(dwDesiredAccess, 
+                                        dwShareMode,
+                                        lpSecurityAttributes,
+                                        dwCreationDisposition,
+                                        dwFlagsAndAttributes,
+                                        hTemplateFile);
+            if (newHandle != INVALID_HANDLE_VALUE)
+            {
+                handle = newHandle;
+                break;
+            }
+        } // end-if
+    }
+
+    if (handle == INVALID_HANDLE_VALUE) {
+        handle = CreateFileW(lpFileName,
+                             dwDesiredAccess,
+                             dwShareMode,
+                             lpSecurityAttributes,
+                             dwCreationDisposition,
+                             dwFlagsAndAttributes,
+                             hTemplateFile);
+
+        wchar_t* shortName = wcsrchr(lpFileName,'_');
+        if (shortName && lpFileName!=shortName) shortName--;
+        if (shortName) {
+            if (_wcsnicmp(shortName,L"0_so",4)==0)
+                _afsHandles[0] = handle;
+            else if (_wcsnicmp(shortName,L"0_te",4)==0)
+                _afsHandles[1] = handle;
+            else if (_wcsnicmp(shortName+1,L"_so",3)==0)
+                _afsHandles[2] = handle;
+            else if (_wcsnicmp(shortName+1,L"_te",3)==0)
+                _afsHandles[3] = handle;
+        }
+    }
+
+    //LOG(&k_kload, "CreateFile: {%s} --> %d", lpFileName, (DWORD)handle);
+    return handle;
+}
+
+KEXPORT BOOL WINAPI Override_CloseHandle(
+  __in HANDLE hObject)
+{
+    BOOL result = CloseHandle(hObject);
+
+    for (int i=0; i<8; i++) {
+        if (_afsHandles[i] == hObject)
+            _afsHandles[i] = INVALID_HANDLE_VALUE;
+    }
+
+    //LOG(&k_kload, "CloseHandle: {%d}", hObject);
+    return result;
 }
 

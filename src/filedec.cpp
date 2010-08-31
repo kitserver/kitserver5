@@ -320,16 +320,23 @@ void DecryptOptionfile(BYTE* buf, bool decrypt)
 	for (int i=0;i<9;i++) {
 		dwBuf=(DWORD*)buf;
 		sectStart=dwBuf[optSections[i]+0x4a];
+        printf("sectStart = 0x%08x\n", sectStart);
 		dwBuf=(DWORD*)(buf+sectStart);
+        printf("dwBuf = %p\n", dwBuf);
 		
+        printf("dwBuf[0] = 0x%08x\n", dwBuf[0]);
+        printf("dwBuf[0]>>2 = 0x%08x\n", (dwBuf[0]>>2));
+        printf("(dwBuf[0]>>2)&0xffff = 0x%08x\n", ((dwBuf[0]>>2)&0xffff));
 		if (decrypt) {
-			for (int j=0;j<(dwBuf[0]>>2);j++) {
+			for (int j=0;j<((dwBuf[0]>>2)&0xffff);j++) {
+                if (j%0x1000==0) printf("j = 0x%08x\n", j);
 				val2=array2[j%0x16f];
 				val=dwBuf[j+3] - val2 - ((val2 & 0x80)?0xffffff00:0);
 				dwBuf[j+3]=val ^ DECRYPT_FACTOR2;
 			};
 		} else {
-			for (int j=0;j<(dwBuf[0]>>2);j++) {
+			for (int j=0;j<((dwBuf[0]>>2)&0xffff);j++) {
+                if (j%0x1000==0) printf("j = 0x%08x\n", j);
 				val=dwBuf[j+3] ^ DECRYPT_FACTOR2;
 				val2=array2[j%0x16f];
 				val+=val2 + ((val2 & 0x80)?0xffffff00:0);

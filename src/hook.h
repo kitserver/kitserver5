@@ -26,6 +26,14 @@ typedef struct _CALLLINE {
 #define VTAB_DELETESTATEBLOCK 56
 #define VTAB_UNLOCKRECT 17
 
+typedef HANDLE (*PFNCREATEOPTION)(
+  DWORD dwDesiredAccess,
+  DWORD dwShareMode,
+  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+  DWORD dwCreationDisposition,
+  DWORD dwFlagsAndAttributes,
+  HANDLE hTemplateFile);
+
 typedef void (*PFNREADFILE)(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
   LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped);
 
@@ -240,8 +248,10 @@ enum HOOKS {
 	hk_AfterReadFile,
 	hk_D3D_UnlockRect,
     hk_GetNumPages,
+    hk_CreateOption,
 };
 
+KEXPORT bool GetOriginalFrequency(LARGE_INTEGER* lpPerformanceFrequency);
 KEXPORT void HookFunction(HOOKS h,DWORD addr);
 KEXPORT void UnhookFunction(HOOKS h,DWORD addr);
 CALLLINE* LineFromID(HOOKS h);

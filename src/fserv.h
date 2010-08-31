@@ -1,7 +1,8 @@
 // fserv.h
+#define KEXPORT EXTERN_C __declspec(dllexport)
 
 #define MODID 103
-#define NAMELONG "Faceserver 5.2.4"
+#define NAMELONG "Faceserver 5.3.2.4"
 #define NAMESHORT "FSERV"
 
 #define DEFAULT_DEBUG 1
@@ -96,4 +97,6 @@ typedef struct _DATAOFMEMORY {
 typedef void   (*COPYPLAYERDATA)(DWORD,DWORD,DWORD);
 typedef BYTE   (*GETHAIRTRANSP)(DWORD);
 typedef DWORD  (*EDITCOPYPLAYERDATA)(DWORD,DWORD);
+
+KEXPORT void fservInitFacesAndHair();
 

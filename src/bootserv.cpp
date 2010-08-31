@@ -313,24 +313,29 @@ void populateTextureFilesVector(vector<string>& vec, string& currDir)
 	char pattern[512] = {0};
 	ZeroMemory(pattern, sizeof(pattern));
 
-    sprintf(pattern, "%sGDB\\boots\\%s*", GetPESInfo()->gdbDir, currDir.c_str());
+    sprintf(pattern, "%sGDB\\boots\\%s*", 
+            GetPESInfo()->gdbDir, currDir.c_str());
+    LOG(&k_boot, "pattern: {%s}", pattern);
 
 	HANDLE hff = FindFirstFile(pattern, &fData);
 	if (hff != INVALID_HANDLE_VALUE) {
-        while(true)
-        {
+        while(true) {
             // check if this is a directory
             if (fData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
                 // check for system folders
                 if (fData.cFileName[0]!='.') {
                     // process the dir recursively
-                    populateTextureFilesVector(vec, string(fData.cFileName)+"\\");
+                    populateTextureFilesVector(
+                            vec, currDir+string(fData.cFileName)+"\\");
                 }
-            } else if (stricmp(fData.cFileName + strlen(fData.cFileName)-4, ".png")==0
-                    || stricmp(fData.cFileName + strlen(fData.cFileName)-4, ".bmp")==0) {
+            } else if (stricmp(fData.cFileName + 
+                        strlen(fData.cFileName)-4, ".png")==0
+                    || stricmp(fData.cFileName + 
+                        strlen(fData.cFileName)-4, ".bmp")==0) {
                 // a BMP or a PNG: consider it a boot texture
                 vec.push_back(currDir + string(fData.cFileName));
-                LogWithString(&k_boot, "Found boot texture: %s", (char*)vec.back().c_str());
+                LogWithString(&k_boot, 
+                        "Found boot texture: %s", (char*)vec.back().c_str());
             }
             // proceed to next file
             if (!FindNextFile(hff, &fData)) break;

@@ -152,7 +152,7 @@ KEXPORT BOOL WINAPI Override_QueryPerformanceFrequency(LARGE_INTEGER *lpPerforma
     BOOL result = QueryPerformanceFrequency(&metric);
     LOG(&k_speed, 
             "(old) hi=%08x, lo=%08x", metric.HighPart, metric.LowPart);
-    if (1)//abs(_speeder_config.count_factor-1.0)>FLOAT_ZERO)
+    if (fabs(_speeder_config.count_factor-1.0)>FLOAT_ZERO)
     {
         LOG(&k_speed, "Changing frequency");
         metric.HighPart /= _speeder_config.count_factor;

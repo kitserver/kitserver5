@@ -28,9 +28,6 @@ std::map<DWORD,THREEDWORDS> g_SpecialAfsIds;
 std::map<DWORD,THREEDWORDS>::iterator g_SpecialAfsIdsIterator;
 DWORD currSpecialAfsId=0;
 
-// last known handles for AFS files
-HANDLE _afsHandles[8] = {0,0,0,0,0,0,0,0};
-
 // global hook manager
 static hook_manager _hook_manager;
 DWORD lastCallSite=0;
@@ -57,6 +54,15 @@ void SetPESInfo();
 #ifndef __in_opt
 #define __in_opt
 #endif
+
+KEXPORT HANDLE WINAPI Override_CreateFileW(
+  __in      LPCWSTR lpFileName,
+  __in      DWORD dwDesiredAccess,
+  __in      DWORD dwShareMode,
+  __in_opt  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+  __in      DWORD dwCreationDisposition,
+  __in      DWORD dwFlagsAndAttributes,
+  __in_opt  HANDLE hTemplateFile);
 
 KEXPORT HANDLE WINAPI Override_CreateFileA(
   __in      LPCSTR lpFileName,
@@ -498,6 +504,7 @@ KEXPORT DWORD MasterCallNext(...)
 	return result;
 }
 
+/*
 KEXPORT DWORD GetAfsIdByOpenHandle(HANDLE handle)
 {
     for (int i=0; i<8; i++) {
@@ -505,6 +512,12 @@ KEXPORT DWORD GetAfsIdByOpenHandle(HANDLE handle)
             return i;
     }
     return 0xffffffff;
+}
+
+KEXPORT BOOL IsOptionHandle(HANDLE handle)
+{
+    return handle != INVALID_HANDLE_VALUE
+       && _optionHandle == handle;
 }
 
 KEXPORT HANDLE WINAPI Override_CreateFileA(
@@ -535,7 +548,51 @@ KEXPORT HANDLE WINAPI Override_CreateFileA(
             _afsHandles[2] = handle;
         else if (_strnicmp(shortName+2,"_te",3)==0)
             _afsHandles[3] = handle;
+        else if (_strnicmp(lpFileName+strlen(lpFileName)-3,"OPT",3)==0)
+        {
+            _optionHandle = handle;
+            LOG(&k_kload, "CreateFileA: OPTION FILE");
+        }
     }
+    //LOG(&k_kload, "CreateFile: {%s} --> %d", lpFileName, (DWORD)handle);
+    return handle;
+}
+
+KEXPORT HANDLE WINAPI Override_CreateFileW(
+  __in      LPCWSTR lpFileName,
+  __in      DWORD dwDesiredAccess,
+  __in      DWORD dwShareMode,
+  __in_opt  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+  __in      DWORD dwCreationDisposition,
+  __in      DWORD dwFlagsAndAttributes,
+  __in_opt  HANDLE hTemplateFile)
+{
+    HANDLE handle = CreateFileW(
+            lpFileName,
+            dwDesiredAccess,
+            dwShareMode,
+            lpSecurityAttributes,
+            dwCreationDisposition,
+            dwFlagsAndAttributes,
+            hTemplateFile);
+
+    wchar_t* shortName = wcsrchr(lpFileName,L'\\');
+    if (shortName) {
+        if (_wcsnicmp(shortName+1,L"0_so",4)==0)
+            _afsHandles[0] = handle;
+        else if (_wcsnicmp(shortName+1,L"0_te",4)==0)
+            _afsHandles[1] = handle;
+        else if (_wcsnicmp(shortName+2,L"_so",3)==0)
+            _afsHandles[2] = handle;
+        else if (_wcsnicmp(shortName+2,L"_te",3)==0)
+            _afsHandles[3] = handle;
+        else if (_wcsnicmp(lpFileName+wcslen(lpFileName)-3,L"OPT",3)==0)
+        {
+            LOG(&k_kload, "CreateFileW: OPTION FILE");
+            _optionHandle = handle;
+        }
+    }
+    //LOG(&k_kload, "CreateFile: {%s} --> %d", lpFileName, (DWORD)handle);
     return handle;
 }
 
@@ -548,7 +605,10 @@ KEXPORT BOOL WINAPI Override_CloseHandle(
         if (_afsHandles[i] == hObject)
             _afsHandles[i] = INVALID_HANDLE_VALUE;
     }
+    if (_optionHandle == hObject)
+        _optionHandle = INVALID_HANDLE_VALUE;
 
+    //LOG(&k_kload, "CloseHandle: {%d}", hObject);
     return result;
 }
-
+*/

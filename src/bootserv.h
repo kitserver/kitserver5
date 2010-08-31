@@ -1,7 +1,7 @@
 // bootserv.h
 
 #define MODID 107
-#define NAMELONG "Bootserver 5.5.6"
+#define NAMELONG "Bootserver 5.5.7"
 #define NAMESHORT "BOOTSERV"
 
 #define DEFAULT_DEBUG 1

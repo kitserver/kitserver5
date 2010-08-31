@@ -27,6 +27,7 @@ EDITCOPYPLAYERDATA orgEditCopyPlayerData=NULL;
 DWORD StartsStdFaces[4];
 DWORD NumStdFaces[4];
 DWORD NumTotalFaces[4];
+DWORD MaxNumStdFaces;
 
 DWORD NumStdHair;
 DWORD NumTotalHair;
@@ -34,9 +35,11 @@ DWORD NumTotalHair;
 std::map<DWORD,LPVOID> g_Buffers;
 std::map<DWORD,LPVOID>::iterator g_BuffersIterator;
 //Stores the filenames to a face id
-std::map<DWORD,char*> g_Faces[4];
+//std::map<DWORD,char*> g_Faces[4];
+std::map<DWORD,char*> g_Faces;
 std::map<DWORD,char*>::iterator g_FacesIterator;
-DWORD numFaces[4];
+//DWORD numFaces[4];
+DWORD numFaces;
 
 std::map<DWORD,char*> g_Hair;
 std::map<DWORD,char*>::iterator g_HairIterator;
@@ -207,6 +210,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 			fIDs[C_EDITCOPYPLAYERDATA_CS],"C_EDITCOPYPLAYERDATA","C_EDITCOPYPLAYERDATA_CS");
 			
 		FreeAllBuffers();
+        /*
 		for (i=0;i<4;i++) {
 			for (j=0;j<numFaces[i];j++)
 				if (g_Faces[i][j] != NULL)
@@ -214,6 +218,10 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 			
 			g_Faces[i].clear();
 		};
+        */
+		for (j=0;j<numFaces;j++)
+			if (g_Faces[j] != NULL)
+					delete g_Faces[j];
 		
 		for (j=0;j<numHair;j++)
 			if (g_Hair[j] != NULL)
@@ -246,9 +254,12 @@ void InitFserv()
 	HookFunction(hk_ProcessPlayerData,(DWORD)fservProcessPlayerData);
 	HookFunction(hk_D3D_Present,(DWORD)PrintPlayerInfo);
 	
+    MaxNumStdFaces=0;
 	for (int i=0;i<4;i++) {
 		StartsStdFaces[i]=fIDs[STARTW+i];
 		NumStdFaces[i]=fIDs[STDW+i];
+        if (MaxNumStdFaces < NumStdFaces[i])
+            MaxNumStdFaces = NumStdFaces[i];
 	};
 	
 	NumStdHair=fIDs[STDHAIR];
@@ -426,7 +437,8 @@ void GetGDBFaces()
 	fclose(cfg);
 	
 	for (int i=0;i<4;i++) {
-		NumTotalFaces[i]=NumStdFaces[i]+numFaces[i];
+		//NumTotalFaces[i]=NumStdFaces[i]+numFaces[i];
+		NumTotalFaces[i]=MaxNumStdFaces+numFaces;
 		LogWithTwoNumbers(&k_fserv,"Number of faces for skincolor %d is %d.",i,NumTotalFaces[i]);
 	};
 	return;
@@ -450,22 +462,26 @@ void AddPlayerFace(DWORD PlayerNumber,char* sfile)
 	if (GPIaddr==0) return;
 	ReadPlayerInfo(&Player,GPIaddr);
 	DWORD sk=Player.SkinColor;
-	DWORD newId=GetIDForFaceName(sk,sfile);
-	if (newId==0xFFFFFFFF) {
-		Log(&k_fserv,"Face hasn't been listed yet.");
-		newId=NumStdFaces[sk]+numFaces[sk];
-		g_Faces[sk][newId]=new char[strlen(sfile)+1];
-		strcpy(g_Faces[sk][newId],sfile);
-		numFaces[sk]++;
-	};
-	LogWithNumber(&k_fserv,"Assigned face id is %d.",newId);
-	g_Players[PlayerNumber]=newId;
+    DWORD newId=GetIDForFaceName(sk,sfile);
+    if (newId==0xFFFFFFFF) {
+        Log(&k_fserv,"Face hasn't been listed yet.");
+        newId=MaxNumStdFaces+numFaces;//NumStdFaces[sk]+numFaces[sk];
+        //g_Faces[sk][newId]=new char[strlen(sfile)+1];
+        g_Faces[newId]=new char[strlen(sfile)+1];
+        //strcpy(g_Faces[sk][newId],sfile);
+        strcpy(g_Faces[newId],sfile);
+        //numFaces[sk]++;
+        numFaces++;
+    }
+    LogWithNumber(&k_fserv,"Assigned face id is %d.",newId);
+    g_Players[PlayerNumber]=newId;
 	return;
 };
 
 DWORD GetIDForFaceName(DWORD sk, char* sfile)
 {
-	for (g_FacesIterator=g_Faces[sk].begin();g_FacesIterator!=g_Faces[sk].end();g_FacesIterator++) {
+	//for (g_FacesIterator=g_Faces[sk].begin();g_FacesIterator!=g_Faces[sk].end();g_FacesIterator++) {
+	for (g_FacesIterator=g_Faces.begin();g_FacesIterator!=g_Faces.end();g_FacesIterator++) {
 		if (g_FacesIterator->second != NULL)
 			if (strcmp(g_FacesIterator->second,sfile)==0)
 				return g_FacesIterator->first;
@@ -686,13 +702,15 @@ void fservFileFromAFS(DWORD infoBlock)
 		LogWithTwoNumbers(&k_fserv,"FaceID is %d, skincolor %d.",FaceID,Skincolor);
 		strcpy(filename,GetPESInfo()->gdbDir);
 		strcat(filename,"GDB\\faces\\");
-		//if (g_Faces[Skincolor][FaceID]!=NULL)
-        it = g_Faces[Skincolor].find(FaceID);
-        if (it != g_Faces[Skincolor].end()) {
-			strcat(filename,it->second);
+		//if (g_Faces[Skincolor][FaceID]!=NULL) {
+		if (g_Faces[FaceID]!=NULL) {
+            //strcat(filename,g_Faces[Skincolor][FaceID]);
+            strcat(filename,g_Faces[FaceID]);
         } else {
 			Log(&k_fserv,"FAILED! No file is assigned to this parameter combination!");
 			goto Processed;
+            break;
+            //return;
 		};
 		goto LoadFileNow;
 		break;
@@ -703,13 +721,13 @@ void fservFileFromAFS(DWORD infoBlock)
 		LogWithNumber(&k_fserv,"Processing hair id %d.",HairID);
 		strcpy(filename,GetPESInfo()->gdbDir);
 		strcat(filename,"GDB\\hair\\");
-		//if (g_Hair[HairID]!=NULL)
-        it = g_Hair.find(HairID);
-        if (it != g_Hair.end()) {
-			strcat(filename,it->second);
+		if (g_Hair[HairID]!=NULL) {
+            strcat(filename,g_Hair[HairID]);
         } else {
 			Log(&k_fserv,"FAILED! No file is assigned to this parameter combination!");
 			goto Processed;
+            break;
+            //return;
 		};
 		goto LoadFileNow;
 		break;
@@ -768,15 +786,21 @@ bool fservFreeMemory(DWORD addr)
 	return result;
 };
 
-void fservProcessPlayerData(DWORD ESI, DWORD* PlayerNumber)
+KEXPORT void fservInitFacesAndHair()
 {
-	//TRACE(&k_fserv,"fservProcessPlayerData: CALLED.");
 	if (!Inited) {
 		GetGDBFaces();
 		GetGDBHair();
 		
 		Inited=true;
-	};
+        LOG(&k_fserv, "GDB Faces and Hair loaded.");
+	}
+}
+
+void fservProcessPlayerData(DWORD ESI, DWORD* PlayerNumber)
+{
+	//TRACE(&k_fserv,"fservProcessPlayerData: CALLED.");
+    fservInitFacesAndHair();
 	
 	DWORD addr=**(DWORD**)(ESI+4);
 	BYTE *Skincolor=(BYTE*)(addr+0x31);
@@ -841,6 +865,7 @@ void fservProcessPlayerData(DWORD ESI, DWORD* PlayerNumber)
 	NoSpecialData:
 	
 	lastPlayerNumber=usedPlayerNumber;
+    lastFaceID = 0;
 	
 	if (hasMemoryData) {
 		if (isInEditPlayerMode==0) {
@@ -854,7 +879,8 @@ void fservProcessPlayerData(DWORD ESI, DWORD* PlayerNumber)
 			
 		} else {
 			TRACE2X(&k_fserv,"addr for player # %d (EDIT MODE) is %.8x.",usedPlayerNumber,addr);
-			if (*Faceset==FACESET_NORMAL && *FaceID>=NumStdFaces[*Skincolor]) {
+			//if (*Faceset==FACESET_NORMAL && *FaceID>=NumStdFaces[*Skincolor]) {
+			if (*Faceset==FACESET_NORMAL && *FaceID>=MaxNumStdFaces) {
 				TRACE2(&k_fserv,"Assigning face id %d.",*FaceID);
 				lastFaceID=*FaceID;
 				*FaceID=GetNextSpecialAfsFileIdForFace(*FaceID,*Skincolor);
@@ -869,6 +895,7 @@ void fservProcessPlayerData(DWORD ESI, DWORD* PlayerNumber)
 		//other modes
 		g_PlayersIterator=g_Players.find(usedPlayerNumber);
 		if (isInEditPlayerMode==0) {
+            lastFaceID=0;
 			TRACE2X(&k_fserv,"addr for player # %d is %.8x.",usedPlayerNumber,addr);
 			if (g_PlayersIterator != g_Players.end()) {
 				TRACE2(&k_fserv,"Found player in map, assigning face id %d.",g_PlayersIterator->second);
@@ -878,16 +905,18 @@ void fservProcessPlayerData(DWORD ESI, DWORD* PlayerNumber)
 				*FaceID=GetNextSpecialAfsFileIdForFace(g_PlayersIterator->second,*Skincolor);
 				*Faceset=FACESET_NORMAL;
 				lastWasFromGDB=true;
-			} else if (*Faceset==FACESET_NORMAL && *FaceID>=NumStdFaces[*Skincolor]) {
+			//} else if (*Faceset==FACESET_NORMAL && *FaceID>=NumStdFaces[*Skincolor]) {
+			} else if (*Faceset==FACESET_NORMAL && *FaceID>=MaxNumStdFaces) {
 				TRACE2(&k_fserv,"Assigning face id %d.",*FaceID);
 				lastFaceID=*FaceID;
 				*FaceID=GetNextSpecialAfsFileIdForFace(*FaceID,*Skincolor);
 				lastWasFromGDB=true;
-			};
+			}
 			
 		} else {
 			TRACE2X(&k_fserv,"addr for player # %d (EDIT MODE) is %.8x.",usedPlayerNumber,addr);
-			if (*Faceset==FACESET_NORMAL && *FaceID>=NumStdFaces[*Skincolor]) {
+			//if (*Faceset==FACESET_NORMAL && *FaceID>=NumStdFaces[*Skincolor]) {
+			if (*Faceset==FACESET_NORMAL && *FaceID>=MaxNumStdFaces) {
 				TRACE2(&k_fserv,"Assigning face id %d.",*FaceID);
 				lastFaceID=*FaceID;
 				*FaceID=GetNextSpecialAfsFileIdForFace(*FaceID,*Skincolor);
@@ -994,10 +1023,14 @@ void PrintPlayerInfo(IDirect3DDevice8* self, CONST RECT* src, CONST RECT* dest, 
 	KDrawText(450,4,color,16,lastPlayerNumberString);
 	
 	if (hasChanged) {
-		if (g_Faces[lastSkincolor][lastFaceID]==NULL) {
+        //LOG(&k_fserv,"hasChanged! lastFaceID:%d, lastHairID:%d", 
+        //        lastFaceID, lastHairID);
+		//if (g_Faces[lastSkincolor][lastFaceID]==NULL) {
+		if (g_Faces[lastFaceID]==NULL) {
 			lastWasFromGDB=false;
 		} else {
-			sprintf(tmp,"Face file: %s",g_Faces[lastSkincolor][lastFaceID]);
+			//sprintf(tmp,"Face file: %s",g_Faces[lastSkincolor][lastFaceID]);
+			sprintf(tmp,"Face file: %s",g_Faces[lastFaceID]);
 			strcpy(lastFaceFileString,tmp);
 		};
 		

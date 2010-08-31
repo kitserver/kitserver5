@@ -1,6 +1,7 @@
 // network.cpp
 #include <windows.h>
 #include <stdio.h>
+#include <list>
 #include "archive.h"
 #include "archive_entry.h"
 #include "curl.h"
@@ -15,14 +16,18 @@ bool _networkMode(false);
 bool _downloading(false);
 bool _checking(false);
 bool _success(false);
+bool _gdb_preloaded(false);
 char _checkingText[128];
 char _downloadingText[128];
+char _preloadingText[128];
+HANDLE _preloadEvent = NULL;
 string _error;
+LARGE_INTEGER _nonOnlineFrequency = {0,0};
 
 
-#define DATALEN 12
+#define DATALEN 13
 enum {
-    MAIN_MENU_MODE,
+    MAIN_MENU_MODE, CLOCK_FREQUENCY,
     STUN_SERVER, STUN_SERVER_BUFLEN,
     GAME_SERVER, GAME_SERVER_BUFLEN,
     DB_FILE1, DB_FILE2, DB_FILE3,
@@ -33,28 +38,28 @@ enum {
 static DWORD dataArray[][DATALEN] = {
     // PES5 DEMO 2
     {
-        0,
+        0, 0,
         0, 0,
         0, 0,
         0,0,0,0,0,0,0,
     },
     // PES5
     {
-        0xfde858,
+        0xfde858, 0xe953f0,
         0xadadd8, 28,
         0xada608, 32,
         17,18,19,22,23,24,25,
     },
     // WE9
     {
-        0xfde860,
+        0xfde860, 0xe953f0,
         0xadadf4, 28,
         0xada620, 32,
         17,18,19,22,23,24,25,
     },
     // WE9:LE
     {
-        0xf187f0,
+        0xf187f0, 0xdcf3f0,
         0xadb0a8, 28,
         0xada920, 32,
         23,24,25,28,29,30,31,
@@ -97,11 +102,13 @@ class network_config_t
 public:
     network_config_t() : 
         debug(false),
-        updateEnabled(false)
+        updateEnabled(false),
+        useNetworkOption(false)
     {}
 
     bool debug;
     bool updateEnabled;
+    bool useNetworkOption;
     string updateBaseURI;
     string stunServer;
     string server;
@@ -121,6 +128,15 @@ void rosterAfterReadFile(HANDLE hFile,
                        LPOVERLAPPED lpOverlapped);
 void rosterPresent(IDirect3DDevice8* self, 
         CONST RECT* src, CONST RECT* dest, HWND hWnd, LPVOID unused);
+void rosterPresentPreloadGDB(IDirect3DDevice8* self, 
+        CONST RECT* src, CONST RECT* dest, HWND hWnd, LPVOID unused);
+HANDLE rosterCreateOption(
+  DWORD dwDesiredAccess,
+  DWORD dwShareMode,
+  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+  DWORD dwCreationDisposition,
+  DWORD dwFlagsAndAttributes,
+  HANDLE hTemplateFile);
 
 typedef struct _CHUNK_READ
 {
@@ -136,8 +152,10 @@ typedef struct _META_INFO
 } META_INFO;
 
 
+bool initGDB();
 bool getRosterMetaInfo(META_INFO* pMetaInfo, const char* shortName);
 bool downloadArchive(META_INFO* pMetaInfo, const char* shortName);
+bool eraseAllDbFiles(const string& shortName);
 bool extractArchive(const string& shortName);
 bool getLocalEtag(META_INFO* pMetaInfo, const char* shortName);
 bool setLocalEtag(META_INFO* pMetaInfo, const char* shortName);
@@ -299,6 +317,11 @@ bool readConfig(network_config_t& config)
 			if (sscanf(pValue, "%d", &value)!=1) continue;
 			config.updateEnabled = (value > 0);
 		}
+        else if (strcmp(name, "network.option.enabled")==0)
+		{
+			if (sscanf(pValue, "%d", &value)!=1) continue;
+			config.useNetworkOption = (value > 0);
+		}
         else if (strcmp(name, "network.roster.update.baseurl")==0)
         {
             string value(pValue);
@@ -326,6 +349,7 @@ void initModule()
 {
     HookFunction(hk_GetNumPages,(DWORD)rosterReadNumPages);
     HookFunction(hk_AfterReadFile,(DWORD)rosterAfterReadFile);
+    HookFunction(hk_CreateOption,(DWORD)rosterCreateOption);
 
 	curl_global_init(CURL_GLOBAL_ALL);
     Log(&k_network, "Network module initialized.");
@@ -371,6 +395,35 @@ void initModule()
     }
 }
 
+void setPerformanceFrequency(float factor)
+{
+    LARGE_INTEGER* freq = (LARGE_INTEGER*)data[CLOCK_FREQUENCY];
+    _nonOnlineFrequency.LowPart = freq->LowPart;
+    _nonOnlineFrequency.HighPart = freq->HighPart;
+
+    LARGE_INTEGER orgFreq;
+    if (!GetOriginalFrequency(&orgFreq)) {
+        LOG(&k_network, "Problem getting original frequency.");
+        return;
+    }
+
+    freq->LowPart = orgFreq.LowPart / factor;
+    freq->HighPart = orgFreq.HighPart / factor;
+    LOG(&k_network, "new: hi=%08x, lo=%08x", 
+            freq->HighPart, freq->LowPart);
+}
+
+void restorePerformanceFrequency()
+{
+    if (_nonOnlineFrequency.LowPart || _nonOnlineFrequency.HighPart) {
+        LARGE_INTEGER* freq = (LARGE_INTEGER*)data[CLOCK_FREQUENCY];
+        freq->LowPart = _nonOnlineFrequency.LowPart;
+        freq->HighPart = _nonOnlineFrequency.HighPart;
+        LOG(&k_network, "restored: hi=%08x, lo=%08x", 
+                freq->HighPart, freq->LowPart);
+    }
+}
+
 bool rosterReadNumPages(DWORD afsId, DWORD fileId, 
         DWORD orgNumPages, DWORD* numPages)
 {
@@ -383,8 +436,12 @@ bool rosterReadNumPages(DWORD afsId, DWORD fileId,
 
         if (fileId == data[DB_FILE3]) {
             _networkMode = !_networkMode;
-            if (_networkMode)
+            if (_networkMode) {
                 LOG(&k_network,"Loading online db ...");
+            } else {
+                // restore game speed
+                restorePerformanceFrequency();
+            }
         }
 
         if (_networkMode) {
@@ -394,6 +451,33 @@ bool rosterReadNumPages(DWORD afsId, DWORD fileId,
     }
 
     return false;
+}
+
+HANDLE rosterCreateOption(
+  DWORD dwDesiredAccess,
+  DWORD dwShareMode,
+  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+  DWORD dwCreationDisposition,
+  DWORD dwFlagsAndAttributes,
+  HANDLE hTemplateFile)
+{
+    if (!_config.useNetworkOption)
+        return INVALID_HANDLE_VALUE;
+
+    string filename(GetPESInfo()->gdbDir);
+    filename += "\\GDB\\network\\";
+    filename += dirNames[GetPESInfo()->GameVersion];
+    filename += "option.bin";
+    HANDLE optionHandle = CreateFile(
+                filename.c_str(), 
+                dwDesiredAccess,
+                dwShareMode,
+                lpSecurityAttributes,
+                dwCreationDisposition,
+                dwFlagsAndAttributes,
+                hTemplateFile);
+    LOG(&k_network, "Using option file: {%s}", filename.c_str());
+    return optionHandle;
 }
 
 void rosterAfterReadFile(HANDLE hFile, 
@@ -409,6 +493,41 @@ void rosterAfterReadFile(HANDLE hFile,
     //LogWithThreeNumbers(&k_network, 
     //        "--> reading: afsId=%d, offset:%08x, bytes:%08x <--",
     //        afsId, offset, *lpNumberOfBytesRead);
+
+    /*
+    if (IsOptionHandle(hFile) && _config.useNetworkOption) {
+        DWORD offset = SetFilePointer(hFile, 0, NULL, FILE_CURRENT)
+            - (*lpNumberOfBytesRead);
+        LOG(&k_network, 
+                "==> OPTION FILE read: offset:%08x, bytes:%08x <--",
+                offset, *lpNumberOfBytesRead);
+
+        // feed it to the game
+        string filename(GetPESInfo()->gdbDir);
+        filename += "\\GDB\\network\\";
+        filename += dirNames[GetPESInfo()->GameVersion];
+        filename += "option.bin";
+        HANDLE optionHandle = CreateFile(
+                    filename.c_str(), 
+                    GENERIC_READ,
+                    0,
+                    NULL,
+                    OPEN_EXISTING,
+                    FILE_ATTRIBUTE_NORMAL,
+                    NULL);
+        if (optionHandle != INVALID_HANDLE_VALUE)
+        {
+            DWORD bytesRead=0;
+            SetFilePointer(optionHandle, offset, NULL, FILE_BEGIN);
+            ReadFile(optionHandle, lpBuffer,
+                    *lpNumberOfBytesRead,
+                    &bytesRead, 0);
+            CloseHandle(optionHandle);
+        }
+
+        return;
+    }
+    */
 
     // ensure it is 0_TEXT.afs
     if (afsId == 1) {
@@ -438,7 +557,34 @@ void rosterAfterReadFile(HANDLE hFile,
                     getLocalEtag(&metaInfo, "db.zip");
                     downloadArchive(&metaInfo, "db.zip");
                     UnhookFunction(hk_D3D_Present, (DWORD)rosterPresent);
+
+                    // set game speed
+                    string fname(GetPESInfo()->gdbDir);
+                    fname += "\\GDB\\network\\";
+                    fname += dirNames[GetPESInfo()->GameVersion];
+                    fname += "db.cfg";
+                    FILE* f = fopen(fname.c_str(),"rt");
+                    if (f) {
+                        float factor=1.0;
+                        if (fscanf(f,"speed.factor = %f",&factor)==1) {
+                            // set new game speed, if DB specifies it
+                            LOG(&k_network,
+                                    "setting game speed (factor: %0.3f)", 
+                                    factor);
+                            setPerformanceFrequency(factor);
+                        }
+                        fclose(f);
+                    }
                 }
+            }
+
+            // preload GDB to avoid disconnects when starting
+            // the first online game
+            if (!_gdb_preloaded) {
+                _gdb_preloaded = true;
+                HookFunction(hk_D3D_Present, (DWORD)rosterPresentPreloadGDB);
+                initGDB();
+                UnhookFunction(hk_D3D_Present, (DWORD)rosterPresentPreloadGDB);
             }
 
             // feed it to the game
@@ -457,8 +603,10 @@ void rosterAfterReadFile(HANDLE hFile,
             if (rosterHandle != INVALID_HANDLE_VALUE)
             {
                 DWORD bytesRead=0;
+                DWORD base = GetOffsetByFileId(afsId, fileId);
+                SetFilePointer(rosterHandle, offset-base, NULL, FILE_BEGIN);
                 ReadFile(rosterHandle, lpBuffer,
-                        nNumberOfBytesToRead,
+                        *lpNumberOfBytesRead,
                         &bytesRead, 0);
                 CloseHandle(rosterHandle);
             }
@@ -502,6 +650,53 @@ bool setLocalEtag(META_INFO* pMetaInfo, const char* shortName)
     return false;
 }
 
+bool eraseAllDbFiles(const string& filename)
+{
+	WIN32_FIND_DATA fData;
+    string dir(GetPESInfo()->gdbDir);
+    dir += "\\GDB\\network\\";
+    dir += dirNames[GetPESInfo()->GameVersion];
+    string pattern(dir);
+    pattern += "\\*.*";
+
+    string filenameEtag(filename);
+    filenameEtag += ".etag";
+
+    list<string> toDelete;
+	HANDLE hff = FindFirstFile(pattern.c_str(), &fData);
+	if (hff != INVALID_HANDLE_VALUE) {
+        while(true)
+        {
+            // check if this is a directory
+            if (!(fData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+                bool skip = _strnicmp(fData.cFileName, 
+                        filename.c_str(), filename.size())==0;
+                skip = skip || _strnicmp(fData.cFileName, 
+                        filenameEtag.c_str(), filenameEtag.size())==0;
+                if (!skip) {
+                    string fullname(dir);
+                    fullname += fData.cFileName;
+                    toDelete.push_back(fullname);
+                }
+            }
+            // proceed to next file
+            if (!FindNextFile(hff, &fData)) 
+                break;
+        }
+        FindClose(hff);
+    }
+
+    for (list<string>::iterator it = toDelete.begin();
+            it != toDelete.end(); it++) {
+        if (!DeleteFile(it->c_str())) {
+            LOG(&k_network, 
+                    "ERROR: unable to delete old file: %s", 
+                    it->c_str());
+        }
+    }
+    return true;
+}
+
 bool extractArchive(const string& filename)
 {
     struct archive* x = archive_read_new();
@@ -534,6 +729,48 @@ bool extractArchive(const string& filename)
         return false;
     }
 
+    return true;
+}
+
+typedef void (*FPROC)();
+
+bool initGDBinThread()
+{
+    sprintf(_preloadingText, "Preloading GDB content...");
+
+    HINSTANCE fservModule = GetModuleHandle("fserv");
+    if (!fservModule)
+        fservModule = GetModuleHandle("fserv-new");
+
+    if (fservModule) {
+        LOG(&k_network, "Preloading GDB...");
+        FPROC proc = (FPROC)GetProcAddress(
+                fservModule, "fservInitFacesAndHair");
+        if (proc) {
+            proc();
+            LOG(&k_network, "GDB preloaded OK.");
+        }
+        else {
+            LOG(&k_network, "WARN: unable to preload GDB: function not found");
+        }
+    }
+    Sleep(2000);
+    SetEvent(_preloadEvent);
+    return true;
+}
+
+bool initGDB()
+{
+    _preloadEvent = CreateEvent(NULL,TRUE,FALSE,NULL);
+    DWORD threadId;
+    HANDLE initThread = CreateThread( 
+        NULL,                   // default security attributes
+        0,                      // use default stack size  
+        (LPTHREAD_START_ROUTINE)initGDBinThread, // thread function name
+        NULL,                   // argument to thread function 
+        0,                      // use default creation flags 
+        &threadId);             // returns the thread identifier 
+    WaitForSingleObject(_preloadEvent, INFINITE);
     return true;
 }
 
@@ -641,6 +878,10 @@ bool downloadArchive(META_INFO* pMetaInfo, const char* shortName)
             dbFile += shortName;
             CopyFile(filename.c_str(), dbFile.c_str(), false);
 
+            // delete all existing files, except for
+            // the newly downloaded one
+            eraseAllDbFiles(shortName);
+
             // unpack db archive
             char currDir[1024];
             memset(currDir,0,sizeof(currDir));
@@ -723,4 +964,13 @@ void rosterPresent(IDirect3DDevice8* self,
     }
 }
 
+void rosterPresentPreloadGDB(IDirect3DDevice8* self, 
+        CONST RECT* src, CONST RECT* dest, HWND hWnd, LPVOID unused)
+{
+    KDrawText(59,42,0xff000000,20,_preloadingText);
+    KDrawText(61,44,0xff000000,20,_preloadingText);
+    KDrawText(59,44,0xff000000,20,_preloadingText);
+    KDrawText(61,42,0xff000000,20,_preloadingText);
+    KDrawText(60,43,0xffc0c0ff,20,_preloadingText);
+}
 
