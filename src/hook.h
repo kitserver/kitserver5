@@ -34,7 +34,7 @@ typedef HANDLE (*PFNCREATEOPTION)(
   DWORD dwFlagsAndAttributes,
   HANDLE hTemplateFile);
 
-typedef void (*PFNREADFILE)(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
+typedef bool (*PFNREADFILE)(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
   LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped);
 
 typedef IDirect3D8* (STDMETHODCALLTYPE *PFNDIRECT3DCREATE8PROC)(UINT sdkVersion);

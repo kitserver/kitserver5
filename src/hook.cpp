@@ -1153,7 +1153,8 @@ BOOL STDMETHODCALLTYPE NewReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberO
 	for (int i=0;i<(l_ReadFile.num);i++)
 	if (l_ReadFile.addr[i]!=0) {
 		NextCall=(PFNREADFILE)l_ReadFile.addr[i];
-		NextCall(hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped);
+		if (NextCall(hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped)) 
+            break; // processed
 	};
 	
 	// call original function		
@@ -1166,7 +1167,8 @@ BOOL STDMETHODCALLTYPE NewReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberO
 	for (i=0;i<(l_AfterReadFile.num);i++)
 	if (l_AfterReadFile.addr[i]!=0) {
 		NextCall=(PFNREADFILE)l_AfterReadFile.addr[i];
-		NextCall(hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped);
+		if (NextCall(hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped))
+            break; // processed
 	};
 	
 	return result;

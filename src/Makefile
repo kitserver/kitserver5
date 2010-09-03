@@ -30,7 +30,7 @@ all_apps: apps
 pngdib.obj:
 	(cd soft\pngdib && nmake EXTRA_CFLAGS=$(EXTRA_CFLAGS))
 
-dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll bserv_preview.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll network.dll speeder.dll
+dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll bserv_preview.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll network.dll speeder.dll afs2fs.dll
 apps: setup.exe lodcfg.exe filedec.exe diag.exe afsexport.exe afswalk.exe afstest.exe
 
 release:
@@ -103,6 +103,14 @@ stadium.obj: stadium.cpp stadium.h
 
 stadium.res: 
 	$(RC) -r -fo stadium.res stadium.rc
+
+afs2fs.lib: afs2fs.obj crc32.obj afsreader.obj hooklib.obj
+afs2fs.dll: afs2fs.lib afs2fs.res
+	$(LINK) $(LFLAGS) /out:afs2fs.dll /DLL afs2fs.obj crc32.obj afsreader.obj kload.lib hooklib.obj afs2fs.res $(LIBSDLL) d3dx8.lib /LIBPATH:$(LPPNGDIB) /LIBPATH:$(LPLIBPNG) /LIBPATH:$(LPZLIB)
+afs2fs.obj: afs2fs.cpp afs2fs.h afs2fs_addr.h
+
+afs2fs.res: 
+	$(RC) -r -fo afs2fs.res afs2fs.rc
 
 lodmixer.lib: lodmixer.obj
 lodmixer.dll: lodmixer.lib lodmixer.res

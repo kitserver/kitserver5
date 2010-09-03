@@ -9,12 +9,16 @@ typedef bool (*GETNUMPAGES_PROC)(DWORD afsId, DWORD fileId,
 KEXPORT DWORD GetAfsIdByBase(DWORD base);
 KEXPORT DWORD GetFileIdByOffset(DWORD afsId, DWORD offset);
 KEXPORT DWORD GetOffsetByFileId(DWORD afsId, DWORD fileId);
+KEXPORT DWORD GetProbableFileIdForHandle(DWORD afsId, 
+        DWORD offset, HANDLE hFile);
+KEXPORT void SetNextProbableReadForHandle(DWORD afsId, 
+        DWORD offset, DWORD fileId, HANDLE hFile);
 
 typedef struct _AFS_INFO
 {
     DWORD unknown1;
     DWORD unknown2;
-    WORD numItems;
+    DWORD numItems;
     WORD numItems2;
     BYTE unknown3;
     BYTE entryIsDword;

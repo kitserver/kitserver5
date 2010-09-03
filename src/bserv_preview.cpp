@@ -5,6 +5,7 @@
 #include "bserv.h"
 #include "crc32.h"
 #include "kload_exp.h"
+#include "afsreplace.h"
 #include "soft\zlib123-dll\include\zlib.h"
 
 #include <map>
@@ -35,9 +36,6 @@ bool isPNGtexture=false;
 char currTextureName[BUFLEN];
 IDirect3DTexture8* g_lastBallTex;
 
-static DWORD g_afsId = 0xffffffff;
-static DWORD g_fileId = 0xffffffff;
-	
 	
 //preview
 #define D3DFVF_BALLVERTEX (D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1)
@@ -99,10 +97,9 @@ BOOL ReadConfig(BSERV_CFG* config, char* cfgFile);
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
 void InitBserv();
-void bservReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
-  LPDWORD lpNumberOfBytesRead,  LPOVERLAPPED lpOverlapped);
-void bservAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
-  LPDWORD lpNumberOfBytesRead,  LPOVERLAPPED lpOverlapped);
+bool bservAfterReadFile(HANDLE hFile, LPVOID lpBuffer, 
+        DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead,  
+        LPOVERLAPPED lpOverlapped);
 void bservUnpack(DWORD addr1, DWORD addr2, DWORD size1, DWORD zero, DWORD* size2, DWORD result);
 void SaveAFSAddr(HANDLE file,DWORD FileNumber,AFSENTRY* afs,DWORD tmp);
 DWORD bservGetFileFromAFS(DWORD afsId, DWORD fileId);
@@ -244,7 +241,6 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		SetBall(bserv_cfg.selectedBall);
 		
 		HookFunction(hk_D3D_Create,(DWORD)InitBserv);
-		HookFunction(hk_ReadFile,(DWORD)bservReadFile);
 		HookFunction(hk_AfterReadFile,(DWORD)bservAfterReadFile);
 		HookFunction(hk_D3D_CreateTexture,(DWORD)bservCreateTexture);
 		HookFunction(hk_D3D_UnlockRect,(DWORD)bservUnlockRect);
@@ -275,7 +271,6 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		UnhookFunction(hk_D3D_CreateTexture,(DWORD)bservCreateTexture);
 		UnhookFunction(hk_D3D_UnlockRect,(DWORD)bservUnlockRect);
 		
-		UnhookFunction(hk_ReadFile,(DWORD)bservReadFile);
 		UnhookFunction(hk_AfterReadFile,(DWORD)bservAfterReadFile);
 		
 		UnhookFunction(hk_Unpack,(DWORD)bservUnpack);
@@ -315,35 +310,31 @@ void InitBserv()
 	return;
 };
 
-DWORD _dwOffset1;
-
-void bservReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
-  LPDWORD lpNumberOfBytesRead,  LPOVERLAPPED lpOverlapped)
-{
-	_dwOffset1 = SetFilePointer(hFile, 0, NULL, FILE_CURRENT);
-}
-
-void bservAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
-  LPDWORD lpNumberOfBytesRead,  LPOVERLAPPED lpOverlapped)
+bool bservAfterReadFile(HANDLE hFile, 
+        LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
+        LPDWORD lpNumberOfBytesRead,  LPOVERLAPPED lpOverlapped)
 {
 	int found=-1;
 	char tmp[BUFLEN];
 
     DWORD afsId = GetAfsIdByOpenHandle(hFile);
     if (afsId != 1)
-        return;
+        return false;
 
     DWORD offset = SetFilePointer(hFile, 0, NULL, FILE_CURRENT)
         - (*lpNumberOfBytesRead);
-	
+    DWORD fileId = GetFileIdByOffset(afsId, offset);
+    if (fileId == 0xffffffff) 
+        return false;
+
 	for (int i=0;i<data[NUM_BALL_FILES];i++) {
 		if (AFSArray[i].Buffer==(DWORD)lpBuffer) AFSArray[i].Buffer=0;
 		if (AFSArray[i].AFSAddr==offset) {found=i;break;};
-	};
+	}
 	if (found!=-1) {
 		AFSArray[found].Buffer=(DWORD)lpBuffer;
 		
-		if (found==g_fileId && g_afsId == 1) {
+		if (found==fileId && fileId%2==0) {
 			//replace the model
 			strcpy(tmp,GetPESInfo()->gdbDir);
 			strcat(tmp,"GDB\\balls\\mdl\\");
@@ -356,14 +347,13 @@ void bservAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRea
                 DWORD fsize = GetFileSize(hfile,NULL);
                 ReadFile(hfile,lpBuffer,fsize,&NBW,NULL);
                 CloseHandle(hfile);
-            };
-            
-			g_afsId = 0xffffffff;
-        	g_fileId = 0xffffffff;
-		};
-	};
-	return;
-};
+                LOG(&k_bserv, "Ball model replaced");
+                return true;
+            }
+		}
+	}
+    return false;
+}
 
 void bservUnpack(DWORD addr1, DWORD addr2, DWORD size1, DWORD zero, DWORD* size2, DWORD result)
 {
@@ -428,16 +418,13 @@ DWORD bservGetFileFromAFS(DWORD afsId, DWORD fileId)
                     orgNumPages, orgNumPages*0x800);
 
             // adjust buffer size to fit GDB ball model file
-            //DWORD numPages = max(fileSize / 0x800 + 1, orgNumPages);
-            DWORD numPages = fileSize/0x800 + ((fileSize&0x7ff)!=0);
+            DWORD numPages = ((fileSize-1)>>0x0b)+1;
             pPageLenTable[fileId] = numPages;
             LogWithTwoNumbers(&k_bserv,"bservGetFileFromAFS: new size: %08x pages (%08x bytes)", 
                     numPages, numPages*0x800);
-		};
+		}
 
-		g_afsId = afsId;
-		g_fileId = fileId;
-    };
+    }
 
     // call original
     DWORD result = MasterCallNext(afsId, fileId);
@@ -1243,8 +1230,10 @@ void FreeBallTexture()
 };
 
 
-HRESULT STDMETHODCALLTYPE bservCreateTexture(IDirect3DDevice8* self, UINT width, UINT height,UINT levels,
-DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** ppTexture, DWORD src, bool* IsProcessed)
+HRESULT STDMETHODCALLTYPE bservCreateTexture(
+        IDirect3DDevice8* self, UINT width, UINT height,UINT levels,
+        DWORD usage, D3DFORMAT format, D3DPOOL pool, 
+        IDirect3DTexture8** ppTexture, DWORD src, bool* IsProcessed)
 {
 	HRESULT res=D3D_OK;
 	RECT texSize;
@@ -1254,23 +1243,27 @@ DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** ppTexture, DWOR
 	
 	g_lastBallTex=NULL;
 	
-	if (IsBadReadPtr((BYTE*)src,gdbBallSize) || gdbBallCRC!=GetCRC((BYTE*)src,gdbBallSize)) {
+	if (IsBadReadPtr((BYTE*)src,gdbBallSize) || 
+            gdbBallCRC!=GetCRC((BYTE*)src,gdbBallSize)) {
 		//wrong CRC -> data changed
 		gdbBallAddr=0;
 		gdbBallSize=0;
 		gdbBallCRC=0;
-	};
+	}
 	
 	if (src!=0 && src==gdbBallAddr) {
 		TRACE(&k_bserv,"bservCreateTexture called for ball texture.");
 		
-		if (!CreateBallTexture()) goto NoReplacingTexture;
+		if (!CreateBallTexture()) 
+            goto NoReplacingTexture;
 		
-		res = OrgCreateTexture(self, ballTextureRect.right, ballTextureRect.bottom,
-				levels,usage,format,pool,ppTexture);
+        DWORD w = max(width, ballTextureRect.right);
+        DWORD h = max(height, ballTextureRect.bottom);
+		res = OrgCreateTexture(
+                self, w, h, levels,usage,format,pool,ppTexture);
 		g_lastBallTex = *ppTexture;
 		TRACE2(&k_bserv,"tex = %08x", (DWORD)g_lastBallTex);
-	};
+	}
 
 	NoReplacingTexture:
 
@@ -1293,7 +1286,7 @@ void bservUnlockRect(IDirect3DTexture8* self,UINT Level)
 		if (SUCCEEDED(D3DXLoadSurfaceFromFileInMemory(
 						g_surf, NULL, NULL, //destination
 						ballTexture, ballTextureSize, NULL, //source
-						D3DX_FILTER_NONE, 0, NULL)))
+						D3DX_DEFAULT, 0, NULL)))
 		{ 
 			TRACE(&k_bserv,"Replacing ball texture COMPLETE");
 		}

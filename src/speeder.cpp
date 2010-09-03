@@ -139,7 +139,7 @@ bool readConfig(config_t& config)
 		{
             float value = 1.0;
 			if (sscanf(pValue, "%f", &value)!=1) continue;
-			config.count_factor = value;
+			config.count_factor = min(max(value,0.1),2.5);
 		}
 	}
 	fclose(cfg);

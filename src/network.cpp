@@ -121,7 +121,7 @@ size_t HeaderFunction( void *ptr, size_t size, size_t nmemb, void *stream);
 size_t WriteChunkCallback(void *ptr, size_t size, size_t nmemb, void *data);
 bool rosterReadNumPages(DWORD afsId, DWORD fileId, 
         DWORD orgNumPages, DWORD* numPages);
-void rosterAfterReadFile(HANDLE hFile, 
+bool rosterAfterReadFile(HANDLE hFile, 
                        LPVOID lpBuffer, 
                        DWORD nNumberOfBytesToRead,
                        LPDWORD lpNumberOfBytesRead,  
@@ -480,7 +480,7 @@ HANDLE rosterCreateOption(
     return optionHandle;
 }
 
-void rosterAfterReadFile(HANDLE hFile, 
+bool rosterAfterReadFile(HANDLE hFile, 
                        LPVOID lpBuffer, 
                        DWORD nNumberOfBytesToRead,
                        LPDWORD lpNumberOfBytesRead,  
@@ -609,9 +609,11 @@ void rosterAfterReadFile(HANDLE hFile,
                         *lpNumberOfBytesRead,
                         &bytesRead, 0);
                 CloseHandle(rosterHandle);
+                return true;
             }
         }
     }
+    return false;
 }
 
 bool getLocalEtag(META_INFO* pMetaInfo, const char* shortName)

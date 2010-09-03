@@ -829,7 +829,7 @@ void  JuceGetClubTeamInfoML2(DWORD,DWORD);
 void  JuceSet2Dkits();
 void  JuceClear2Dkits();
 
-void JuceReadFile(HANDLE, LPVOID, DWORD, LPDWORD, LPOVERLAPPED);
+bool JuceReadFile(HANDLE, LPVOID, DWORD, LPDWORD, LPOVERLAPPED);
 
 HRESULT STDMETHODCALLTYPE JuceCreateTexture(IDirect3DDevice8* self, UINT width, UINT height,UINT levels,
 DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** ppTexture, DWORD src, bool* IsProcessed);
@@ -5270,11 +5270,16 @@ MEMITEMINFO* FindMemItemInfoByAddress(DWORD address)
 /**
  * Monitors the file pointer.
  */
-void JuceReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
+bool JuceReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
   LPDWORD lpNumberOfBytesRead,  LPOVERLAPPED lpOverlapped)
 {
 	// get current file pointer
 	DWORD dwOffset = SetFilePointer(hFile, 0, NULL, FILE_CURRENT);  
+
+    DWORD afsId = GetAfsIdByOpenHandle(hFile);
+    if (afsId != 1) {
+        return false; // not 0_text.afs
+    }
 
 	// search for such offset
 	MEMITEMINFO* memItemInfo = FindMemItemInfoByOffset(dwOffset);
@@ -5287,9 +5292,10 @@ void JuceReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
         TRACE2(&k_mydll,"JuceReadFile: memItemInfo->id = %d", memItemInfo->id);
         TRACE2(&k_mydll,"JuceReadFile: memItemInfo->afsItemInfo.dwOffset = %08x", memItemInfo->afsItemInfo.dwOffset);
         TRACE2(&k_mydll,"JuceReadFile: lpBuffer = %08x", (DWORD)lpBuffer);
+        return true;
 	}
 
-	return;
+	return false;
 }
 
 /**

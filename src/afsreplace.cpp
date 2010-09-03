@@ -4,6 +4,9 @@
 #include "kload_exp.h"
 #include "afsreplace.h"
 
+//#include <hash_map>
+#include <map>
+
 extern KMOD k_kload;
 
 
@@ -37,6 +40,15 @@ CALLLINE l_GetNumPages={0,NULL};
 
 DWORD newReadNumPages(DWORD base, DWORD fileId, DWORD orgNumPages);
 
+struct NEXT_LIKELY_READ
+{
+    DWORD afsId;
+    DWORD offset;
+    DWORD fileId;
+};
+
+map<HANDLE,struct NEXT_LIKELY_READ> _next_likely_reads;
+
 
 KEXPORT DWORD GetAfsIdByBase(DWORD base)
 {
@@ -59,12 +71,40 @@ KEXPORT DWORD GetFileIdByOffset(DWORD afsId, DWORD offset)
     DWORD offsetSoFar = 0;
     for (; fileId<afsInfo->numItems; fileId++) {
         offsetSoFar += 0x800 * afsInfo->pages[fileId];
-        if (offsetSoFar >= offset)
-            return fileId;
+        if (offsetSoFar > offset)
+            return fileId-1;
     }
     if (fileId == afsInfo->numItems)
         return 0xffffffff;
     return fileId;
+}
+
+KEXPORT DWORD GetProbableFileIdForHandle(DWORD afsId, 
+        DWORD offset, HANDLE hFile)
+{
+    map<HANDLE,struct NEXT_LIKELY_READ>::iterator nit;
+    nit = _next_likely_reads.find(hFile);
+    if (nit != _next_likely_reads.end()) {
+        if (nit->second.afsId == afsId && nit->second.offset == offset) {
+            DWORD fileId = nit->second.fileId;
+            LOG(&k_kload, "Probable fileId: %d", fileId);
+            _next_likely_reads.erase(nit);
+            return fileId;
+        }
+        _next_likely_reads.erase(nit);
+    }
+    return GetFileIdByOffset(afsId, offset);
+}
+
+KEXPORT void SetNextProbableReadForHandle(DWORD afsId, 
+        DWORD offset, DWORD fileId, HANDLE hFile)
+{
+    struct NEXT_LIKELY_READ nlr;
+    nlr.afsId = afsId;
+    nlr.offset = offset;
+    nlr.fileId = fileId;
+    _next_likely_reads.insert(
+        pair<HANDLE,struct NEXT_LIKELY_READ>(hFile, nlr));
 }
 
 KEXPORT DWORD GetOffsetByFileId(DWORD afsId, DWORD fileId)

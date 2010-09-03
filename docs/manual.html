@@ -4,6 +4,7 @@
     <style>
         img { display:block;margin:10px 0 10px 0;border:1px solid #000; }
         div.note { background-color:#ffc;color:#800;padding:5px; }
+        p.devnote { background-color:#ddd;color:#444;padding:5px; }
         table {padding:10px 0 10px 0}
         table td {padding:5px;border:1px solid #000}
         table th {padding:5px;border:1px solid #000;background-color:#ccc}
@@ -19,16 +20,26 @@
         table.shpal td.top {border-top:1px solid #000}
         span.soft {font-weight:bold;color:#696;}
         span.ex {font-weight:bold;color:#669;}
+        a {color: #00c;}
+        a:visited {color: #00c;}
+        a:hover {color: #00c; background-color: #ccf;}
+        a:active {color: #00c;}
     </style>
 </head>
 <body>
-<h2>KitServer 5.3 Manual</h2>
+<h2>Kitserver 5.3 Manual</h2>
 <div>
-September 18, 2008<br />	
-Module Versions: <a href="#kitserver">KitServer 5.2.3</a>, <a href="#ballserver">BallServer: 5.2.3</a>, 
-    <a href="#faceserver">Faceserver: 5.2.4</a>, <a href="#stadiumserver">Stadium Server: 5.2.3</a>, 
-    <a href="#lodmixer">LOD Mixer: 5.2.5</a>,
-    <a href="#bootserver">Bootserver 5.5.6</a>
+September 3, 2010<br />	
+Module Versions: 
+<a href="#kitserver">Kserv 5.3.2</a>, 
+<a href="#ballserver">BallServer: 5.3.2</a>, 
+<a href="#faceserver">Faceserver: 5.3.2</a>, 
+<a href="#stadiumserver">Stadium Server: 5.3.2</a>, 
+<a href="#lodmixer">LOD Mixer: 5.2.5</a>,
+<a href="#bootserver">Bootserver 5.5.7</a>,
+<a href="#afs2fs">AFS2FS 5.0.0</a>,
+<a href="#network">Network 5.3.2</a>,
+<a href="#speeder">Speeder 5.0.0</a>
 </div><hr>
 
 
@@ -37,20 +48,30 @@ Module Versions: <a href="#kitserver">KitServer 5.2.3</a>, <a href="#ballserver"
 
 <h3>1.1 Introduction</h3>
 <p>
-KitServer 5.3 is an add-on program for Pro Evolution Soccer 5, Winning Eleven 9, and
+Kitserver 5.3 is an add-on program for Pro Evolution Soccer 5, Winning Eleven 9, and
 Winning Eleven 9 Liveware Evolution. It is a loader and manager for various modules.
-KitServer Module 5.2.3 provides the alternative way of managing players and goalkeeper kits
+Kserv Module provides the alternative way of managing players and goalkeeper kits
 outside of the game's AFS file: you organize the PNG or BMP kit images into an external
 database, which is basically a collection of folders and files that follows few simple rules.
 You are not restricted to just 1st and 2nd kit for each team - you can have as many as you like.
-The BallServer Module 5.2.3 does similar things to KitServer, it offers the
+The BallServer Module does similar things to Kserv: it offers the
 possibility of chosing a ball from the external database. Of course it is possible to store
-more than the eight standard balls. Another extension is the FaceServer Module 5.2.3. As the name
+more than the eight standard balls. Another extension is the Faceserver Module. As the name
 says, it allows to use more faces and hair from an external database without overwriting existing
-ones. With StadiumServer 5.2.3, you can choose additional stadiums from your GDB. Furthermore the
-LOD Mixer Module 5.2.3 enables more detailed graphics and controlling of match aspects in Leagues
-and Cups. Bootserver (backported from Kitserver 6) allows to assign each player personalized boots from GDB.
+ones. With StadiumServer, you can choose additional stadiums from your GDB. Furthermore the
+LOD Mixer Module enables more detailed graphics and controlling of match aspects in Leagues
+and Cups.</p>
+
+<p>Some additional modules were backported from later versions of Kitserver: Bootserver allows to assign each player personalized boots from GDB.
+AFS2FS module allows you to organize your patches into folders and files, 
+instead of inserting them into AFS-files. This
+way, you can quickly add/remove patches, and also never worry about needing
+to re-build AFS, because of lack of space for a particular BIN. There is also 
+a Speeder module - to alter the game speed (increase/decrease). And the last new
+addition is the Network module, which provides easy means of configuring
+which network server to connect to and automatic roster updates.
 </p>
+
 
 <h3>1.2 Installation</h3>
 
@@ -90,7 +111,7 @@ re-enable kitserver later, if you run setup again and press "Install" button.)
 
 <!-- ### KITSERVER ### -->
 
-<h2 id="kitserver">KitServer Module 5.2.3 (kserv.dll)</h2>
+<h2 id="kitserver">Kserv Module 5.3.2 (kserv.dll)</h2>
 
 <h3>2.1 Quick summary of the features</h3>
 <p>
@@ -386,7 +407,7 @@ parts, if you go into the "Change Setup" mode.
 
 <img src="stripsel-gk.jpg" />
 
-<a name="kitinfoscreen">
+<a name="kitinfoscreen"> </a>
 <p>
 Right under the kit preview additional information is displayed. Since there is not enough space,
 these are split in some pages between which you can switch withe the <b>[PAGE UP]</b> and
@@ -441,7 +462,7 @@ otherwise splitting will not work.
 
 <!-- ### BALLSERVER ### -->
 
-<h2 id="ballserver">Ballserver Module 5.2.3 (bserv.dll)</h2>
+<h2 id="ballserver">Ballserver Module 5.3.2.7 (bserv.dll)</h2>
 
 <h3>3.1 Quick summary of the features</h3>
 
@@ -478,11 +499,12 @@ the 3D model file and the texture file. Look at the example:
 # This comment makes sure you have pressed the enter key after the last ball
 </pre>
 
+<p>
 Please don't forget the quotes, they are important! If your map.txt looks like this (and you have those 
 files, of course), you can choose between <i>adidas Finale Capitano Grey</i> and <i>adidas Teamgeist Blue</i> 
 in game later. The texture files have to be stored inside the "GDB\balls" folder and the models in "GDB\balls\mdl".</p>
 
-<a name="relfolderexample">
+<a name="relfolderexample"> </a>
 <div class="note">If you want to use other folders, you have to use relative paths like <b>mysubfolder\tex.png</b>
 for a file "tex.png" inside "GDB\balls\mysubfolder".</div>
 <p>
@@ -514,7 +536,7 @@ say "Ball selection" then.
 
 <!-- ### FACESERVER ### -->
 
-<h2 id="faceserver">FaceServer Module 5.2.3 (fserv.dll)</h2>
+<h2 id="faceserver">FaceServer Module 5.3.2 (fserv.dll)</h2>
 
 <h3>4.1 Introduction</h3>
 <p>
@@ -571,7 +593,7 @@ please check first if this is the reason before posting in the forums.
 
 
 <!-- ### STADIUM SERVER ### -->
-<h2 id="stadiumserver">Stadium Server Module 5.2.3 (stadium.dll)</h2>
+<h2 id="stadiumserver">Stadium Server Module 5.3.2 (stadium.dll)</h2>
 <h3>5.1 Introduction</h3>
 <p>
 Stadium Server is a plug-in module for Kitserver. It allows to use additional stadiums, which
@@ -759,7 +781,7 @@ simply press the <b>[1]</b> key. To choose the weather, use the <b>[2]</b> key.
 
 <!-- ### LODMIXER ### -->
 
-<h2 id="lodmixer">LOD Mixer Module 5.2.3 (lodmixer.dll)</h2>
+<h2 id="lodmixer">LOD Mixer Module 5.2.5 (lodmixer.dll)</h2>
 
 <h3>6.1 How to use</h3>
 
@@ -772,7 +794,7 @@ enable the crowd on all cameras, choose weather/stadium/etc. for League/Cup/ML g
 looks (very similar to older standalone version of LOD Mixer 1.6):
 </p> 
 
-<img src="lodmixer.gif"/>
+<img src="lodmixer.png"/>
 
 <div class="NOTE">
     For complete documentation see this file: <b><a href="lodmixer.txt">lodmixer.txt</a></b>
@@ -792,7 +814,7 @@ The configuration is saved automatically and also works for friendly matches now
 
 <!-- ### Bootserver ### -->
 
-<h2 id="bootserver">Bootserver module 5.5.6 (bootserv.dll)</h2>
+<h2 id="bootserver">Bootserver module 5.5.7 (bootserv.dll)</h2>
 
 <h3>7.1. Introduction</h3>
 
@@ -856,12 +878,204 @@ random-boots.enabled = 1
 </pre>
 </p>
 
+<!-- ### AFS2FS ### -->
+
+<h2 id="afs2fs">AFS2FS Module 5.0.0 (afs2fs.dll)</h2>
+
+<h3>8.1. Introduction</h3>
+<p>
+This module allows to organize your BIN-files into folders on disk, instead of inserting them into AFS (*.afs) files, which is sometimes a pain, and may require a lot of extra disk space.
+</p>
+
+<p>First introduced with Kitserver 7, the AFS2FS proved to be a popular tool, so it made sense to *backport* the functionality into Kitserver 5 also. The basic idea to organize BINs into folders that would mirror the game *.afs files, was brought up by several people in the community, so by now it is really hard to attribute it to someone specific. (Although Str@teG was the one who finally convinced me to implement it). From personal experience, i know that people are sometimes reluctant to install big patches that require an AFS-rebuild, not because it's particularly difficult or anything, but because it can be time-consuming and disk-space-hungry. With afs2fs, this is now very easy: you just put the BIN into correct folder and that's it. And, of course, there are no size constraints - the bins can be as large as needed!
+</p>
+
+<p>Another useful feature (which is unique to this version to AFS2FS module, and does not exist in kitservers for later versions of the game), is that multiple root folders are supported, which makes it really easy to manage multiple patches: you can install/uninstall them by dragging the folders and/or modifying the afs2fs.cfg configuration file. You can re-order them if needed, in case of the overlap in content. See the section called "AFS root folders" below for more details.
+</p>
+
+<h3>8.2. How to set up the folders</h3>
+
+<p>
+Let's start with the simplest scenario. In <b>kitserver</b> folder, there should be a <b>dat</b> folder - if it's not there, create it, and then inside "dat", create folders, as needed, named - <b>0_text.afs</b>, <b>0_sound.afs</b>, <b>e_text.afs</b>, and so for. That's where you're going to be putting the BIN-files. 
+</p>
+
+<p class="note">It's important to name the folders correctly: a folder must have exactly the same name as the corresponding AFS-file. For instance, if you call a folder 0_text, instead of 0_text.afs, things will not work.)
+</p>
+
+<h3>8.3. How to name the files</h3>
+
+<p class="devnote">In general, you can name the files whichever way you want, but you must follow one rule: there must be a BIN number in the name, and it must be preceded by an underscore character ('_'). Also, the filenames CANNOT be longer than 63 characters.
+</p>
+
+<p>
+Examples of correctly named files:<br /><br />
+<span style="color:#080;font-weight:bold">unknow_00473.bin</span><br />
+<span style="color:#080;font-weight:bold">ball_7.bin</span><br />
+<span style="color:#080;font-weight:bold">unknown_8</span> (.bin extension is optional)<br />
+<span style="color:#080;font-weight:bold">music_10.adx</span> (a file can have a different extension: .adx is typically used for music and sound files)<br />
+</p>
+
+<p>
+Examples of incorrectly named files:<br /><br />
+<span style="color:#800;font-weight:bold">unnamed10.bin</span> - no underscore symbol before the BIN number.<br />
+<span style="color:#800;font-weight:bold">face.bin</span> - no BIN number.<br />
+</p>
+
+<h3>8.4. AFS "root" folders</h3>
+<p>
+By default, the AFS2FS module expects to find the <b>dat</b> folder inside the <b>kitserver</b> folder, which serves as the single default AFS root. However, it is also possible to have a more flexible configuration. In <b>afs2fs.cfg</b> file, you can speficy the location of your root, which can be anywhere on your hard disk. You can also have multiple roots, which is very useful if you have several patches, and you don't want to lose track of which BINs came from which patches (so that you can easily uninstall a patch by just deleting its root folder).
+</p>
+
+<p>Here is an example <b>afs2fs.cfg</b> file, where 3 different roots are configured:</p>
+
+<pre>
+# AFS2FS configuration
+afs.root = "c:\mypes5patch"
+afs.root = "dat"
+afs.root = "patch-RPL"
+</pre>
+
+<p>The order of them is important only if there is overlapping content. Let's say for example that <b>patch-RPL</b> and <b>mypes5patch</b> both have bin #7 for 0_text.afs. (The files themselves can actually be named differently - for example: <i>ball_7.bin</i> and <i>unknown_7</i>, but what matters is that they define the same BIN). In this case, the file coming from the <u>last</u> root gets used - in this example, it will be the BIN from <b>patch-RPL</b>.</p>
+
+<!-- ### AFS2FS ### -->
+
+<h2 id="network">Network Module 5.3.2 (network.dll)</h2>
+
+<h3>9.1. Introduction</h3>
+<p>
+Despite the fact that KONAMI servers were switched off in 2006, there is 
+still a way to play PES5/WE9/WE9LE online aganist other people. Really all 
+credit for that must go to <b>Reddwarf</b>, who first reverse-engineered the
+protocols and also created the new implementation of the server, he called
+"GoalServer". (There is now also another implementation of 
+PES5/WE9/WE9LE-compatible server available, called "Fiveserver".) 
+
+<p>In order to play on a network server, your game must be
+configured to communicate with it. For example, it must know the hostname
+or the IP-address of the main server, and the IP-address of the STUN server.
+Those settings were hardcoded in the game, but with the help of Network 
+module, it is now very easy to modify them. You put the setting into the
+configuration file called <b>network.cfg</b>, and the module does the rest.
+</p>
+
+<p>Here is an example of such file:</p>
+
+<pre>
+# Configuration file for network module
+
+network.server = "pesgame.net"
+network.stun-server = "132.177.123.13"
+
+network.roster.update = 1
+network.roster.update.baseurl = "http://pes5-club.pesgame.net/updates/"
+
+# set this to 1, if you want to practice or play with
+# rosters used in network mode.
+network.option.enabled = 0
+</pre>
+
+<p>Two main settings here are <b>network.server</b> and <b>network.stun-server</b>. The first one is the hostname or IP-address of the machine where the 
+game server is running. The second - STUN-server - is used during the network
+configuration test, which is performed by the game. KONAMI's own STUN servers
+that the game was configured to connect to are now long gone, so you need to
+specify a different one. There are quite a few STUN-server available on the
+Internet that you can use - one of them is shown above.
+</p>
+
+<p>
+The Network module also provides a couple of additional features: automatic roster updates and usage of online roster for offline play.</p>
+
+<h4>9.2. Automatic roster updates</h4>
+
+<p>When you play online, it is important that you and your opponent have 
+the exact same
+game data: teams, player, player attributes, and so on. To ensure that, the
+game uses a so-called "online roster", which is being checked upon connection
+to see if two players have identical data. If they do, then the match can 
+proceed, otherwise the game drops the connection, indicating that way that the
+match isn't possible.</p>
+
+<p>Over the years, tools have been developed to modify the online roster, and
+sites that run the network servers typically have their version of the roster
+(with modified teams, players, etc.) that is different from the standard
+roster. In order to play on such a server, the user previously had to download
+the roster and install it into its own game either using tools like AFS Explorer
+and DKZ studio. Now, with Network Module, it's MUCH easier: if the server-hosting site provides the URL for downloading their roster, you can configure the
+kitserver to always check if the new roster is available and download it if 
+needed upon entering the "NETWORK" mode of the game.</p>
+
+<p>This is exactly what the <b>network.roster.update</b> and 
+<b>network.roster.update.baseurl</b> options are for: the first one 
+enables/disables the automatic downloads, the second one specifies the URL
+from which to download the updates.</p>
+
+<p class="devnote">It is important to note that it's the
+responsibility of the server maintainers to host the files on ther server
+at the right place. For different versions of the game the files must be
+accessible over HTTP protocol as: 
+
+<ul>
+<li>{BASEURL}/pes5/db.zip</li>
+<li>{BASEURL}/we9/db.zip</li>
+<li>{BASEURL}/we9le/db.zip</li>
+</ul>
+</p>
+
+<p class="devnote">The contents of the zip-file varies slightly based on the version of the game. For PES5 and WE9, the <b>db.zip</b> should contain a file
+called <b>db_22.bin</b>, and may also contain: <b>db_17.bin</b>, <b>db_18.bin</b>, and <b>db_19.bin</b>. For WE9LE, the corresponding files are: <b>db_28.bin</b>, <b>db_23.bin</b>, <b>db_24.bin</b> and <b>db_25.bin</b>. (The numbers 
+correspond to the order of BINs in 0_text.afs)</p>
+
+<p class="devnote">The db.zip may also contain a configuration file
+called <b>db.cfg</b>, which can specify online-specific gameplay setttings.
+In the current version of the Network module, the only setting supported is
+<b>speed.factor</b>. It controls the speed of the game during online play
+in much the same way as the speeder module does for offline modes. 
+Example of game speed slowed-down a bit (1.0 - is the normal speed):
+
+<pre>
+# Online settings config
+
+speed.factor = 0.94
+</pre>
+
+
+
+<h4>9.3. Online option file for offline play</h4>
+
+<p>Inside that <b>db.zip</b> file, mentioned in the previous section, the 
+authors and maintainers of the roster may also include a file called 
+<b>option.bin</b> (in addition to other roster files). This file must have
+the format of the KONAMI-WIN32PES5OPT option file. If you set the
+<b>network.option.enabled</b> option to <b>1</b>, then instead of using your
+normal option (from My Documents/KONAMI/.../save/folder1 folder), the game
+will be using this downloaded option file. This can be useful, if you want
+to practice with the teams and players used in online mode.</p>
+
+
+<!-- ### SPEEDER ### -->
+
+<h2 id="speeder">Speeder 5.0.0 (speeder.dll)</h2>
+
+<p>Not everyone is satisfied with the pace of the gameplay. It must be said that it is not an easy thing to get this aspect of simulating a football match correctly. Many factors are in play, and a lot depends on hardware. Personally, i think Konami did a decent job at that, but many folks find the gameplay too fast.</p>
+
+<p>Several techniques of slowing the game down exist, and not one of them is perfect, but all work to some extent. The speeder module basically slows down the clock, sort of tricking the game into running slower. This is not an ideal solution either, but if a small adjustment is used, it can still look real, play well, and actually provide a smoother gameplay. Don't consider it a silver bullet though. It might work well for you, but it also may not deliver everything you had hoped for :) (One side-effect, for example, is that if you set your match time to 10 minutes, but you have the Game Speed set to 0.9, the actual match time will be approximately 11.1 minutes.)</p>
+
+<p>It is possible to decrease the game speed and also to increase it. The value 1.0 gives the default unchanged speed. Less than 1.0 - slower gameplay, greater than 1.0 - faster gameplay. It is not advised to use values lower than 0.7, because the music/commentary starts to break up. Also values larger than 2.5 are not supported. It is already ridiculously fast with 2.5!.</p>
+
+<p>Example of <b>speeder.cfg</b> file:</p>
+
+<pre>
+# Game speed configuration
+
+count.factor = 0.96
+</pre>
+
 
 <!-- ### ADVANCED CONFIGURATION ### -->
 
 <h2 id="advconfig">Advanced configuration</h2>
 
-<h3>8.1. Master configuration file: kload.cfg</h3>
+<h3>10.1. Master configuration file: kload.cfg</h3>
 
 <p>
 Typically, you wouldn't need to modify that, unless you're running into problems, or
