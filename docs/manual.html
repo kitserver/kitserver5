@@ -29,7 +29,7 @@
 <body>
 <h2>Kitserver 5.3 Manual</h2>
 <div>
-September 3, 2010<br />	
+September 14, 2010<br />	
 Module Versions: 
 <a href="#kitserver">Kserv 5.3.2</a>, 
 <a href="#ballserver">BallServer: 5.3.2</a>, 
@@ -38,7 +38,7 @@ Module Versions:
 <a href="#lodmixer">LOD Mixer: 5.2.5</a>,
 <a href="#bootserver">Bootserver 5.5.7</a>,
 <a href="#afs2fs">AFS2FS 5.0.0</a>,
-<a href="#network">Network 5.3.2</a>,
+<a href="#network">Network 5.3.3</a>,
 <a href="#speeder">Speeder 5.0.0</a>
 </div><hr>
 
@@ -1050,6 +1050,23 @@ the format of the KONAMI-WIN32PES5OPT option file. If you set the
 normal option (from My Documents/KONAMI/.../save/folder1 folder), the game
 will be using this downloaded option file. This can be useful, if you want
 to practice with the teams and players used in online mode.</p>
+
+<h4>9.4. Roster hash calculation</h4>
+
+<p>Some network servers require roster-hash to be passed on during
+authentication. This prevents cheating and playing with rosters where
+player skills differ between the two players. (To some extent the game
+itself does the comparision of rosters, but it is not enforced 100%). 
+</p>
+
+<p>Starting with version 5.3.3, the Network module supports roster-hash 
+calculation and insertion into the login packet. To enable this feature, 
+make sure you have <b>network.roster.hash</b> option set to 1 in 
+your network.cfg:
+
+<pre>
+network.roster.hash = 1
+</pre>
 
 
 <!-- ### SPEEDER ### -->
