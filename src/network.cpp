@@ -8,6 +8,7 @@
 #include "network.h"
 #include "kload_exp.h"
 #include "afsreplace.h"
+#include "md5.h"
 
 KMOD k_network={MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG};
 
@@ -23,9 +24,11 @@ char _preloadingText[128];
 HANDLE _preloadEvent = NULL;
 string _error;
 LARGE_INTEGER _nonOnlineFrequency = {0,0};
+char _versionString[17] = "1.66-FakeVersion";
+md5_state_t state;
+md5_byte_t digest[16];
 
-
-#define DATALEN 13
+#define DATALEN 14
 enum {
     MAIN_MENU_MODE, CLOCK_FREQUENCY,
     STUN_SERVER, STUN_SERVER_BUFLEN,
@@ -33,6 +36,7 @@ enum {
     DB_FILE1, DB_FILE2, DB_FILE3,
     ROSTER_FILEID, 
     DB_FILE5, DB_FILE6, DB_FILE7,
+    CODE_READ_VERSION_STRING,
 };
 
 static DWORD dataArray[][DATALEN] = {
@@ -42,6 +46,7 @@ static DWORD dataArray[][DATALEN] = {
         0, 0,
         0, 0,
         0,0,0,0,0,0,0,
+        0,
     },
     // PES5
     {
@@ -49,6 +54,7 @@ static DWORD dataArray[][DATALEN] = {
         0xadadd8, 28,
         0xada608, 32,
         17,18,19,22,23,24,25,
+        0x83d67f,
     },
     // WE9
     {
@@ -56,6 +62,7 @@ static DWORD dataArray[][DATALEN] = {
         0xadadf4, 28,
         0xada620, 32,
         17,18,19,22,23,24,25,
+        0x83dbaf,
     },
     // WE9:LE
     {
@@ -63,6 +70,7 @@ static DWORD dataArray[][DATALEN] = {
         0xadb0a8, 28,
         0xada920, 32,
         23,24,25,28,29,30,31,
+        0x864e9f,
     },
 };
 
@@ -103,12 +111,14 @@ public:
     network_config_t() : 
         debug(false),
         updateEnabled(false),
-        useNetworkOption(false)
+        useNetworkOption(false),
+        doRosterHash(false)
     {}
 
     bool debug;
     bool updateEnabled;
     bool useNetworkOption;
+    bool doRosterHash;
     string updateBaseURI;
     string stunServer;
     string server;
@@ -137,6 +147,8 @@ HANDLE rosterCreateOption(
   DWORD dwCreationDisposition,
   DWORD dwFlagsAndAttributes,
   HANDLE hTemplateFile);
+void rosterVersionReadCallPoint();
+void rosterVersionRead(char* version);
 
 typedef struct _CHUNK_READ
 {
@@ -322,6 +334,11 @@ bool readConfig(network_config_t& config)
 			if (sscanf(pValue, "%d", &value)!=1) continue;
 			config.useNetworkOption = (value > 0);
 		}
+        else if (strcmp(name, "network.roster.hash")==0)
+		{
+			if (sscanf(pValue, "%d", &value)!=1) continue;
+			config.doRosterHash = (value > 0);
+		}
         else if (strcmp(name, "network.roster.update.baseurl")==0)
         {
             string value(pValue);
@@ -350,6 +367,8 @@ void initModule()
     HookFunction(hk_GetNumPages,(DWORD)rosterReadNumPages);
     HookFunction(hk_AfterReadFile,(DWORD)rosterAfterReadFile);
     HookFunction(hk_CreateOption,(DWORD)rosterCreateOption);
+    HookCallPoint(data[CODE_READ_VERSION_STRING], 
+            rosterVersionReadCallPoint, 6, 3, false);
 
 	curl_global_init(CURL_GLOBAL_ALL);
     Log(&k_network, "Network module initialized.");
@@ -578,15 +597,6 @@ bool rosterAfterReadFile(HANDLE hFile,
                 }
             }
 
-            // preload GDB to avoid disconnects when starting
-            // the first online game
-            if (!_gdb_preloaded) {
-                _gdb_preloaded = true;
-                HookFunction(hk_D3D_Present, (DWORD)rosterPresentPreloadGDB);
-                initGDB();
-                UnhookFunction(hk_D3D_Present, (DWORD)rosterPresentPreloadGDB);
-            }
-
             // feed it to the game
             string filename(GetPESInfo()->gdbDir);
             filename += "\\GDB\\network\\";
@@ -600,6 +610,7 @@ bool rosterAfterReadFile(HANDLE hFile,
                         OPEN_EXISTING,
                         FILE_ATTRIBUTE_NORMAL,
                         NULL);
+            bool result = false;
             if (rosterHandle != INVALID_HANDLE_VALUE)
             {
                 DWORD bytesRead=0;
@@ -609,8 +620,32 @@ bool rosterAfterReadFile(HANDLE hFile,
                         *lpNumberOfBytesRead,
                         &bytesRead, 0);
                 CloseHandle(rosterHandle);
-                return true;
+                result = true;
+
+                // calculate roster hash
+                if (_config.doRosterHash) {
+                    if (fileId == data[ROSTER_FILEID]) {
+                        md5_init(&state);
+                        md5_append(&state, 
+                                (const md5_byte_t *)lpBuffer, 
+                                bytesRead);
+                        md5_finish(&state, 
+                                (md5_byte_t*)_versionString); //digest);
+                        LOG(&k_network, "Roster-HASH CALCULATED.");
+                    }
+                }
             }
+
+            // preload GDB to avoid disconnects when starting
+            // the first online game
+            if (!_gdb_preloaded) {
+                _gdb_preloaded = true;
+                HookFunction(hk_D3D_Present, (DWORD)rosterPresentPreloadGDB);
+                initGDB();
+                UnhookFunction(hk_D3D_Present, (DWORD)rosterPresentPreloadGDB);
+            }
+
+            return result;
         }
     }
     return false;
@@ -976,3 +1011,38 @@ void rosterPresentPreloadGDB(IDirect3DDevice8* self,
     KDrawText(60,43,0xffc0c0ff,20,_preloadingText);
 }
 
+void rosterVersionReadCallPoint()
+{
+    __asm {
+        pushfd 
+        push ebp
+        push eax
+        push ebx
+        push ecx
+        push edx
+        push esi
+        push edi
+        mov ecx, esp
+        add ecx, 8
+        add ecx, 0x24  // adjust stack
+        push ecx
+        call rosterVersionRead
+        add esp, 4  // pop parameters
+        pop edi
+        pop esi
+        pop edx
+        pop ecx
+        pop ebx
+        pop eax
+        pop ebp
+        popfd
+        retn
+    }
+}
+
+void rosterVersionRead(char* version)
+{
+    if (_config.doRosterHash) {
+        memcpy(version, _versionString, 16);
+    }
+}

@@ -367,3 +367,61 @@ KEXPORT void _Log(KMOD *caller, const char *format, ...)
     Log(caller,buffer);
 }
 
+KEXPORT void _TraceLog(KMOD *caller, const char *format, ...)
+{
+#ifdef MYDLL_RELEASE_BUILD
+    return;
+#endif
+    
+    if (mylog == INVALID_HANDLE_VALUE)
+        return;
+
+    char buffer[512];
+    memset(buffer,0,sizeof(buffer));
+
+    va_list params;
+    va_start(params, format);
+    _vsnprintf(buffer, 512, format, params);
+    va_end(params);
+
+    Log(caller,buffer);
+}
+
+KEXPORT void _DebugLog(KMOD *caller, const char *format, ...)
+{
+    if (!caller->debug)
+        return;
+    
+    if (mylog == INVALID_HANDLE_VALUE)
+        return;
+
+    char buffer[512];
+    memset(buffer,0,sizeof(buffer));
+
+    va_list params;
+    va_start(params, format);
+    _vsnprintf(buffer, 512, format, params);
+    va_end(params);
+
+    Log(caller,buffer);
+}
+
+KEXPORT void _DeepDebugLog(KMOD *caller, const char *format, ...)
+{
+    if (caller->debug < 2)
+        return;
+    
+    if (mylog == INVALID_HANDLE_VALUE)
+        return;
+
+    char buffer[512];
+    memset(buffer,0,sizeof(buffer));
+
+    va_list params;
+    va_start(params, format);
+    _vsnprintf(buffer, 512, format, params);
+    va_end(params);
+
+    Log(caller,buffer);
+}
+

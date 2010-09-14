@@ -27,6 +27,22 @@ HANDLE _afsHandles[8] = {0,0,0,0,0,0,0,0};
 #define __in_opt
 #endif
 
+KEXPORT HANDLE WINAPI Override_HeapCreate(
+  __in  DWORD flOptions,
+  __in  SIZE_T dwInitialSize,
+  __in  SIZE_T dwMaximumSize);
+
+KEXPORT LPVOID WINAPI Override_HeapAlloc(
+  __in  HANDLE hHeap,
+  __in  DWORD dwFlags,
+  __in  SIZE_T dwBytes);
+
+KEXPORT LPVOID WINAPI Override_HeapReAlloc(
+  __in  HANDLE hHeap,
+  __in  DWORD dwFlags,
+  __in  LPVOID lpMem,
+  __in  SIZE_T dwBytes);
+
 KEXPORT HANDLE WINAPI Override_CreateFileA(
   LPCSTR lpFileName,
   DWORD dwDesiredAccess,
@@ -882,7 +898,10 @@ DWORD NewAllocMem(DWORD infoBlock, DWORD param2, DWORD size)
 DWORD NewUnpack(DWORD addr1, DWORD addr2, DWORD size1, DWORD zero, DWORD* size2)
 {
 	// call target function
+    //LOG(&k_kload, "Unpacking: (0x%08x,0x%08x,%08x,%08x)",
+    //        addr1,addr2,size1,*size2);
 	DWORD result = Unpack(addr1, addr2, size1, zero, size2);
+    //LOG(&k_kload, "Unpacked: %08x", *size2);
 	
 	CUNPACK NextCall=NULL;
 	for (int i=0;i<(l_Unpack.num);i++)
@@ -896,7 +915,11 @@ DWORD NewUnpack(DWORD addr1, DWORD addr2, DWORD size1, DWORD zero, DWORD* size2)
 
 KEXPORT DWORD MemUnpack(DWORD addr1, DWORD addr2, DWORD size1, DWORD* size2)
 {
-	return Unpack(addr1, addr2, size1, 0, size2);
+    //LOG(&k_kload, "Unpacking: (0x%08x,0x%08x,%08x,%08x)",
+    //        addr1,addr2,size1,*size2);
+	DWORD result = Unpack(addr1, addr2, size1, 0, size2);
+    //LOG(&k_kload, "Unpacked: %08x", *size2);
+    return result;
 };
 
 KEXPORT DWORD AFSMemUnpack(DWORD FileID, DWORD Buffer)
@@ -1240,6 +1263,9 @@ IDirect3D8* STDMETHODCALLTYPE NewDirect3DCreate8(UINT sdkVersion)
             { "CreateFileA", Override_CreateFileA },
             { "CreateFileW", Override_CreateFileW },
             { "CloseHandle", Override_CloseHandle },
+            //{ "HeapAlloc", Override_HeapAlloc },
+            //{ "HeapReAlloc", Override_HeapReAlloc },
+            //{ "HeapCreate", Override_HeapCreate },
             { NULL, NULL }
         }
     };
@@ -2100,6 +2126,45 @@ KEXPORT DWORD GetAfsIdByOpenHandle(HANDLE handle)
             return i;
     }
     return 0xffffffff;
+}
+
+KEXPORT HANDLE WINAPI Override_HeapCreate(
+  __in  DWORD flOptions,
+  __in  SIZE_T dwInitialSize,
+  __in  SIZE_T dwMaximumSize)
+{
+    HANDLE result = HeapCreate(flOptions, dwInitialSize, dwMaximumSize);
+    LOG(&k_kload, "HeapCreate(%08x, %08x, %08x) called --> %p",
+            flOptions, dwInitialSize, dwMaximumSize, result);
+    return result;
+}
+
+KEXPORT LPVOID WINAPI Override_HeapAlloc(
+  __in  HANDLE hHeap,
+  __in  DWORD dwFlags,
+  __in  SIZE_T dwBytes)
+{
+    if (dwBytes == 0x1dbe903) {
+        dwBytes = 0x3000000;
+    }
+    LPVOID result = HeapAlloc(hHeap, dwFlags, dwBytes);
+    if (dwBytes >= 0x100000) {
+        LOG(&k_kload, "HeapAlloc(%p, %08x, %08x) called --> %p",
+                hHeap, dwFlags, dwBytes, result);
+    }
+    return result;
+}
+
+KEXPORT LPVOID WINAPI Override_HeapReAlloc(
+  __in  HANDLE hHeap,
+  __in  DWORD dwFlags,
+  __in  LPVOID lpMem,
+  __in  SIZE_T dwBytes)
+{
+    LPVOID result = HeapReAlloc(hHeap, dwFlags, lpMem, dwBytes);
+    LOG(&k_kload, "HeapReAlloc(%p, %08x, %08x, %08x) called --> %p",
+            hHeap, dwFlags, lpMem, dwBytes, result);
+    return result;
 }
 
 KEXPORT HANDLE WINAPI Override_CreateFileA(

@@ -87,7 +87,9 @@ KEXPORT DWORD GetProbableFileIdForHandle(DWORD afsId,
     if (nit != _next_likely_reads.end()) {
         if (nit->second.afsId == afsId && nit->second.offset == offset) {
             DWORD fileId = nit->second.fileId;
-            LOG(&k_kload, "Probable fileId: %d", fileId);
+            DEEPDEBUGLOG(&k_kload,
+                "Probable fileId: %d (afsId:%d, offset:0x%08x, hFile:0x%08x)",
+                fileId, afsId, offset, hFile);
             _next_likely_reads.erase(nit);
             return fileId;
         }

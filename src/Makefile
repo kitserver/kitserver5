@@ -104,7 +104,7 @@ stadium.obj: stadium.cpp stadium.h
 stadium.res: 
 	$(RC) -r -fo stadium.res stadium.rc
 
-afs2fs.lib: afs2fs.obj crc32.obj afsreader.obj hooklib.obj
+afs2fs.lib: afs2fs.obj crc32.obj afsreader.obj hooklib.obj log.obj
 afs2fs.dll: afs2fs.lib afs2fs.res
 	$(LINK) $(LFLAGS) /out:afs2fs.dll /DLL afs2fs.obj crc32.obj afsreader.obj kload.lib hooklib.obj afs2fs.res $(LIBSDLL) d3dx8.lib /LIBPATH:$(LPPNGDIB) /LIBPATH:$(LPLIBPNG) /LIBPATH:$(LPZLIB)
 afs2fs.obj: afs2fs.cpp afs2fs.h afs2fs_addr.h
@@ -141,10 +141,11 @@ clock.dll: clock.lib clock.res
 	$(LINK) $(LFLAGS) /out:clock.dll /DLL clock.obj kload.lib d3dx8.lib clock.res $(LIBS)
 clock.obj: clock.cpp clock.h
 
-network.lib: network.obj
+network.lib: network.obj md5.obj
 network.dll: network.lib network.res
-	$(LINK) $(LFLAGS) /out:network.dll /DLL network.obj kload.lib d3dx8.lib libcurl.lib libarchive.lib network.res $(LIBS) /LIBPATH:$(LPCURL) /LIBPATH:$(LPARCHIVE)
+	$(LINK) $(LFLAGS) /out:network.dll /DLL network.obj md5.obj kload.lib d3dx8.lib libcurl.lib libarchive.lib network.res $(LIBS) /LIBPATH:$(LPCURL) /LIBPATH:$(LPARCHIVE)
 network.obj: network.cpp network.h
+md5.obj: md5.c md5.h
 
 speeder.lib: speeder.obj apihijack.obj
 speeder.dll: speeder.lib speeder.res

@@ -136,14 +136,14 @@ hook_point g_hp_WriteCapacity;
 #define MAP_FIND(map,key) map[key]
 #define MAP_CONTAINS(map,key) (map.count(key)>0)
 
-#define CODELEN 15
+#define CODELEN 16
 enum {
     C_GETFILEFROMAFS_CS, C_GETFILEFROMAFS, C_READFILE_CS,
     C_GETSTRING, C_GETSTRING_CS,
     C_GETSTRING2, C_GETSTRING2_CS,
     C_WRITENUM, C_WRITENUM_CS1, C_WRITENUM_CS2,
     C_SETLCM_CS, C_SETLCM, C_STADIUMCHANGE, C_ADVANCESTADIUM,
-    C_READNUMPAGES,
+    C_READNUMPAGES, C_EXIT_VIEW_STADIUMS,
 };
 static DWORD codeArray[][CODELEN] = {
 	// PES5 DEMO 2
@@ -152,7 +152,7 @@ static DWORD codeArray[][CODELEN] = {
      0, 0,
      0, 0, 0,
      0, 0, 0, 0,
-     0, 
+     0, 0, 
      },
 	// PES5
 	{0x5b7ea2, 0x873f40, 0x877994,
@@ -160,7 +160,7 @@ static DWORD codeArray[][CODELEN] = {
      0x9c4d10, 0x9b1243,
      0x89e511, 0x5298f2, 0x52999e,
      0x52a1e8, 0x529a10, 0x529d16, 0x529d22,
-     0x874767,
+     0x874767, 0x529ffc,
      },
 	// WE9
 	{0x5b82b2, 0x874410, 0x877e74,
@@ -168,7 +168,7 @@ static DWORD codeArray[][CODELEN] = {
      0x9c5020, 0x9b1523,
      0x89e9e1, 0x529d22, 0x529dce,
      0x52a618, 0x529e40, 0x52a146, 0x52a152,
-     0x874c37,
+     0x874c37, 0x52a42c,
      },
 	// WE9:LE
 	{0x5df692, 0x5a9150, 0x59ade4,
@@ -176,7 +176,7 @@ static DWORD codeArray[][CODELEN] = {
      0x9c7da0, 0x9b3ec3,
      0x89a209, 0x524522, 0x5245ce,
      0x524e18, 0x524640, 0x524946, 0x524952,
-     0x5a9977,
+     0x5a9977, 0x524c2c,
      },
 };
 
@@ -375,6 +375,8 @@ void stadCreateDevice(IDirect3D8* self, UINT Adapter,
     D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags,
     D3DPRESENT_PARAMETERS *pPresentationParameters, 
     IDirect3DDevice8** ppReturnedDeviceInterface);
+void stadExitViewStadiumsCallPoint();
+void stadExitViewStadiums();
 
 HRESULT InvalidateDeviceObjects(IDirect3DDevice8* dev);
 HRESULT DeleteDeviceObjects(IDirect3DDevice8* dev);
@@ -603,7 +605,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
         HookFunction(hk_OnHideMenu,(DWORD)stadEndUniSelect);
         
 		HookFunction(hk_D3D_CreateDevice,(DWORD)stadCreateDevice);
-		HookFunction(hk_D3D_Present,(DWORD)stadPresent);
+		//HookFunction(hk_D3D_Present,(DWORD)stadPresent);
 		HookFunction(hk_D3D_Reset,(DWORD)stadReset);
         
 		HookFunction(hk_Input,(DWORD)stadKeyboardProc);
@@ -648,6 +650,9 @@ void InitStadiumServer()
 
 	memcpy(code, codeArray[GetPESInfo()->GameVersion], sizeof(code));
 	memcpy(data, dataArray[GetPESInfo()->GameVersion], sizeof(data));
+
+    HookCallPoint(code[C_EXIT_VIEW_STADIUMS], 
+            stadExitViewStadiumsCallPoint, 6, 5, false);
 
     // reset stadium filename buffer
     ZeroMemory(g_stadFileSpec, BUFLEN);
@@ -713,7 +718,7 @@ void InitStadiumServer()
     	hasGdbStadiums=true;
 
 	UnhookFunction(hk_D3D_Create,(DWORD)InitStadiumServer);
-
+	//CheckViewStadiumMode();
 	return;
 }
 
@@ -887,10 +892,10 @@ bool stadAfterReadFile(HANDLE hFile,
     if (!MAP_CONTAINS(g_AFS_idMap, fileId))
         return false; // not a stadium file
 
-    LOG(&k_stadium, "stadAfterReadFile: afsId=%d, fileId=%d, read=%08x",
-            afsId, fileId, *lpNumberOfBytesRead);
+    LOG(&k_stadium, "stadAfterReadFile: (%d,%d), read=%08x --> %p",
+            afsId, fileId, *lpNumberOfBytesRead, lpBuffer);
 
-    char filename[1024] = {0};
+    char filename[512] = {0};
     DWORD fileSize = 0;
 
     if (fileId < data[STAD_FIRST]) {
@@ -926,11 +931,19 @@ bool stadAfterReadFile(HANDLE hFile,
             bytesToRead = filesize - curr_offset;
         }
 
+        //__asm int 3; //troubleshooting
         DWORD bytesRead = 0;
         SetFilePointer(handle, curr_offset, NULL, FILE_BEGIN);
-        LOG(&k_stadium, "reading %d bytes from {%s}", bytesToRead, filename);
+        LOG(&k_stadium, "reading 0x%x bytes (0x%x) from {%s}", 
+                bytesToRead, *lpNumberOfBytesRead, filename);
         ReadFile(handle, lpBuffer, bytesToRead, &bytesRead, lpOverlapped);
-        LOG(&k_stadium, "read %d bytes from {%s}", bytesRead, filename);
+        LOG(&k_stadium, "read 0x%x bytes from {%s}", bytesRead, filename);
+        if (*lpNumberOfBytesRead - bytesRead > 0) {
+            DEBUGLOG(&k_stadium, "zeroing out 0x%0x bytes",
+                    *lpNumberOfBytesRead - bytesRead);
+            memset(
+                (BYTE*)lpBuffer+bytesRead, 0, *lpNumberOfBytesRead-bytesRead);
+        }
         CloseHandle(handle);
 
         // set next likely read
@@ -938,150 +951,13 @@ bool stadAfterReadFile(HANDLE hFile,
             SetNextProbableReadForHandle(
                 afsId, offset+bytesRead, fileId, hFile);
         }
+        return true;
     }
     else {
         LOG(&k_stadium, "ERROR: unable to open file {%s} for reading",
                 filename);
-        return false;
     }
-    return true;
-}
-
-void stadAfterReadFile1(HANDLE hFile, 
-        LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
-        LPDWORD lpNumberOfBytesRead,  LPOVERLAPPED lpOverlapped)
-{
-	MEMITEMINFO* info = NULL;
-
-    DWORD afsId = GetAfsIdByOpenHandle(hFile);
-    //LogWithNumber(&k_stadium, "stadAfterReadFile:: afsId=%d", afsId);
-
-    bool multiStepReadNext = false;
-    map<MultiStepReadKey,MultiStepRead>::iterator mit;
-    MultiStepReadKey mkey;
-    mkey.hfile = hFile;
-    DWORD _dwOffset1(0);
-    
-    // ensure it is 0_TEXT.afs
-    if (afsId == 1) {
-        _dwOffset1 = SetFilePointer(hFile, 0, NULL, FILE_CURRENT)
-            - (*lpNumberOfBytesRead);
-        //LogWithThreeNumbers(&k_stadium,"stadAfterReadFile: f=%08x, off=%08x, btr=%08x", (DWORD)hFile, _dwOffset1, nNumberOfBytesToRead);
-
-        // check multi-step-read map first
-        mkey.dwOffset = _dwOffset1;
-        //LogWithTwoNumbers(&k_stadium, "Looking for entry with key (%08x,%08x)...",
-        //        (DWORD)mkey.hfile, mkey.dwOffset);
-        mit = _msrs.find(mkey);
-        if (mit != _msrs.end())
-        {
-            info = mit->second.info;
-            g_afsId = mit->second.afsId;
-            g_fileId = mit->second.fileId;
-            multiStepReadNext = true;
-        }
-        else
-        {
-            // search for such offset
-            info = FindMemItemInfoByOffset(_dwOffset1);
-        }
-    }
-
-	//if (info != NULL && info->id == g_fileId && g_afsId == 1) {
-	if (info != NULL) {
-        LogWithNumber(&k_stadium,"stadAfterReadFile: info->id = %d", info->id);
-        LogWithNumber(&k_stadium,"stadAfterReadFile: lpBuffer = %08x", (DWORD)lpBuffer);
-        LogWithNumber(&k_stadium,"stadAfterReadFile: nNumberOfBytesToRead = %08x", nNumberOfBytesToRead);
-
-        //bool switchStadium = false;
-        if (info->id >= data[STAD_FIRST] ) {
-            int stadId = GetStadId(info->id);
-            int fileId = GetFileId(info->id);
-            LogWithNumber(&k_stadium,"stadAfterReadFile: stadium: %d", stadId);
-            LogWithString(&k_stadium,"stadAfterReadFile: file: %s", FILE_NAMES[fileId]);
-        } else {
-            LogWithString(&k_stadium,"stadAfterReadFile: file: %s", FILE_NAMES[ADBOARDS]);
-        }
-
-        if (strlen(g_stadFileSpec)>0) {
-            // stadium file available: load it into the buffer
-            HANDLE hfile;
-            DWORD fsize;
-            DWORD bytesread;
-            hfile = CreateFile(g_stadFileSpec,GENERIC_READ,FILE_SHARE_READ,NULL,
-                OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
-            if (hfile!=INVALID_HANDLE_VALUE) {
-                fsize = GetFileSize(hfile,NULL);
-                if (multiStepReadNext)
-                {
-                    // seek proper position
-                    DWORD newPos = SetFilePointer(hfile, mit->second.bytesRead, NULL, FILE_BEGIN);
-                    LogWithNumber(&k_stadium, "New file pointer: %08x", newPos);
-                    fsize -= mit->second.bytesRead;
-                    LogWithNumber(&k_stadium, "Bytes remain in the file: %08x", fsize);
-                }
-                int bytesToRead = min(fsize, nNumberOfBytesToRead);
-                LogWithNumber(&k_stadium,"stadAfterReadFile: trying to read %08x bytes...", bytesToRead);
-                ZeroMemory(lpBuffer,nNumberOfBytesToRead);
-                ReadFile(hfile,lpBuffer,bytesToRead,&bytesread,NULL);
-                LogWithNumber(&k_stadium,"stadAfterReadFile: bytesread = %08x", bytesread);
-
-                // check if reached the end
-                DWORD curPos = SetFilePointer(hfile, 0, NULL, FILE_CURRENT);
-                DWORD endPos = SetFilePointer(hfile, 0, NULL, FILE_END);
-                bool allRead = curPos == endPos;
-                LogWithNumber(&k_stadium, "allRead = %d", allRead);
-                CloseHandle(hfile);
-
-                // multi-step reads
-                // ================
-                if (multiStepReadNext || bytesToRead < fsize)
-                {
-                    if (multiStepReadNext)
-                    {
-                        _msrs.erase(mit);
-                        LogWithTwoNumbers(&k_stadium, "Erased multi-step-read entry for key: (%08x,%08x)", (DWORD)mit->first.hfile, mit->first.dwOffset);
-                    }
-
-                    if (!allRead)
-                    {
-                        MultiStepReadKey msrKey;
-                        msrKey.hfile = hFile;
-                        msrKey.dwOffset = _dwOffset1 + bytesread;
-
-                        MultiStepRead msr;
-                        msr.dwOffset = _dwOffset1;
-                        if (multiStepReadNext)
-                            msr.bytesRead = mit->second.bytesRead + bytesread;
-                        else
-                            msr.bytesRead = bytesread;
-                        msr.afsId = g_afsId;
-                        msr.fileId = g_fileId;
-                        msr.info = info;
-
-                        LogWithTwoNumbers(&k_stadium,"stadAfterReadFile: putting new entry with key: (%08x,%08x)", (DWORD)msrKey.hfile, msrKey.dwOffset);
-                        _msrs[msrKey] = msr;
-                    }
-                    else 
-                    {
-                        //if (multiStepReadNext)
-                        //    __asm { int 3 }
-                    }
-                }
-                else
-                    g_stadFileSpec[0]='\0';
-            }
-            else
-                g_stadFileSpec[0]='\0';
-        }
-
-        g_afsId = 0xffffffff;
-        g_fileId = 0xffffffff;
-    }
-
-	CheckViewStadiumMode();
-
-	return;
+    return false;
 }
 
 void stadBeginUniSelect()
@@ -1095,12 +971,15 @@ void stadBeginUniSelect()
     SafeRelease( &g_preview_tex );
     g_newStad = true;
 
+    //HookFunction(hk_Input,(DWORD)stadKeyboardProc);
+    CheckViewStadiumMode();
     return;
 }
 
 void stadEndUniSelect()
 {
     //Log(&k_stadium, "stadEndUniSelect");
+    //UnhookFunction(hk_Input,(DWORD)stadKeyboardProc);
     
     isSelectMode=false;
     
@@ -1288,7 +1167,7 @@ void stadCreateDevice(IDirect3D8* self, UINT Adapter,
 void stadPresent(IDirect3DDevice8* self, CONST RECT* src, CONST RECT* dest, HWND hWnd, LPVOID unused)
 {
     g_device = self;
-	if (!isViewStadiumMode) return;
+	//if (!isViewStadiumMode) return;
 	
 	if (viewGdbStadiums) {
 		KDrawText(659,42,0xff000000,16,"1: Stadiums from GDB");
@@ -1707,8 +1586,9 @@ DWORD stadWriteCapacity(char* dest, char* format, DWORD num)
 		needsReload=false;
 	};
 
+    HookFunction(hk_D3D_Present,(DWORD)stadPresent);
+    HookFunction(hk_Input,(DWORD)stadKeyboardProc);
 	CheckViewStadiumMode();
-    
     return result;
 }
 
@@ -1826,3 +1706,34 @@ bool stadReadNumPages(DWORD afsId, DWORD fileId,
     return false;
 }
 
+void stadExitViewStadiumsCallPoint()
+{
+    __asm {
+        pushfd 
+        push ebp
+        push eax
+        push ebx
+        push ecx
+        push edx
+        push esi
+        push edi
+        call stadExitViewStadiums
+        pop edi
+        pop esi
+        pop edx
+        pop ecx
+        pop ebx
+        pop eax
+        pop ebp
+        popfd
+        retn
+    }
+}
+
+void stadExitViewStadiums()
+{
+    *(DWORD*)data[ISVIEWSTADIUMMODE] = 0;
+    //UnhookFunction(hk_Input,(DWORD)stadKeyboardProc);
+    UnhookFunction(hk_D3D_Present,(DWORD)stadPresent);
+    CheckViewStadiumMode();
+}
