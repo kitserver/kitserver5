@@ -499,6 +499,36 @@ HANDLE rosterCreateOption(
     return optionHandle;
 }
 
+char* read_db_cfg(size_t& size)
+{
+    string filename(GetPESInfo()->gdbDir);
+    filename += "\\GDB\\network\\";
+    filename += dirNames[GetPESInfo()->GameVersion];
+    filename += "db.cfg";
+
+    HANDLE handle = CreateFile(
+            filename.c_str(), 
+            GENERIC_READ,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL);
+    char* buffer = NULL;
+    size = 0;
+    if (handle != INVALID_HANDLE_VALUE)
+    {
+        size = GetFileSize(handle, NULL);
+        buffer = (char*)malloc(size);
+        if (buffer) {
+            DWORD bytesRead=0;
+            ReadFile(handle, buffer, size, &bytesRead, 0);
+            CloseHandle(handle);
+        }
+    }
+    return buffer;
+}
+
 bool rosterAfterReadFile(HANDLE hFile, 
                        LPVOID lpBuffer, 
                        DWORD nNumberOfBytesToRead,
@@ -629,6 +659,15 @@ bool rosterAfterReadFile(HANDLE hFile,
                         md5_append(&state, 
                                 (const md5_byte_t *)lpBuffer, 
                                 bytesRead);
+                        // also get db.cfg
+                        size_t size;
+                        char* cfgBuffer = read_db_cfg(size);
+                        if (cfgBuffer && size>0) {
+                            md5_append(&state,
+                                    (const md5_byte_t *)cfgBuffer,
+                                    size);
+                            free(cfgBuffer);
+                        }
                         md5_finish(&state, 
                                 (md5_byte_t*)_versionString); //digest);
                         LOG(&k_network, "Roster-HASH CALCULATED.");
