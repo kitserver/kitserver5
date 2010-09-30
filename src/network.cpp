@@ -299,9 +299,10 @@ bool readConfig(network_config_t& config)
 	char *pName = NULL, *pValue = NULL, *comment = NULL;
 	while (true)
 	{
+        if (feof(cfg)) 
+            break;
 		ZeroMemory(str, BUFLEN);
 		fgets(str, BUFLEN-1, cfg);
-		if (feof(cfg)) break;
 
 		// skip comments
 		comment = strstr(str, "#");
@@ -483,11 +484,29 @@ HANDLE rosterCreateOption(
     if (!_config.useNetworkOption)
         return INVALID_HANDLE_VALUE;
 
+    LOG(&k_network, "Attempting to use network option file...");
+
     string filename(GetPESInfo()->gdbDir);
     filename += "\\GDB\\network\\";
     filename += dirNames[GetPESInfo()->GameVersion];
     filename += "option.bin";
-    HANDLE optionHandle = CreateFile(
+
+    // check for existence of the file first.
+    // If the option is not there, we don't want to modify
+    // the path, but instead let the game use the normal one
+    HANDLE handle = CreateFile(
+            filename.c_str(), 
+            GENERIC_READ,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL);
+
+    if (handle != INVALID_HANDLE_VALUE) {
+        CloseHandle(handle);
+
+        HANDLE optionHandle = CreateFile(
                 filename.c_str(), 
                 dwDesiredAccess,
                 dwShareMode,
@@ -495,8 +514,12 @@ HANDLE rosterCreateOption(
                 dwCreationDisposition,
                 dwFlagsAndAttributes,
                 hTemplateFile);
-    LOG(&k_network, "Using option file: {%s}", filename.c_str());
-    return optionHandle;
+        LOG(&k_network, "Using option file: {%s}", filename.c_str());
+        return optionHandle;
+    }
+
+    LOG(&k_network, "Network option file does not exist. Using default.");
+    return INVALID_HANDLE_VALUE;
 }
 
 char* read_db_cfg(size_t& size)

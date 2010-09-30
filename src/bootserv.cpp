@@ -433,7 +433,9 @@ IDirect3DTexture8* getBootTexture(WORD playerId, bool big, D3DSURFACE_DESC* pDes
                             0, NULL, NULL, &temp))) {
                 // create canvas
                 if (SUCCEEDED(D3DXCreateTextureFromFileEx(
-                                GetActiveDevice(), "kitserver\\bcanvas.png",
+                                GetActiveDevice(), 
+                                (string(GetPESInfo()->mydir) 
+                                    + "\\bcanvas.png").c_str(),
                                 pDesc->Width, pDesc->Height, levels, pDesc->Usage, 
                                 pDesc->Format, D3DPOOL_MANAGED,
                                 D3DX_FILTER_NONE, D3DX_FILTER_NONE,
@@ -498,7 +500,9 @@ IDirect3DTexture8* getBootTexture(WORD playerId, bool big, D3DSURFACE_DESC* pDes
                             0, NULL, NULL, &temp))) {
                 // create canvas
                 if (SUCCEEDED(D3DXCreateTextureFromFileEx(
-                                GetActiveDevice(), "kitserver\\bcanvas.png",
+                                GetActiveDevice(), 
+                                (string(GetPESInfo()->mydir) 
+                                    + "\\bcanvas.png").c_str(),
                                 pDesc->Width, pDesc->Height, levels, pDesc->Usage, 
                                 pDesc->Format, D3DPOOL_MANAGED,
                                 D3DX_FILTER_NONE, D3DX_FILTER_NONE,
@@ -721,8 +725,8 @@ void DumpTexture(IDirect3DTexture8* const ptexture)
 {
     static int count = 0;
     char buf[BUFLEN];
-    //sprintf(buf,"kitserver\\boot_tex%03d.bmp",count++);
-    sprintf(buf,"kitserver\\%03d_tex_%08x.bmp",count++,(DWORD)ptexture);
+    sprintf(buf,"%s\\%03d_tex_%08x.bmp",
+            GetPESInfo()->mydir, count++, (DWORD)ptexture);
     if (FAILED(D3DXSaveTextureToFile(buf, D3DXIFF_BMP, ptexture, NULL))) {
         LogWithString(&k_boot, "DumpTexture: failed to save texture to %s", buf);
     }

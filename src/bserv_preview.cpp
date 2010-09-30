@@ -178,8 +178,6 @@ BOOL FileExists(char* filename)
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 {
-	char ballCfg[BUFLEN];
-	
 	if (dwReason == DLL_PROCESS_ATTACH)
 	{	
 		Log(&k_bserv,"Attaching dll...");
@@ -203,44 +201,9 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		memcpy(code, codeArray[GetPESInfo()->GameVersion], sizeof(code));
 		memcpy(data, dataArray[GetPESInfo()->GameVersion], sizeof(data));
 		
-		char tmp[BUFLEN];
 		
-		strcpy(tmp,GetPESInfo()->pesdir);
-		strcat(tmp,"dat\\0_text.afs");
 		
-		HANDLE TempHandle=CreateFile(tmp,GENERIC_READ,3,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0);
-		DWORD HeapAddress=(DWORD)HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,8);
-		
-		for (int i=0;i<data[NUM_BALL_FILES];i++)
-			SaveAFSAddr(TempHandle,i,&(AFSArray[i]),HeapAddress);
-		
-		HeapFree(GetProcessHeap(),HEAP_ZERO_MEMORY,(LPVOID)HeapAddress);
-		CloseHandle(TempHandle);
-		
-		strcpy(currTextureName,"\0");
-		
-		ReadBalls();
-		
-		//load settings
-	    ZeroMemory(ballCfg, BUFLEN);
-	    sprintf(ballCfg, "%s\\bserv.dat", GetPESInfo()->mydir);
-	    FILE* f = fopen(ballCfg, "rb");
-	    if (f) {
-	        fread(&bserv_cfg, sizeof(BSERV_CFG), 1, f);
-	        fclose(f);
-	    } else {
-	    	bserv_cfg.selectedBall=-1;
-	    };
-
-        //read preview setting
-        bserv_cfg.previewEnabled = TRUE;
-	    ZeroMemory(ballCfg, BUFLEN);
-	    sprintf(ballCfg, "%s\\bserv.cfg", GetPESInfo()->mydir);
-        ReadConfig(&bserv_cfg, ballCfg);
-	    
-		SetBall(bserv_cfg.selectedBall);
-		
-		HookFunction(hk_D3D_Create,(DWORD)InitBserv);
+		HookFunction(hk_D3D_CreateDevice,(DWORD)InitBserv);
 		HookFunction(hk_AfterReadFile,(DWORD)bservAfterReadFile);
 		HookFunction(hk_D3D_CreateTexture,(DWORD)bservCreateTexture);
 		HookFunction(hk_D3D_UnlockRect,(DWORD)bservUnlockRect);
@@ -252,13 +215,15 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 	    HookFunction(hk_OnShowMenu,(DWORD)BeginDrawBallLabel);
 	    HookFunction(hk_OnHideMenu,(DWORD)EndDrawBallLabel);
 	    HookFunction(hk_D3D_Reset,(DWORD)bservReset);
-    
+
+        strcpy(currTextureName,"\0");
 	}
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
 		Log(&k_bserv,"Detaching dll...");
 		
 		//save settings
+        char ballCfg[BUFLEN];
 		bserv_cfg.selectedBall=selectedBall;
 	    ZeroMemory(ballCfg, BUFLEN);
 	    sprintf(ballCfg, "%s\\bserv.dat", GetPESInfo()->mydir);
@@ -305,10 +270,47 @@ void InitBserv()
 	MasterHookFunction(code[C_GETFILEFROMAFS_CS], 2, bservGetFileFromAFS);
 	MasterHookFunction(code[C_SETBALLNAME_CS], 7, SetBallName);
 	
-	HookFunction(hk_D3D_Create,(DWORD)InitBserv);
-	
-	return;
-};
+    //load settings
+    char ballCfg[BUFLEN];
+    ZeroMemory(ballCfg, BUFLEN);
+    sprintf(ballCfg, "%s\\bserv.dat", GetPESInfo()->mydir);
+    LOG(&k_bserv, "reading: %s", ballCfg);
+    FILE* f = fopen(ballCfg, "rb");
+    if (f) {
+        fread(&bserv_cfg, sizeof(BSERV_CFG), 1, f);
+        fclose(f);
+    } else {
+        bserv_cfg.selectedBall=-1;
+    };
+    LOG(&k_bserv, "selected ball: %d", bserv_cfg.selectedBall);
+
+    //read preview setting
+    bserv_cfg.previewEnabled = TRUE;
+    ZeroMemory(ballCfg, BUFLEN);
+    sprintf(ballCfg, "%s\\bserv.cfg", GetPESInfo()->mydir);
+    ReadConfig(&bserv_cfg, ballCfg);
+    
+    // get afs file information
+    char tmp[BUFLEN];
+    strcpy(tmp,GetPESInfo()->pesdir);
+    strcat(tmp,"dat\\0_text.afs");
+    LOG(&k_bserv,"reading: {%s}", tmp);
+    
+    HANDLE TempHandle=CreateFile(
+            tmp,GENERIC_READ,3,NULL,
+            OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0);
+    DWORD HeapAddress=(DWORD)HeapAlloc(
+            GetProcessHeap(),HEAP_ZERO_MEMORY,8);
+    
+    for (int i=0;i<data[NUM_BALL_FILES];i++)
+        SaveAFSAddr(TempHandle,i,&(AFSArray[i]),HeapAddress);
+    
+    HeapFree(GetProcessHeap(),HEAP_ZERO_MEMORY,(LPVOID)HeapAddress);
+    CloseHandle(TempHandle);
+    
+    ReadBalls();
+    SetBall(bserv_cfg.selectedBall);
+}
 
 bool bservAfterReadFile(HANDLE hFile, 
         LPVOID lpBuffer, DWORD nNumberOfBytesToRead,

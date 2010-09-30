@@ -6,7 +6,7 @@
 #define BUFLEN 4096
 
 #define MODID 100
-#define NAMELONG "KitServer 5.2.3"
+#define NAMELONG "KitServer 5.4.0.1"
 #define NAMESHORT "KSERV"
 #define CONFIG_FILE "kserv.cfg"
 

@@ -2578,7 +2578,9 @@ void Draw2Dkits(IDirect3DDevice8* dev)
     // gloves indicators
     if (typ == GK_TYPE) {
         if (!g_gloves_left_tex) {
-            if (FAILED(D3DXCreateTextureFromFileEx(dev, "kitserver\\igloves.png", 
+            if (FAILED(D3DXCreateTextureFromFileEx(dev, 
+                            (string(GetPESInfo()->mydir) 
+                                + "\\igloves.png").c_str(),
                         0, 0, 1, 0, D3DFMT_UNKNOWN, D3DPOOL_MANAGED,
                         D3DX_FILTER_NONE, D3DX_FILTER_NONE,
                         0xffffffff, NULL, NULL, &g_gloves_left_tex))) {
@@ -2937,8 +2939,8 @@ EXTERN_C _declspec(dllexport) void RestoreDeviceMethods()
 BOOL InitMemItemInfo(DWORD** ppIds, MEMITEMINFO** ppMemItemInfoArray, DWORD n)
 {
 	ZeroMemory(g_afsFileName, sizeof(BUFLEN));
-	lstrcpy(g_afsFileName, GetPESInfo()->mydir);
-	lstrcat(g_afsFileName, "..\\dat\\0_text.afs");
+	lstrcpy(g_afsFileName, GetPESInfo()->pesdir);
+	lstrcat(g_afsFileName, "dat\\0_text.afs");
 
 	FILE* f = fopen(g_afsFileName, "rb");
 	if (f == NULL) {
@@ -3193,7 +3195,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 
 		LogWithNumber(&k_mydll,"k_mydll.debug = %d", k_mydll.debug);
 		
-		HookFunction(hk_D3D_Create,(DWORD)InitKserv);
+		HookFunction(hk_D3D_CreateDevice,(DWORD)InitKserv);
 		HookFunction(hk_D3D_Reset,(DWORD)JuceReset);
 	}
 
@@ -4048,6 +4050,16 @@ DWORD LoadPNGTexture(BITMAPINFO** tex, char* filename)
     if (*ppDIB == NULL) {
 		TRACE(&k_mydll,"LoadPNGTexture: ERROR - unable to load PNG image.");
         return 0;
+    }
+
+    // initialize palette colors to all non-transparent
+    BITMAPINFO* pBMI = (BITMAPINFO*)*ppDIB;
+    int colors = pBMI->bmiHeader.biClrUsed;
+    if (!colors) {
+        colors = 1 << (pBMI->bmiHeader.biBitCount);
+    }
+    for (int i=0; i<colors; i++) {
+        pBMI->bmiColors[i].rgbReserved = 0xff;
     }
 
     // read transparency values from tRNS chunk
@@ -5493,12 +5505,6 @@ void SetKitInfo(Kit* kit, KITINFO* kitInfo, BOOL editable)
 	if (kit && (kit->attDefined & NUMBER_TYPE)) {
 		kitInfo->numberType = kit->numberType;
 	}
-
-    if (kit && strstr(kit->foldername,"France")) {
-        FILE* f = fopen("kitserver\\kitinfo.bin","wb");
-        for (int i=0; i<sizeof(KITINFO); i++) fprintf(f, "%c", ((BYTE*)kitInfo)[i]);
-        fclose(f);
-    }
     */
 }
 

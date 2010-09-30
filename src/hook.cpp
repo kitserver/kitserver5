@@ -64,7 +64,7 @@ KEXPORT HANDLE WINAPI Override_CreateFileW(
 KEXPORT BOOL WINAPI Override_CloseHandle(
   HANDLE hObject);
 
-#define CODELEN 43
+#define CODELEN 44
 
 enum {
 	C_UNIDECODE, C_UNIDECODE_CS,C_UNIDECODE_CS2,
@@ -85,7 +85,7 @@ enum {
     C_UNISPLIT, C_UNISPLIT_CS1, C_UNISPLIT_CS2,
     C_UNISPLIT_CS3, C_UNISPLIT_CS4, C_UNISPLIT_CS5,
     C_UNISPLIT_CS6, C_UNISPLIT_CS7, C_UNISPLIT_CS8,
-    C_READNUMPAGES,
+    C_READNUMPAGES, D_PESDIR_STRING,
 };
 
 // Code addresses.
@@ -109,7 +109,7 @@ DWORD codeArray[][CODELEN] = {
       0, 0, 0,
       0, 0, 0,
       0, 0, 0,
-      0,
+      0, 0,
       },
 	// PES5 
 	{ 0x829360, 0x84c522, 0x85032d, //C_UNIDECODE_CS2 is not used anymore at the moment
@@ -130,7 +130,7 @@ DWORD codeArray[][CODELEN] = {
       0x8d5600, 0x84c5bd, 0x84c5d9,
       0x84c63e, 0x84c65d, 0x84c7d2,
       0x84c7f5, 0x84c834, 0x84c86f,
-      0x874767,
+      0x874767, 0xdb06a8,
       },
 	// WE9 
 	{ 0x8297e0, 0x84c9d2, 0x8507dd,
@@ -151,7 +151,7 @@ DWORD codeArray[][CODELEN] = {
       0x8d5b60, 0x84ca6d, 0x84ca89,
       0x84caee, 0x84cb0d, 0x84cc82,
       0x84cca5, 0x84cce4, 0x84cd1f,
-      0x874c37,
+      0x874c37, 0xdb06a8,
       },
    	// WE9:LE
 	{ 0x850ac0, 0x873c82, 0x877a8d,
@@ -172,7 +172,7 @@ DWORD codeArray[][CODELEN] = {
       0x8d4d90, 0x873d1d, 0x873d39,
       0x873d9e, 0x873dbd, 0x873f32,
       0x873f55, 0x873f94, 0x873fcf,
-      0x5a9977,
+      0x5a9977, 0xcea6a8,
       },
 };
 
@@ -1326,6 +1326,16 @@ HRESULT STDMETHODCALLTYPE NewCreateDevice(IDirect3D8* self, UINT Adapter,
 	PFNCREATEDEVICEPROC NextCall=NULL;
 	
 	Log(&k_kload,"NewCreateDevice called.");
+
+    // update pesdir
+    if (code[D_PESDIR_STRING]) {
+        g_pesinfo.pesdir = new char[strlen((char*)code[D_PESDIR_STRING])+2];
+        strcpy(g_pesinfo.pesdir, (char*)code[D_PESDIR_STRING]);
+        if (g_pesinfo.pesdir[strlen(g_pesinfo.pesdir)-1]!='\\') {
+            strcat(g_pesinfo.pesdir,"\\");
+        }
+    }
+    LOG(&k_kload, "pesdir: {%s}", g_pesinfo.pesdir);
 
     if (g_config.forceSW_TnL) {
         BOOL swVP = (BehaviorFlags & D3DCREATE_SOFTWARE_VERTEXPROCESSING) ? 1 : 0;

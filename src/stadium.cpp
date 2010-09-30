@@ -596,7 +596,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 
 		RegisterKModule(&k_stadium);
 		
-		HookFunction(hk_D3D_Create,(DWORD)InitStadiumServer);
+		HookFunction(hk_D3D_CreateDevice,(DWORD)InitStadiumServer);
 		HookFunction(hk_AfterReadFile,(DWORD)stadAfterReadFile);
         HookFunction(hk_GetNumPages, (DWORD)stadReadNumPages);
 
@@ -657,7 +657,9 @@ void InitStadiumServer()
     // reset stadium filename buffer
     ZeroMemory(g_stadFileSpec, BUFLEN);
 
-    FILE* f = fopen("dat\\0_text.afs","rb");
+    string afsFile(GetPESInfo()->pesdir);
+    afsFile += "dat\\0_text.afs";
+    FILE* f = fopen(afsFile.c_str(),"rb");
     if (!f) {
         Log(&k_stadium, "InitStadiumServer: problem opening 0_text.afs for reading.");
         return;
@@ -717,7 +719,7 @@ void InitStadiumServer()
     if (g_stadiumMap.begin() != g_stadiumMap.end())
     	hasGdbStadiums=true;
 
-	UnhookFunction(hk_D3D_Create,(DWORD)InitStadiumServer);
+	UnhookFunction(hk_D3D_CreateDevice,(DWORD)InitStadiumServer);
 	//CheckViewStadiumMode();
 	return;
 }

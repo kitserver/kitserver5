@@ -1,7 +1,7 @@
 // dxtools.h
 
 #define MODID 107
-#define NAMELONG "DXTools 1.0.0"
+#define NAMELONG "DXTools 5.4.0"
 #define NAMESHORT "DXTOOLS"
 
 #define DEFAULT_DEBUG 1

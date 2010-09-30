@@ -1,7 +1,7 @@
 // bserv.h
 
 #define MODID 101
-#define NAMELONG "Ballserver 5.3.2.7"
+#define NAMELONG "Ballserver 5.4.0.0"
 #define NAMESHORT "BSERV"
 
 #define DEFAULT_DEBUG 1

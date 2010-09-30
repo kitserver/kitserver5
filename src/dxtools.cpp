@@ -21,7 +21,7 @@ void dxtoolsCreateDevice(IDirect3D8* self, UINT Adapter,
     D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags,
     D3DPRESENT_PARAMETERS *pPresentationParameters, 
     IDirect3DDevice8** ppReturnedDeviceInterface);
-BOOL ReadConfig(DXCONFIG* config, char* cfgFile);
+BOOL ReadConfig(DXCONFIG* config, const char* cfgFile);
 
 typedef HRESULT (STDMETHODCALLTYPE *PFNRESETFUNC)(IDirect3DDevice8* self, D3DPRESENT_PARAMETERS*);
 PFNRESETFUNC g_reset = NULL;
@@ -34,9 +34,8 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		Log(&k_dxtools,"Attaching dll...");
 		hInst=hInstance;
 		RegisterKModule(&k_dxtools);
-        ReadConfig(&dxconfig, "kitserver\\kload.cfg");
+
 		HookFunction(hk_D3D_CreateDevice,(DWORD)dxtoolsCreateDevice);
-		
 	}
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
@@ -69,6 +68,11 @@ void dxtoolsCreateDevice(IDirect3D8* self, UINT Adapter,
 			Log(&k_dxtools,"Reset hooked.");
 		}
     }
+
+    string mycfg(GetPESInfo()->mydir);
+    mycfg += "kload.cfg";
+
+    ReadConfig(&dxconfig, mycfg.c_str());
 
     /*
     // hook Present method
@@ -138,7 +142,7 @@ HRESULT STDMETHODCALLTYPE dxtoolsPresent(IDirect3DDevice8* self, CONST RECT* src
 /**
  * Returns true if successful.
  */
-BOOL ReadConfig(DXCONFIG* config, char* cfgFile)
+BOOL ReadConfig(DXCONFIG* config, const char* cfgFile)
 {
 	if (config == NULL) return false;
 

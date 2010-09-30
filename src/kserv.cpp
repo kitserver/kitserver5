@@ -2588,7 +2588,9 @@ void Draw2Dkits(IDirect3DDevice8* dev)
     // gloves indicators
     if (typ == GK_TYPE) {
         if (!g_gloves_left_tex) {
-            if (FAILED(D3DXCreateTextureFromFileEx(dev, "kitserver\\igloves.png", 
+            if (FAILED(D3DXCreateTextureFromFileEx(dev, 
+                            (string(GetPESInfo()->mydir) 
+                                + "\\igloves.png").c_str(),
                         0, 0, 1, 0, D3DFMT_UNKNOWN, D3DPOOL_MANAGED,
                         D3DX_FILTER_NONE, D3DX_FILTER_NONE,
                         0xffffffff, NULL, NULL, &g_gloves_left_tex))) {
@@ -2909,12 +2911,13 @@ HRESULT STDMETHODCALLTYPE JuceEndScene(IDirect3DDevice8* self)
 BOOL InitMemItemInfo(DWORD** ppIds, MEMITEMINFO** ppMemItemInfoArray, DWORD n)
 {
 	ZeroMemory(g_afsFileName, sizeof(BUFLEN));
-	lstrcpy(g_afsFileName, GetPESInfo()->mydir);
-	lstrcat(g_afsFileName, "..\\dat\\0_text.afs");
+	lstrcpy(g_afsFileName, GetPESInfo()->pesdir);
+	lstrcat(g_afsFileName, "dat\\0_text.afs");
+    LOG(&k_mydll, "g_afsFileName = {%s}", g_afsFileName);
 
 	FILE* f = fopen(g_afsFileName, "rb");
 	if (f == NULL) {
-		Log(&k_mydll,"FATAL ERROR: failed to open 0_text.afs for reading.");
+		LOG(&k_mydll,"FATAL ERROR: failed to open 0_text.afs for reading.");
 		return FALSE;
 	}
 
@@ -2994,29 +2997,19 @@ void Convert8To32Bit(BITMAPINFO* dest,BITMAPINFO* src)
 	RGBQUAD* srcpal=(RGBQUAD*)&(src->bmiColors);
 	RGBQUAD* srccol;
 	
-	bool AllTransparent=true;
-	for (int i=0;i<256;i++) {
-		srccol=&(srcpal[i]);
-		if (srccol->rgbReserved != 0) {
-			AllTransparent=false; break;
-		};
-	};
-
 	for (int x=0;x<(srcbih->biWidth);x++)
 	for (int y=0;y<(srcbih->biHeight);y++) {
 		srccol=&(srcpal[*srcpix]);
-		if (AllTransparent || srccol->rgbReserved==0x80)
-			srccol->rgbReserved=0xFF;
-		*destpix=srccol->rgbBlue + 0x100*srccol->rgbGreen
-								+ 0x10000 * srccol->rgbRed + 0x1000000 * srccol->rgbReserved;
+		*destpix=srccol->rgbBlue + 
+            0x100 * srccol->rgbGreen + 
+            0x10000 * srccol->rgbRed + 
+            0x1000000 * srccol->rgbReserved;
 		srcpix++;
 		destpix++;
 	};
 	(dest->bmiHeader).biBitCount=32;
 	//DumpData((BYTE*)dest,srcbih->biWidth*srcbih->biHeight*4+sizeof(BITMAPINFOHEADER));
-
-	return;
-};
+}
 
 void Convert24To32Bit(BITMAPINFO* dest,BITMAPINFO* src,BYTE* alpha)
 {
@@ -3378,11 +3371,11 @@ NEWKIT* CreateNewKits(NEWKITFILES files)
 	smallRect.bottom=smallRect.right/2;
 	
 
-	TRACE2X(&k_mydll,"CreateNewKits: Large texture is sized %dx%d.",
+	LOG(&k_mydll,"CreateNewKits: Large texture is sized %dx%d.",
 				largeRect.right,largeRect.bottom);
-	TRACE2X(&k_mydll,"CreateNewKits: Medium texture is sized %dx%d.",
+	LOG(&k_mydll,"CreateNewKits: Medium texture is sized %dx%d.",
 				mediumRect.right,mediumRect.bottom);
-	TRACE2X(&k_mydll,"CreateNewKits: Small texture is sized %dx%d.",
+	LOG(&k_mydll,"CreateNewKits: Small texture is sized %dx%d.",
 				smallRect.right,smallRect.bottom);
 	
 	//Resample the images if needed
@@ -3507,6 +3500,7 @@ void InitKserv()
         memcpy(data, dataArray[v], sizeof(data));
 
         if (!InitMemItemInfo(&g_AFS_id, &g_AFS_memItemInfo, data[LAST_ID]-data[FIRST_ID]+1)) {
+            LOG(&k_mydll,"InitMemItemInfo failed.");
             return;
         }
 
@@ -3634,7 +3628,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 
 		LogWithNumber(&k_mydll,"k_mydll.debug = %d", k_mydll.debug);
 		
-		HookFunction(hk_D3D_Create,(DWORD)InitKserv);
+		HookFunction(hk_D3D_CreateDevice,(DWORD)InitKserv);
 		HookFunction(hk_D3D_Reset,(DWORD)JuceReset);
 	}
 
@@ -4403,7 +4397,8 @@ void ApplyAlphaChunk(RGBQUAD* palette, BYTE* memblk, DWORD size)
             int numColors = SWAPBYTES(chunk->dwSize);
             BYTE* alphaValues = memblk + offset + sizeof(chunk->dwSize) + sizeof(chunk->dwName);
             for (int i=0; i<numColors; i++) {
-                palette[i].rgbReserved = (alphaValues[i]==0xff) ? 0x80 : alphaValues[i]/2;
+                //palette[i].rgbReserved = (alphaValues[i]==0xff) ? 0x80 : alphaValues[i]/2;
+                palette[i].rgbReserved = alphaValues[i];
             }
         }
         // move on to next chunk
@@ -4456,6 +4451,16 @@ DWORD LoadPNGTexture(BITMAPINFO** tex, char* filename)
     if (*ppDIB == NULL) {
 		TRACE(&k_mydll,"LoadPNGTexture: ERROR - unable to load PNG image.");
         return 0;
+    }
+
+    // initialize palette colors to all non-transparent
+    BITMAPINFO* pBMI = (BITMAPINFO*)*ppDIB;
+    int colors = pBMI->bmiHeader.biClrUsed;
+    if (!colors) {
+        colors = 1 << (pBMI->bmiHeader.biBitCount);
+    }
+    for (int i=0; i<colors; i++) {
+        pBMI->bmiColors[i].rgbReserved = 0xff;
     }
 
     // read transparency values from tRNS chunk
@@ -4978,7 +4983,7 @@ DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** ppTexture, DWOR
 	this check always fails.
 	*/
 	if (gdbKit) {
-		if (gdbKitCRC[src]!=GetCRC((BYTE*)src,gdbKitSize[src])) {
+		if (0){//gdbKitCRC[src]!=GetCRC((BYTE*)src,gdbKitSize[src])) {
 			//wrong CRC, delete related information
 			NewKitFilesMap.erase(src);
 			isGdbKit.erase(src);
@@ -4987,6 +4992,11 @@ DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** ppTexture, DWOR
 			gdbKit=false;
 		};
 	};
+
+    if (width==256 && height==128 && levels==2) {
+        LOG(&k_mydll, "CreateTexture:: (256x128x2), src=%p, gdbKit=%d",
+                src, gdbKit);
+    }
 	
 	
 	if (!IsBadReadPtr((LPVOID)src,sizeof(DECBUFFERHEADER)) && gdbKit==true) {
@@ -5131,6 +5141,7 @@ void JuceUnlockRect(IDirect3DTexture8* self,UINT Level)
 		//The smallest image will be overwritten by PES if it hasn't been processed yet
 		if (Level!=1)
 			return;
+        //texToBoost = self;
 		HRESULT r1 = texToBoost->GetSurfaceLevel(0, &g_med0);
 		TRACE2(&k_mydll,"MED: g_med0 = %08x", (DWORD)g_med0);
 		//DumpSurface(bigCount++, g_med0);
@@ -5192,6 +5203,8 @@ void JuceUnlockRect(IDirect3DTexture8* self,UINT Level)
 		if (SUCCEEDED(r1)) g_med0->Release();
 		if (SUCCEEDED(r2)) g_med1->Release();
 		g_lastMediumTex=NULL;
+
+        self->AddDirtyRect(NULL);
 		break;
 	};
 
@@ -6035,12 +6048,6 @@ void SetKitInfo(Kit* kit, KITINFO* kitInfo, BOOL editable)
 	if (kit && (kit->attDefined & NUMBER_TYPE)) {
 		kitInfo->numberType = kit->numberType;
 	}
-
-    if (kit && strstr(kit->foldername,"France")) {
-        FILE* f = fopen("kitserver\\kitinfo.bin","wb");
-        for (int i=0; i<sizeof(KITINFO); i++) fprintf(f, "%c", ((BYTE*)kitInfo)[i]);
-        fclose(f);
-    }
     */
 }
 
@@ -6605,7 +6612,7 @@ void JuceUniDecode(DWORD addr, DWORD size, DWORD result)
 		if (strlen(lastKitFiles.shirtName)>0)
         	LogWithString(&k_mydll,"Using shirt: %s.",lastKitFiles.shirtName);
         if (strlen(lastKitFiles.shortsName)>0)
-        	LogWithString(&k_mydll,"Using shirts: %s.",lastKitFiles.shortsName);
+        	LogWithString(&k_mydll,"Using shorts: %s.",lastKitFiles.shortsName);
         if (strlen(lastKitFiles.socksName)>0)
         	LogWithString(&k_mydll,"Using socks: %s.",lastKitFiles.socksName);
         	
@@ -6620,18 +6627,22 @@ void JuceUniDecode(DWORD addr, DWORD size, DWORD result)
             if (dbh1->dwSig==DEC_SIG_IMAGE) {
                 //make palette transparent
                 pOffset=(BYTE*)dbh1+dbh1->paletteOffset;
-                for (int i=3;i<1024;i+=4)
+                for (int i=3;i<1024;i+=4) {
                     //0==0;//pOffset[i]=(i+1)/4-1;		
                     pOffset[i]=(i+1)/4-1;		
+                    for (int k=i-1; k>i-4; k--) pOffset[k] = 0;
+                }
             };
             if (tiph->numFiles>1) {
                 DECBUFFERHEADER* dbh2=(DECBUFFERHEADER*)((DWORD)tiph+tiph->toc[1+(tiph->tocOffset-8)/4]);
                 if (dbh2->dwSig==DEC_SIG_IMAGE) {
                     //make palette transparent
                     pOffset=(BYTE*)dbh2+dbh2->paletteOffset;
-                    for (int i=3;i<1024;i+=4)
+                    for (int i=3;i<1024;i+=4) {
                         //0==0;//pOffset[i]=(i+1)/4-1;
                         pOffset[i]=(i+1)/4-1;
+                        for (int k=i-1; k>i-4; k--) pOffset[k] = 0;
+                    }
                 };
             };
         } // otherwise, don't modify the palette
@@ -6733,12 +6744,14 @@ DWORD JuceUniSplit(DWORD id)
 	//addr belongs always to the last kit in UniDecode and
 	//will later be the src parameter of CreateTexture
 	
+    /*
 	if ((isGdbKit.find(addr) != isGdbKit.end()) && isGdbKit[addr]) {
 		NewKitFilesMap.erase(addr);
 		isGdbKit.erase(addr);
 		gdbKitSize.erase(addr);
 		gdbKitCRC.erase(addr);
 	};
+    */
 	
 	//lastUsedSourceTexture is a pointer to the buffer with the kit (result of UniDecode)
 	if (lastUsedSourceTexture !=0 && addr!=0 && lastUsedSourceTexture==lastUniDecodeResult) {
@@ -6753,8 +6766,20 @@ DWORD JuceUniSplit(DWORD id)
 			gdbKitSize[addr]=size;
 			splitTextures.push_back(addr);
 			//checksum is calculated a bit later with the help of the preceding attributes
-		};
-	};
+        }
+        else {
+            if ((isGdbKit.find(addr) != isGdbKit.end()) && isGdbKit[addr]) {
+                NewKitFilesMap.erase(addr);
+                isGdbKit.erase(addr);
+                gdbKitSize.erase(addr);
+                gdbKitCRC.erase(addr);
+            }
+        }
+	} else {
+        //LOG(&k_mydll, "CONDITION fails: %p!=0 && %p!=0 && %p==%p",
+        //        lastUsedSourceTexture, addr, lastUsedSourceTexture,
+        //        lastUniDecodeResult);
+    }
 	
 	return result;
 };
