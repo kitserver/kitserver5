@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title>KitServer 5.3 Manual</title>
+    <title>KitServer 5.4 Manual</title>
     <style>
         img { display:block;margin:10px 0 10px 0;border:1px solid #000; }
         div.note { background-color:#ffc;color:#800;padding:5px; }
@@ -27,18 +27,18 @@
     </style>
 </head>
 <body>
-<h2>Kitserver 5.3 Manual</h2>
+<h2>Kitserver 5.4 Manual</h2>
 <div>
-September 19, 2010<br />	
+September 30, 2010<br />	
 Module Versions: 
-<a href="#kitserver">Kserv 5.3.2</a>, 
-<a href="#ballserver">BallServer: 5.3.2</a>, 
+<a href="#kitserver">Kserv 5.4.0</a>, 
+<a href="#ballserver">BallServer: 5.4.0</a>, 
 <a href="#faceserver">Faceserver: 5.3.2</a>, 
-<a href="#stadiumserver">Stadium Server: 5.3.2</a>, 
+<a href="#stadiumserver">Stadium Server: 5.4.0</a>, 
 <a href="#lodmixer">LOD Mixer: 5.2.5</a>,
-<a href="#bootserver">Bootserver 5.5.7</a>,
-<a href="#afs2fs">AFS2FS 5.0.0</a>,
-<a href="#network">Network 5.3.3.1</a>,
+<a href="#bootserver">Bootserver 5.5.8</a>,
+<a href="#afs2fs">AFS2FS 5.0.1</a>,
+<a href="#network">Network 5.4.0</a>,
 <a href="#speeder">Speeder 5.0.0</a>
 </div><hr>
 
@@ -48,7 +48,7 @@ Module Versions:
 
 <h3>1.1 Introduction</h3>
 <p>
-Kitserver 5.3 is an add-on program for Pro Evolution Soccer 5, Winning Eleven 9, and
+Kitserver 5.4 is an add-on program for Pro Evolution Soccer 5, Winning Eleven 9, and
 Winning Eleven 9 Liveware Evolution. It is a loader and manager for various modules.
 Kserv Module provides the alternative way of managing players and goalkeeper kits
 outside of the game's AFS file: you organize the PNG or BMP kit images into an external
@@ -111,7 +111,7 @@ re-enable kitserver later, if you run setup again and press "Install" button.)
 
 <!-- ### KITSERVER ### -->
 
-<h2 id="kitserver">Kserv Module 5.3.2 (kserv.dll)</h2>
+<h2 id="kitserver">Kserv Module (kserv.dll)</h2>
 
 <h3>2.1 Quick summary of the features</h3>
 <p>
@@ -462,7 +462,7 @@ otherwise splitting will not work.
 
 <!-- ### BALLSERVER ### -->
 
-<h2 id="ballserver">Ballserver Module 5.3.2.7 (bserv.dll)</h2>
+<h2 id="ballserver">Ballserver Module (bserv.dll)</h2>
 
 <h3>3.1 Quick summary of the features</h3>
 
@@ -536,7 +536,7 @@ say "Ball selection" then.
 
 <!-- ### FACESERVER ### -->
 
-<h2 id="faceserver">FaceServer Module 5.3.2 (fserv.dll)</h2>
+<h2 id="faceserver">FaceServer Module (fserv.dll)</h2>
 
 <h3>4.1 Introduction</h3>
 <p>
@@ -593,7 +593,7 @@ please check first if this is the reason before posting in the forums.
 
 
 <!-- ### STADIUM SERVER ### -->
-<h2 id="stadiumserver">Stadium Server Module 5.3.2 (stadium.dll)</h2>
+<h2 id="stadiumserver">Stadium Server Module (stadium.dll)</h2>
 <h3>5.1 Introduction</h3>
 <p>
 Stadium Server is a plug-in module for Kitserver. It allows to use additional stadiums, which
@@ -781,7 +781,7 @@ simply press the <b>[1]</b> key. To choose the weather, use the <b>[2]</b> key.
 
 <!-- ### LODMIXER ### -->
 
-<h2 id="lodmixer">LOD Mixer Module 5.2.5 (lodmixer.dll)</h2>
+<h2 id="lodmixer">LOD Mixer Module (lodmixer.dll)</h2>
 
 <h3>6.1 How to use</h3>
 
@@ -814,7 +814,7 @@ The configuration is saved automatically and also works for friendly matches now
 
 <!-- ### Bootserver ### -->
 
-<h2 id="bootserver">Bootserver module 5.5.7 (bootserv.dll)</h2>
+<h2 id="bootserver">Bootserver module (bootserv.dll)</h2>
 
 <h3>7.1. Introduction</h3>
 
@@ -880,7 +880,7 @@ random-boots.enabled = 1
 
 <!-- ### AFS2FS ### -->
 
-<h2 id="afs2fs">AFS2FS Module 5.0.0 (afs2fs.dll)</h2>
+<h2 id="afs2fs">AFS2FS Module (afs2fs.dll)</h2>
 
 <h3>8.1. Introduction</h3>
 <p>
@@ -939,7 +939,7 @@ afs.root = "patch-RPL"
 
 <!-- ### AFS2FS ### -->
 
-<h2 id="network">Network Module 5.3.3.1 (network.dll)</h2>
+<h2 id="network">Network Module (network.dll)</h2>
 
 <h3>9.1. Introduction</h3>
 <p>
@@ -1071,7 +1071,7 @@ network.roster.hash = 1
 
 <!-- ### SPEEDER ### -->
 
-<h2 id="speeder">Speeder 5.0.0 (speeder.dll)</h2>
+<h2 id="speeder">Speeder (speeder.dll)</h2>
 
 <p>Not everyone is satisfied with the pace of the gameplay. It must be said that it is not an easy thing to get this aspect of simulating a football match correctly. Many factors are in play, and a lot depends on hardware. Personally, i think Konami did a decent job at that, but many folks find the gameplay too fast.</p>
 
@@ -1104,42 +1104,52 @@ do that by modifying the <b>kload.cfg</b> file. Here's how the default config lo
 <pre>
 # Loader configuration file
 
+debug = 1
 gdb.dir = ".\"
-DLL.num = 9
+
+DLL.num = 16
 DLL.0 = "kitserver\zlib1.dll"
 DLL.1 = "kitserver\libpng13.dll"
 DLL.2 = "kitserver\kserv.dll"
+#DLL.2 = "kitserver\kserv-shpal.dll"
 DLL.3 = "kitserver\bserv.dll"
 DLL.4 = "kitserver\fserv.dll"
 DLL.5 = "kitserver\lodmixer.dll"
 DLL.6 = "kitserver\stadium.dll"
 DLL.7 = "kitserver\dxtools.dll"
 DLL.8 = "kitserver\bootserv.dll"
+DLL.9 = "kitserver\clock.dll"
+DLL.10 = "kitserver\bzip2.dll"
+DLL.11 = "kitserver\libarchive2.dll"
+DLL.12 = "kitserver\libcurl.dll"
+DLL.13 = "kitserver\network.dll"
+DLL.14 = "kitserver\speeder.dll"
+DLL.15 = "kitserver\afs2fs.dll"
 
 # DirectX options
 dx.force-SW-TnL = 0
 dx.emulate-HW-TnL = 0
-#dx.fullscreen.width = 1920
-#dx.fullscreen.height = 1200
+#dx.fullscreen.width = 1280
+#dx.fullscreen.height = 800
 </pre>
 
 <p>The top two DLLs - <b>zlib1.dll</b> and <b>libpng13.dll</b> are needed for PNG
-image support. Do not remove those. The bottom 4 are independent modules, which you
-can enable or disable at will. For example, to disable kitserver module (<b>kserv.dll</b>),
+image support. Do not remove those. There are also some additional dependencies
+between modules, which makes the order of them important. In particular,
+afs2fs.dll should be the last one. The network.dll requires bzip2.dll,
+libarchive2.dll, libcurl.dll to be specified in this order before it.
+</p>
+
+<p>Aside from these restrictions, you can enable/disable modules any way
+you wish. To disable a module - for example, <b>fserv.dll</b> -
 just comment it out with a "#" symbol at the beginning of the line:
 </p>
 
 <pre>
-DLL.num = 9
-DLL.0 = "kitserver\zlib1.dll"
-DLL.1 = "kitserver\libpng13.dll"
-#DLL.2 = "kitserver\kserv.dll"
-DLL.3 = "kitserver\bserv.dll"
-DLL.4 = "kitserver\fserv.dll"
-DLL.5 = "kitserver\lodmixer.dll"
-DLL.6 = "kitserver\stadium.dll"
-DLL.7 = "kitserver\dxtools.dll"
-DLL.8 = "kitserver\bootserv.dll"
+DLL.num = 16
+...
+#DLL.4 = "kitserver\fserv.dll"
+...
 </pre>
 
 <p>
@@ -1164,7 +1174,7 @@ sure you specify resolution that your monitor supports.</i>
 
 <p>
 Programming: <b>juce</b>, <b>Robbie</b><br />
-Testing: <b>biker_jim_uk, ntalex, Gwidon, nt89</b><br />
+Testing: <b>biker_jim_uk, ntalex, Gwidon, nt89, galagan, Vladis LOVE</b><br />
 Stadium Server GDB organization and "home team stadium" idea: <b>Gwidon</b><br />
 Information about stadiums in AFS: <b>nt89</b><br />
 Kits: <b>Spark, kel, qiankun</b>.<br />
