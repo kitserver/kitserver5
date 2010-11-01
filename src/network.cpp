@@ -1,5 +1,6 @@
 // network.cpp
 #include <windows.h>
+#include <winreg.h>
 #include <stdio.h>
 #include <list>
 #include "archive.h"
@@ -27,8 +28,9 @@ LARGE_INTEGER _nonOnlineFrequency = {0,0};
 char _versionString[17] = "1.66-FakeVersion";
 md5_state_t state;
 md5_byte_t digest[16];
+int _login_credentials = 0;
 
-#define DATALEN 14
+#define DATALEN 17
 enum {
     MAIN_MENU_MODE, CLOCK_FREQUENCY,
     STUN_SERVER, STUN_SERVER_BUFLEN,
@@ -36,7 +38,8 @@ enum {
     DB_FILE1, DB_FILE2, DB_FILE3,
     ROSTER_FILEID, 
     DB_FILE5, DB_FILE6, DB_FILE7,
-    CODE_READ_VERSION_STRING,
+    CODE_READ_VERSION_STRING, CREDENTIALS,
+    CODE_READ_CRED_FLAG, CODE_WRITE_CRED_FLAG,
 };
 
 static DWORD dataArray[][DATALEN] = {
@@ -46,7 +49,8 @@ static DWORD dataArray[][DATALEN] = {
         0, 0,
         0, 0,
         0,0,0,0,0,0,0,
-        0,
+        0, 0,
+        0, 0,
     },
     // PES5
     {
@@ -54,7 +58,8 @@ static DWORD dataArray[][DATALEN] = {
         0xadadd8, 28,
         0xada608, 32,
         17,18,19,22,23,24,25,
-        0x83d67f,
+        0x83d67f, 0x3b7a1b8,
+        0x48eb18, 0x48eb78,
     },
     // WE9
     {
@@ -62,7 +67,8 @@ static DWORD dataArray[][DATALEN] = {
         0xadadf4, 28,
         0xada620, 32,
         17,18,19,22,23,24,25,
-        0x83dbaf,
+        0x83dbaf, 0x3b7a1d8,
+        0x48edd8, 0x48ee38,
     },
     // WE9:LE
     {
@@ -70,7 +76,8 @@ static DWORD dataArray[][DATALEN] = {
         0xadb0a8, 28,
         0xada920, 32,
         23,24,25,28,29,30,31,
-        0x864e9f,
+        0x864e9f, 0x3ad64f8,
+        0x48e9d8, 0x48ea38,
     },
 };
 
@@ -149,6 +156,10 @@ HANDLE rosterCreateOption(
   HANDLE hTemplateFile);
 void rosterVersionReadCallPoint();
 void rosterVersionRead(char* version);
+void loginReadCallPoint();
+void loginRead();
+void loginWriteCallPoint();
+void loginWrite();
 
 typedef struct _CHUNK_READ
 {
@@ -370,6 +381,10 @@ void initModule()
     HookFunction(hk_CreateOption,(DWORD)rosterCreateOption);
     HookCallPoint(data[CODE_READ_VERSION_STRING], 
             rosterVersionReadCallPoint, 6, 3, false);
+    HookCallPoint(data[CODE_READ_CRED_FLAG], 
+            loginReadCallPoint, 6, 2, false);
+    HookCallPoint(data[CODE_WRITE_CRED_FLAG], 
+            loginWriteCallPoint, 6, 2, false);
 
 	curl_global_init(CURL_GLOBAL_ALL);
     Log(&k_network, "Network module initialized.");
@@ -413,6 +428,8 @@ void initModule()
             LOG(&k_network, "ERROR: cannot set stun server host");
         }
     }
+
+    _login_credentials = data[CREDENTIALS];
 }
 
 void setPerformanceFrequency(float factor)
@@ -1108,3 +1125,107 @@ void rosterVersionRead(char* version)
         memcpy(version, _versionString, 16);
     }
 }
+
+void loginReadCallPoint()
+{
+    __asm {
+        pushfd 
+        push ebp
+        push eax
+        push ebx
+        push ecx
+        push edx
+        push esi
+        push edi
+        call loginRead
+        pop edi
+        pop esi
+        pop edx
+        pop ecx
+        pop ebx
+        pop eax
+        pop ebp
+        popfd
+        push eax
+        mov eax, _login_credentials
+        cmp byte ptr ds:[eax],1  // original code
+        pop eax
+        retn
+    }
+}
+
+void loginWriteCallPoint()
+{
+    __asm {
+        pushfd 
+        push ebp
+        push eax
+        push ebx
+        push ecx
+        push edx
+        push esi
+        push edi
+        call loginWrite
+        pop edi
+        pop esi
+        pop edx
+        pop ecx
+        pop ebx
+        pop eax
+        pop ebp
+        popfd
+        push eax
+        mov eax, _login_credentials
+        mov byte ptr ds:[eax],1  // original code
+        pop eax
+        retn
+    }
+}
+
+void loginRead()
+{
+    LOGIN_CREDENTIALS* lc = (LOGIN_CREDENTIALS*)data[CREDENTIALS];
+    if (lc) {
+        // read registry key
+        HKEY handle;
+        if (RegCreateKeyEx(HKEY_CURRENT_USER, 
+                "Software\\Kitserver", 0, NULL,
+                REG_OPTION_NON_VOLATILE, KEY_READ|KEY_WRITE, 
+                NULL, &handle, NULL) != ERROR_SUCCESS) {
+            LOG(&k_network,"ERROR: Unable to open/create registry key.");
+            return;
+        }
+        DWORD lcSize = sizeof(LOGIN_CREDENTIALS);
+        RegQueryValueEx(handle,_config.server.c_str(),
+                NULL, NULL, (unsigned char *)lc, 
+                &lcSize);
+        RegCloseKey(handle);
+    }
+}
+
+void loginWrite()
+{
+    LOGIN_CREDENTIALS* lc = (LOGIN_CREDENTIALS*)data[CREDENTIALS];
+    if (lc) {
+        lc->initialized = 1;
+
+        // create registry key
+        HKEY handle;
+        if (RegCreateKeyEx(HKEY_CURRENT_USER, 
+                "Software\\Kitserver", 0, NULL,
+                REG_OPTION_NON_VOLATILE, KEY_READ|KEY_WRITE, 
+                NULL, &handle, NULL) != ERROR_SUCCESS) {
+            LOG(&k_network,"ERROR: Unable to open/create registry key.");
+            LOG(&k_network,"ERROR: Network login cannot be stored.");
+            return;
+        }
+        DWORD lcSize = sizeof(LOGIN_CREDENTIALS);
+        if (RegSetValueEx(handle,_config.server.c_str(),
+                NULL, REG_BINARY,
+                (const unsigned char*)lc, lcSize) != ERROR_SUCCESS) {
+            LOG(&k_network,"ERROR: Unable to write 'login' value");
+        }
+        RegCloseKey(handle);
+    }
+}
+
