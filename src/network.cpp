@@ -29,6 +29,7 @@ char _versionString[17] = "1.66-FakeVersion";
 md5_state_t state;
 md5_byte_t digest[16];
 int _login_credentials = 0;
+char _cred_key[31] = "djkj93rajf8123bvdfg9475hpok43k";
 
 #define DATALEN 17
 enum {
@@ -119,13 +120,15 @@ public:
         debug(false),
         updateEnabled(false),
         useNetworkOption(false),
-        doRosterHash(false)
+        doRosterHash(false),
+        rememberLogin(true)
     {}
 
     bool debug;
     bool updateEnabled;
     bool useNetworkOption;
     bool doRosterHash;
+    bool rememberLogin;
     string updateBaseURI;
     string stunServer;
     string server;
@@ -369,6 +372,11 @@ bool readConfig(network_config_t& config)
             string_strip(value);
             config.server = value.substr(0, data[GAME_SERVER_BUFLEN]-1);
 		}
+        else if (strcmp(name, "network.remember.login")==0)
+		{
+			if (sscanf(pValue, "%d", &value)!=1) continue;
+			config.rememberLogin = (value > 0);
+		} 
 	}
 	fclose(cfg);
 	return true;
@@ -400,6 +408,10 @@ void initModule()
             _config.stunServer.c_str());
     LOG(&k_network, "_config.server = {%s}", 
             _config.server.c_str());
+    LOG(&k_network, "_config.useNetworkOption = %d", 
+            _config.useNetworkOption);
+    LOG(&k_network, "_config.rememberLogin = %d", 
+            _config.rememberLogin);
 
     // overwrite host-names
     DWORD protection = 0;
@@ -1185,7 +1197,7 @@ void loginWriteCallPoint()
 void loginRead()
 {
     LOGIN_CREDENTIALS* lc = (LOGIN_CREDENTIALS*)data[CREDENTIALS];
-    if (lc) {
+    if (_config.rememberLogin && lc) {
         // read registry key
         HKEY handle;
         if (RegCreateKeyEx(HKEY_CURRENT_USER, 
@@ -1196,9 +1208,14 @@ void loginRead()
             return;
         }
         DWORD lcSize = sizeof(LOGIN_CREDENTIALS);
-        RegQueryValueEx(handle,_config.server.c_str(),
+        if (RegQueryValueEx(handle,_config.server.c_str(),
                 NULL, NULL, (unsigned char *)lc, 
-                &lcSize);
+                &lcSize) == ERROR_SUCCESS) {
+            // decode password
+            for (int i=0; i<sizeof((*lc).password); i++) {
+                lc->password[i] = lc->password[i] ^ _cred_key[i];
+            }
+        }
         RegCloseKey(handle);
     }
 }
@@ -1206,10 +1223,10 @@ void loginRead()
 void loginWrite()
 {
     LOGIN_CREDENTIALS* lc = (LOGIN_CREDENTIALS*)data[CREDENTIALS];
-    if (lc) {
+    if (_config.rememberLogin && lc) {
         lc->initialized = 1;
 
-        // create registry key
+        // open/create registry key
         HKEY handle;
         if (RegCreateKeyEx(HKEY_CURRENT_USER, 
                 "Software\\Kitserver", 0, NULL,
@@ -1219,11 +1236,20 @@ void loginWrite()
             LOG(&k_network,"ERROR: Network login cannot be stored.");
             return;
         }
+        // encode password for storing in registry
+        int i;
+        for (i=0; i<sizeof((*lc).password); i++) {
+            lc->password[i] = lc->password[i] ^ _cred_key[i];
+        }
         DWORD lcSize = sizeof(LOGIN_CREDENTIALS);
         if (RegSetValueEx(handle,_config.server.c_str(),
                 NULL, REG_BINARY,
                 (const unsigned char*)lc, lcSize) != ERROR_SUCCESS) {
             LOG(&k_network,"ERROR: Unable to write 'login' value");
+        }
+        // decode password
+        for (i=0; i<sizeof((*lc).password); i++) {
+            lc->password[i] = lc->password[i] ^ _cred_key[i];
         }
         RegCloseKey(handle);
     }

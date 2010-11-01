@@ -1,7 +1,7 @@
 // network.h
 
 #define MODID 404
-#define NAMELONG "Network 5.5.0.1"
+#define NAMELONG "Network 5.5.0.3"
 #define NAMESHORT "NETWORK"
 
 #define DEFAULT_DEBUG 1
