@@ -1,5 +1,6 @@
 <html>
 <head>
+    <!-- meta -->
     <title>KitServer 5.4 Manual</title>
     <style>
         img { display:block;margin:10px 0 10px 0;border:1px solid #000; }
@@ -29,7 +30,7 @@
 <body>
 <h2>Kitserver 5.4 Manual</h2>
 <div>
-September 30, 2010<br />	
+January 3, 2011<br />	
 Module Versions: 
 <a href="#kitserver">Kserv 5.4.0</a>, 
 <a href="#ballserver">BallServer: 5.4.0</a>, 
@@ -38,7 +39,7 @@ Module Versions:
 <a href="#lodmixer">LOD Mixer: 5.2.5</a>,
 <a href="#bootserver">Bootserver 5.5.8</a>,
 <a href="#afs2fs">AFS2FS 5.0.1</a>,
-<a href="#network">Network 5.4.0</a>,
+<a href="#network">Network 5.5.0.3</a>,
 <a href="#speeder">Speeder 5.0.0</a>
 </div><hr>
 
@@ -46,6 +47,7 @@ Module Versions:
 
 <!-- ### GENERAL ### -->
 
+<!-- ad-top -->
 <h3>1.1 Introduction</h3>
 <p>
 Kitserver 5.4 is an add-on program for Pro Evolution Soccer 5, Winning Eleven 9, and
@@ -459,7 +461,7 @@ otherwise splitting will not work.
 </p>
 
 
-
+<!-- ad-middle -->
 <!-- ### BALLSERVER ### -->
 
 <h2 id="ballserver">Ballserver Module (bserv.dll)</h2>
@@ -964,14 +966,20 @@ configuration file called <b>network.cfg</b>, and the module does the rest.
 # Configuration file for network module
 
 network.server = "pesgame.net"
-network.stun-server = "132.177.123.13"
+network.stun-server = "stunserver.org"
 
 network.roster.update = 1
 network.roster.update.baseurl = "http://pes5-club.pesgame.net/updates/"
+network.roster.hash = 1
 
 # set this to 1, if you want to practice or play with
 # rosters used in network mode.
 network.option.enabled = 0
+
+# this will make the kitserver cache your login/password
+# and populate the fields when you connect to the server.
+# If you do not want this, set the following option to 0.
+network.remember.login = 1
 </pre>
 
 <p>Two main settings here are <b>network.server</b> and <b>network.stun-server</b>. The first one is the hostname or IP-address of the machine where the 
@@ -1068,6 +1076,34 @@ your network.cfg:
 network.roster.hash = 1
 </pre>
 
+<h4>9.5. Login/Password local caching</h4>
+
+<p>When you connect to a network server, you need to provide 2 things:
+serial number and password. (If you are connecting to a Fiveserver, then
+in the Password field, you typically need to enter your login, followed
+by dash, followed by password). If you do it frequently enough, it does
+become somewhat annoying... So, there is a new way :)
+</p>
+
+<p>You can let Kitserver store your serial and password in encrypted form
+in your Windows registry and let it pre-populate it for you when the 
+Network login screen shows up. Then all you need to do is press [Enter]
+key and you're done.
+</p>
+
+<p>The serial and password are stored per network server name in this 
+registry key: <b>HKEY_CURRENT_USER\Software\Kitserver</b>
+</p>
+
+<p>If you don't like this idea, or simply don't want your credentials
+cached in registry this way, you can always disable this feature, by
+modifying network.cfg. Just set this option to 0, like this:
+
+<p>
+<pre>
+network.remember.login = 0
+</pre>
+</p>
 
 <!-- ### SPEEDER ### -->
 
@@ -1169,6 +1205,7 @@ sure you specify resolution that your monitor supports.</i>
 </p>
 
 <hr>
+<!-- ad-bottom -->
 
 <h2>Credits</h2>
 
