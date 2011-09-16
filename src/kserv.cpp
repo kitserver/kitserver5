@@ -4456,11 +4456,15 @@ DWORD LoadPNGTexture(BITMAPINFO** tex, char* filename)
     // initialize palette colors to all non-transparent
     BITMAPINFO* pBMI = (BITMAPINFO*)*ppDIB;
     int colors = pBMI->bmiHeader.biClrUsed;
+    //LogWithNumber(&k_mydll, "biClrUsed = %d", colors);
     if (!colors) {
         colors = 1 << (pBMI->bmiHeader.biBitCount);
     }
-    for (int i=0; i<colors; i++) {
-        pBMI->bmiColors[i].rgbReserved = 0xff;
+    //LogWithNumber(&k_mydll, "colors = %d", colors);
+    if (colors<=256) {
+        for (int i=0; i<colors; i++) {
+            pBMI->bmiColors[i].rgbReserved = 0xff;
+        }
     }
 
     // read transparency values from tRNS chunk
