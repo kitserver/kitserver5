@@ -577,16 +577,10 @@ DWORD bootCopyPlayerData(DWORD p0, DWORD p1, DWORD p2)
 
 int getPosition(DWORD blockAddr)
 {
-    int i=0;
-    WORD* pOrdinal = (WORD*)blockAddr;
-    for (i=0; i<22; i++) {
-        WORD* prevOrdinal = (WORD*)((DWORD)pOrdinal - data[LINEUP_BLOCKSIZE]);
-        if (*prevOrdinal + 1 != *pOrdinal) {
-            break;
-        }
-        pOrdinal = prevOrdinal;
-    }
-    return i-1;
+    WORD val = *(WORD*)blockAddr;
+    DebugWithNumber(&k_boot,"val: %04x", val);
+    int pos = val - 0x2486 - 1;
+    return pos;
 }
 
 WORD getPlayerId(int pos)

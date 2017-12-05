@@ -1,0 +1,8 @@
+*.obj
+src/*.exe
+src/*.dll
+src/*.lib
+src/*.res
+src/*.exp
+src/output/*
+src/setenv.cmd

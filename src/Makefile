@@ -4,7 +4,7 @@ RC=rc
 
 CFLAGS=/nologo /GX $(EXTRA_CFLAGS) /DUSE_HASHMAPS /D_WIN32
 LFLAGS=/NOLOGO /NODEFAULTLIB:libcmt.lib
-LIBS=user32.lib gdi32.lib advapi32.lib
+LIBS=gdi32.lib user32.lib advapi32.lib
 LIBSDLL=pngdib.obj libpng.lib zdll.lib $(LIBS)
 
 INCPNGDIB=soft\pngdib
@@ -30,7 +30,7 @@ all_apps: apps
 pngdib.obj:
 	(cd soft\pngdib && nmake EXTRA_CFLAGS=$(EXTRA_CFLAGS))
 
-dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll bserv_preview.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll network.dll speeder.dll afs2fs.dll
+dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll bserv_preview.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll network.dll speeder.dll #afs2fs.dll
 apps: setup.exe lodcfg.exe filedec.exe diag.exe afsexport.exe afswalk.exe afstest.exe
 
 release:
