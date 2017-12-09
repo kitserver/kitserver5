@@ -27,7 +27,7 @@ all_apps: apps
 	mkdir output
 	copy *.exe output
 
-pngdib.obj:
+$(LPPNGDIB)\pngdib.obj:
 	(cd soft\pngdib && nmake EXTRA_CFLAGS=$(EXTRA_CFLAGS))
 
 dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll bserv_preview.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll network.dll speeder.dll #afs2fs.dll
@@ -49,21 +49,21 @@ detect.obj: detect.cpp detect.h
 kload.res: 
 	$(RC) -r -fo kload.res kload.rc
 
-kserv.lib: kserv.obj gdb.obj kserv_config.obj dxutil.obj crc32.obj afsreader.obj pngdib.obj
+kserv.lib: kserv.obj gdb.obj kserv_config.obj dxutil.obj crc32.obj afsreader.obj $(LPPNGDIB)\pngdib.obj
 kserv.dll: kserv.lib kserv.res
 	$(LINK) $(LFLAGS) /out:kserv.dll /DLL kserv.obj gdb.obj kserv_config.obj crc32.obj afsreader.obj dxutil.obj kserv.res $(LIBSDLL) d3dx8.lib winmm.lib /LIBPATH:$(LPPNGDIB) /LIBPATH:$(LPLIBPNG) /LIBPATH:$(LPZLIB) kload.lib
 kserv.obj: kserv.cpp kserv.h shared.h kserv_config.h gdb.h lodcfg.h
 kserv.res: 
 	$(RC) -r -fo kserv.res kserv.rc
 
-kserv-shpal.lib: kserv-shpal.obj gdb.obj kserv_config.obj dxutil.obj crc32.obj afsreader.obj pngdib.obj
+kserv-shpal.lib: kserv-shpal.obj gdb.obj kserv_config.obj dxutil.obj crc32.obj afsreader.obj $(LPPNGDIB)\pngdib.obj
 kserv-shpal.dll: kserv-shpal.lib kserv-shpal.res
 	$(LINK) $(LFLAGS) /out:kserv-shpal.dll /DLL kserv-shpal.obj gdb.obj kserv_config.obj crc32.obj afsreader.obj dxutil.obj kserv-shpal.res $(LIBSDLL) d3dx8.lib winmm.lib /LIBPATH:$(LPPNGDIB) /LIBPATH:$(LPLIBPNG) /LIBPATH:$(LPZLIB) kload.lib
 kserv-shpal.obj: kserv-shpal.cpp kserv-shpal.h shared.h kserv_config.h gdb.h lodcfg.h
 kserv-shpal.res: 
 	$(RC) -r -fo kserv-shpal.res kserv-shpal.rc
 
-bserv.lib: bserv.obj d3dfont.obj pngdib.obj
+bserv.lib: bserv.obj d3dfont.obj $(LPPNGDIB)\pngdib.obj
 bserv.dll: bserv.lib bserv.res
 	$(LINK) $(LFLAGS) /out:bserv.dll /DLL bserv.obj d3dfont.obj kload.lib bserv.res $(LIBSDLL) /LIBPATH:$(LPPNGDIB) /LIBPATH:$(LPLIBPNG) /LIBPATH:$(LPZLIB)
 bserv.obj: bserv.cpp bserv.h
@@ -71,7 +71,7 @@ bserv.obj: bserv.cpp bserv.h
 bserv.res: 
 	$(RC) -r -fo bserv.res bserv.rc
 	
-bserv_preview.lib: bserv_preview.obj d3dfont.obj pngdib.obj crc32.obj
+bserv_preview.lib: bserv_preview.obj d3dfont.obj $(LPPNGDIB)\pngdib.obj crc32.obj
 bserv_preview.dll: bserv_preview.lib bserv_preview.res
 	$(LINK) $(LFLAGS) /out:bserv_preview.dll /DLL bserv_preview.obj d3dfont.obj crc32.obj kload.lib bserv_preview.res $(LIBSDLL) d3dx8.lib winmm.lib /LIBPATH:$(LPPNGDIB) /LIBPATH:$(LPLIBPNG) /LIBPATH:$(LPZLIB) zdll.lib
 bserv_preview.obj: bserv_preview.cpp bserv.h
@@ -96,8 +96,8 @@ bootserv.res:
 	$(RC) -r -fo bootserv.res bootserv.rc
 	
 	
-stadium.lib: stadium.obj crc32.obj afsreader.obj hooklib.obj pngdib.obj
-stadium.dll: stadium.lib stadium.res
+stadium.lib: stadium.obj crc32.obj afsreader.obj hooklib.obj
+stadium.dll: stadium.lib kload.lib stadium.res
 	$(LINK) $(LFLAGS) /out:stadium.dll /DLL stadium.obj crc32.obj afsreader.obj kload.lib hooklib.obj stadium.res $(LIBSDLL) d3dx8.lib /LIBPATH:$(LPPNGDIB) /LIBPATH:$(LPLIBPNG) /LIBPATH:$(LPZLIB)
 stadium.obj: stadium.cpp stadium.h
 
