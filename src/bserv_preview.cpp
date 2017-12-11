@@ -29,7 +29,7 @@ char texture[BUFLEN];
 DWORD gdbBallAddr=0;
 DWORD gdbBallSize=0;
 DWORD gdbBallCRC=0;
-BYTE* ballTexture=NULL;
+BYTE* ballTextureBuf=NULL;
 int ballTextureSize=0;
 RECT ballTextureRect;
 bool isPNGtexture=false;
@@ -97,6 +97,7 @@ BOOL ReadConfig(BSERV_CFG* config, char* cfgFile);
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
 void InitBserv();
+bool bservGetNumPages(DWORD afsId, DWORD fileId, DWORD orgNumPages, DWORD *numPages);
 bool bservAfterReadFile(HANDLE hFile, LPVOID lpBuffer, 
         DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead,  
         LPOVERLAPPED lpOverlapped);
@@ -116,8 +117,8 @@ static int read_file_to_mem(char *fn,unsigned char **ppfiledata, int *pfilesize)
 void ApplyAlphaChunk(RGBQUAD* palette, BYTE* memblk, DWORD size);
 void FreePNGTexture(BITMAPINFO* bitmap);
 
-bool CreateBallTexture();
-void FreeBallTexture();
+bool CreateBallTextureBuf();
+void FreeBallTextureBuf(BYTE **buf);
 HRESULT STDMETHODCALLTYPE bservCreateTexture(IDirect3DDevice8* self, UINT width, UINT height,UINT levels,
 	DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** ppTexture, DWORD src, bool* IsProcessed);
 void bservUnlockRect(IDirect3DTexture8* self,UINT Level);
@@ -204,6 +205,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		
 		
 		HookFunction(hk_D3D_CreateDevice,(DWORD)InitBserv);
+        HookFunction(hk_GetNumPages,(DWORD)bservGetNumPages);
 		HookFunction(hk_AfterReadFile,(DWORD)bservAfterReadFile);
 		HookFunction(hk_D3D_CreateTexture,(DWORD)bservCreateTexture);
 		HookFunction(hk_D3D_UnlockRect,(DWORD)bservUnlockRect);
@@ -243,7 +245,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		UnhookFunction(hk_DrawKitSelectInfo,(DWORD)DrawBallLabel);
 		UnhookFunction(hk_D3D_Reset,(DWORD)bservReset);
 		
-		MasterUnhookFunction(code[C_GETFILEFROMAFS_CS],bservGetFileFromAFS);
+		//MasterUnhookFunction(code[C_GETFILEFROMAFS_CS],bservGetFileFromAFS);
 		MasterUnhookFunction(code[C_SETBALLNAME_CS],SetBallName);
 		
 		if (g_previewData!=NULL)
@@ -255,8 +257,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		SafeRelease( &g_preview_tex );
 		SafeRelease( &g_lighting_tex );
 		
-		FreeBallTexture();
-		
+		FreeBallTextureBuf(&ballTextureBuf);
 		FreeBalls();
 		
 		Log(&k_bserv,"Detaching done.");
@@ -267,7 +268,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 
 void InitBserv()
 {
-	MasterHookFunction(code[C_GETFILEFROMAFS_CS], 2, bservGetFileFromAFS);
+	//MasterHookFunction(code[C_GETFILEFROMAFS_CS], 2, bservGetFileFromAFS);
 	MasterHookFunction(code[C_SETBALLNAME_CS], 7, SetBallName);
 	
     //load settings
@@ -387,6 +388,39 @@ void SaveAFSAddr(HANDLE file,DWORD FileNumber,AFSENTRY* afs,DWORD tmp)
 	afs->Buffer=0;
 	return;
 };
+
+bool bservGetNumPages(DWORD afsId, DWORD fileId, DWORD orgNumPages, DWORD *numPages)
+{
+    DWORD fileSize = 0;
+    char tmp[BUFLEN];
+
+	if (selectedBall>=0 && afsId == 1 && fileId<data[NUM_BALL_FILES] && fileId%2==0) {
+		strcpy(tmp,GetPESInfo()->gdbDir);
+		strcat(tmp,"GDB\\balls\\mdl\\");
+		strcat(tmp,model);
+
+		HANDLE TempHandle=CreateFile(tmp,GENERIC_READ,3,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0);
+		if (TempHandle!=INVALID_HANDLE_VALUE) {
+			fileSize=GetFileSize(TempHandle,NULL);
+			CloseHandle(TempHandle);
+		} else {
+			fileSize=0;
+		};
+		
+		if (fileSize > 0) {
+            LogWithString(&k_bserv, "bservGetFileFromAFS: found GDB ball model file: %s", tmp);
+            LogWithTwoNumbers(&k_bserv,"bservGetFileFromAFS: had size: %08x pages (%08x bytes)", 
+                    orgNumPages, orgNumPages*0x800);
+
+            *numPages = ((fileSize-1)>>0x0b)+1;
+            LogWithTwoNumbers(&k_bserv,"bservGetFileFromAFS: new size: %08x pages (%08x bytes)", 
+                    *numPages, (*numPages)*0x800);
+            return true;
+		}
+    }
+
+    return false;
+}
 
 DWORD bservGetFileFromAFS(DWORD afsId, DWORD fileId)
 {
@@ -622,8 +656,9 @@ DWORD LoadPNGTexture(BITMAPINFO** tex, char* filename)
 
     BYTE* memblk;
     int memblksize;
-    if (read_file_to_mem(filename,&memblk, &memblksize)) {
+    if (read_file_to_mem(filename,&memblk, &memblksize)!=0) {
         TRACE(&k_bserv,"LoadPNGTexture: unable to read PNG file");
+        pngdib_done(pngdib);
         return 0;
     }
     //TRACE(&k_bserv,"LoadPNGTexture: file read into memory");
@@ -710,15 +745,14 @@ void ApplyAlphaChunk(RGBQUAD* palette, BYTE* memblk, DWORD size)
         offset += sizeof(chunk->dwSize) + sizeof(chunk->dwName) + 
             SWAPBYTES(chunk->dwSize) + sizeof(DWORD); // last one is CRC
     }
-};
+}
 
 void FreePNGTexture(BITMAPINFO* bitmap)
 {
 	if (bitmap != NULL) {
         pngdib_p2d_free_dib(NULL, (BITMAPINFOHEADER*)bitmap);
 	}
-};
-
+}
 
 void DrawBallPreview(IDirect3DDevice8* dev)
 {
@@ -1176,7 +1210,7 @@ BOOL ReadConfig(BSERV_CFG* config, char* cfgFile)
 	return true;
 }
 
-bool CreateBallTexture()
+bool CreateBallTextureBuf()
 {
 	BYTE* result=NULL;
 	char tmp[BUFLEN];
@@ -1186,28 +1220,26 @@ bool CreateBallTexture()
 	
 	if (selectedBall<0) return false;
 		
-	if (ballTexture!=NULL && lstrcmpi(currTextureName,texture)==0)
+	if (ballTextureBuf!=NULL && lstrcmpi(currTextureName,texture)==0)
 		return true;
 		
-	FreeBallTexture();
-	
 	sprintf(tmp,"%sGDB\\balls\\%s",GetPESInfo()->gdbDir,texture);
 	
 	if (!FileExists(tmp))
 		return false;
 	
 	if (lstrcmpi(tmp + lstrlen(tmp)-4, ".png")==0) {
-		ballTextureSize=LoadPNGTexture((BITMAPINFO**)&ballTexture,tmp);
-		if (ballTexture==NULL)
+		ballTextureSize=LoadPNGTexture((BITMAPINFO**)&ballTextureBuf,tmp);
+		if (ballTextureBuf==NULL)
 			return false;
-		bmpinfo=(BITMAPINFOHEADER*)ballTexture;
+		bmpinfo=(BITMAPINFOHEADER*)ballTextureBuf;
 		isPNGtexture=true;
 
 	} else if (lstrcmpi(tmp + lstrlen(tmp)-4, ".bmp")==0) {
-		read_file_to_mem(tmp,&ballTexture,&ballTextureSize);
-		if (ballTexture==NULL)
+		read_file_to_mem(tmp,&ballTextureBuf,&ballTextureSize);
+		if (ballTextureBuf==NULL)
 			return false;
-		bmpinfo=(BITMAPINFOHEADER*)((DWORD)ballTexture+sizeof(BITMAPFILEHEADER));
+		bmpinfo=(BITMAPINFOHEADER*)((DWORD)ballTextureBuf+sizeof(BITMAPFILEHEADER));
 		isPNGtexture=false;
 		
 	} else {
@@ -1219,17 +1251,26 @@ bool CreateBallTexture()
 	strcpy(currTextureName,texture);
 	
 	return true;
-};
+}
 
-void FreeBallTexture()
+void FreeBallTextureBuf(BYTE **pBuf)
 {
-	if (ballTexture!=NULL)
-		HeapFree(GetProcessHeap(), 0, ballTexture);
+	if (*pBuf!=NULL) {
+        if (isPNGtexture) {
+            FreePNGTexture((BITMAPINFO*)*pBuf);
+            TRACE(&k_bserv, "Ball texture (PNG) buffer freed");
+        }
+        else {
+            HeapFree(GetProcessHeap(), 0, *pBuf);
+            TRACE(&k_bserv, "Ball texture (BMP) buffer freed");
+        }
+        *pBuf = NULL;
+    }
 	
 	strcpy(currTextureName,"\0");
 	
 	return;
-};
+}
 
 
 HRESULT STDMETHODCALLTYPE bservCreateTexture(
@@ -1256,7 +1297,7 @@ HRESULT STDMETHODCALLTYPE bservCreateTexture(
 	if (src!=0 && src==gdbBallAddr) {
 		TRACE(&k_bserv,"bservCreateTexture called for ball texture.");
 		
-		if (!CreateBallTexture()) 
+		if (!CreateBallTextureBuf()) 
             goto NoReplacingTexture;
 		
         DWORD w = max(width, ballTextureRect.right);
@@ -1277,9 +1318,9 @@ HRESULT STDMETHODCALLTYPE bservCreateTexture(
 
 void bservUnlockRect(IDirect3DTexture8* self,UINT Level)
 {
-	//LogWithTwoNumbers(&k_bserv,"bservUnlockRect: Processing texture %x, level %d",(DWORD)self,Level);
+	//TRACE2X(&k_bserv,"bservUnlockRect: Processing texture %x, level %d",(DWORD)self,Level);
 	
-	if (ballTexture==NULL || g_lastBallTex==NULL)
+	if (ballTextureBuf==NULL || g_lastBallTex==NULL)
 		return;
 		
 	IDirect3DSurface8* g_surf = NULL;
@@ -1287,7 +1328,7 @@ void bservUnlockRect(IDirect3DTexture8* self,UINT Level)
 	if (SUCCEEDED(g_lastBallTex->GetSurfaceLevel(0, &g_surf))) {
 		if (SUCCEEDED(D3DXLoadSurfaceFromFileInMemory(
 						g_surf, NULL, NULL, //destination
-						ballTexture, ballTextureSize, NULL, //source
+						ballTextureBuf, ballTextureSize, NULL, //source
 						D3DX_DEFAULT, 0, NULL)))
 		{ 
 			TRACE(&k_bserv,"Replacing ball texture COMPLETE");
@@ -1301,6 +1342,7 @@ void bservUnlockRect(IDirect3DTexture8* self,UINT Level)
 	}
 
 	g_lastBallTex=NULL;
+    FreeBallTextureBuf(&ballTextureBuf);
 
 	return;
 };
