@@ -30,7 +30,7 @@ all_apps: apps
 $(LPPNGDIB)\pngdib.obj:
 	(cd soft\pngdib && nmake EXTRA_CFLAGS=$(EXTRA_CFLAGS))
 
-dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll bserv_preview.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll network.dll speeder.dll #afs2fs.dll
+dlls: kload.dll kserv.dll kserv-shpal.dll bserv.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll network.dll speeder.dll #afs2fs.dll
 apps: setup.exe lodcfg.exe filedec.exe diag.exe afsexport.exe afswalk.exe afstest.exe
 
 release:
@@ -63,21 +63,12 @@ kserv-shpal.obj: kserv-shpal.cpp kserv-shpal.h shared.h kserv_config.h gdb.h lod
 kserv-shpal.res: 
 	$(RC) -r -fo kserv-shpal.res kserv-shpal.rc
 
-bserv.lib: bserv.obj d3dfont.obj $(LPPNGDIB)\pngdib.obj
+bserv.lib: bserv.obj d3dfont.obj $(LPPNGDIB)\pngdib.obj crc32.obj
 bserv.dll: bserv.lib bserv.res
-	$(LINK) $(LFLAGS) /out:bserv.dll /DLL bserv.obj d3dfont.obj kload.lib bserv.res $(LIBSDLL) /LIBPATH:$(LPPNGDIB) /LIBPATH:$(LPLIBPNG) /LIBPATH:$(LPZLIB)
+	$(LINK) $(LFLAGS) /out:bserv.dll /DLL bserv.obj d3dfont.obj crc32.obj kload.lib bserv.res $(LIBSDLL) d3dx8.lib winmm.lib /LIBPATH:$(LPPNGDIB) /LIBPATH:$(LPLIBPNG) /LIBPATH:$(LPZLIB) zdll.lib
 bserv.obj: bserv.cpp bserv.h
-
 bserv.res: 
 	$(RC) -r -fo bserv.res bserv.rc
-	
-bserv_preview.lib: bserv_preview.obj d3dfont.obj $(LPPNGDIB)\pngdib.obj crc32.obj
-bserv_preview.dll: bserv_preview.lib bserv_preview.res
-	$(LINK) $(LFLAGS) /out:bserv_preview.dll /DLL bserv_preview.obj d3dfont.obj crc32.obj kload.lib bserv_preview.res $(LIBSDLL) d3dx8.lib winmm.lib /LIBPATH:$(LPPNGDIB) /LIBPATH:$(LPLIBPNG) /LIBPATH:$(LPZLIB) zdll.lib
-bserv_preview.obj: bserv_preview.cpp bserv.h
-
-bserv_preview.res: 
-	$(RC) -r -fo bserv_preview.res bserv_preview.rc
 	
 fserv.lib: fserv.obj
 fserv.dll: fserv.lib fserv.res
