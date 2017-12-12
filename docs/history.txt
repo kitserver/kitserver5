@@ -1,0 +1,19 @@
+Kitserver 5 HISTORY notes
+=========================
+
+
+2017-12-12
+----------
+v5.5.0
+- bserv: fixed game crashes after ball was swiched between matches
+- bootserv: fixed problems in newer Windows (7 and 10), where boots were
+  getting mixed up or disappeared after halftime
+
+
+2011-01-03
+----------
+v5.4.0
+- last official "final" release. Before that there are no history notes,
+  only git commits here: https://github.com/kitserver/kitserver5
+  Read them if you are interested :)
+  
