@@ -951,6 +951,7 @@ PALETTEENTRY g_away_socks_pal[0x100];
 //////////////////////////////////////////////////////////////
 
 // Calls IUnknown::Release() on an instance
+/*
 void SafeRelease(LPVOID ppObj)
 {
     try {
@@ -969,6 +970,39 @@ void SafeRelease(LPVOID ppObj)
         // problem with a safe-release
         TRACE(&k_mydll,"Problem with safe-release");
     }
+}
+*/
+void SafeRelease(void *ppObj)
+{
+    int rc;
+    IUnknown **ppIUnk = (IUnknown**)ppObj;
+    IUnknown *pIUnk = *ppIUnk;
+    if (pIUnk) {
+        *ppIUnk = NULL;
+        rc = pIUnk->Release();
+        TRACE2(&k_mydll, "SafeRelease: ref-count: %d", rc);
+    }
+}
+
+void LogRC(void *ppObj)
+{
+    int rc;
+    IUnknown **ppIUnk = (IUnknown**)ppObj;
+    IUnknown *pIUnk = *ppIUnk;
+    if (pIUnk) {
+        pIUnk->AddRef();
+        rc = pIUnk->Release();
+        TRACE2(&k_mydll, "LogRC: ref-count: %d", rc);
+    }
+}
+
+void Clear2DKitTextures(LPVOID one, LPVOID two, LPVOID three)
+{
+    bool doTwo = (*(DWORD*)one != *(DWORD*)two);
+    bool doThree = (*(DWORD*)two != *(DWORD*)three);
+    SafeRelease(one);
+    if (doTwo) { SafeRelease(two); }
+    if (doThree) { SafeRelease(three); }
 }
 
 void SetPosition(CUSTOMVERTEX2* dest, CUSTOMVERTEX2* src, int n, int x, int y) 
@@ -3773,11 +3807,12 @@ HRESULT JuceCreateTextureFromFile(IDirect3DDevice8* dev, char* name, IDirect3DTe
     switch (texType) {
         case TEXTYPE_PNG:
         case TEXTYPE_BMP:
-            if (SUCCEEDED(D3DXCreateTextureFromFile(dev,name,ppTex)))
+            if (SUCCEEDED(D3DXCreateTextureFromFile(dev,name,ppTex))) {
                 return S_OK;
-            else
+            }
+            else {
                 Log(&k_mydll,"JuceCreateTextureFromFile: D3DXCreateTextureFromFile FAILED.");
-
+            }
             break;
     }
     
@@ -6452,19 +6487,32 @@ void JuceClear2Dkits()
     g_display2Dkits = FALSE;
     g_lastDisplay2Dkits = FALSE;
 
-    // clear the kit texture map
-    Log(&k_mydll,"Clearing 2Dkit textures and g_kitTextureMap.");
-    g_kitTextureMap.clear();
-    SafeRelease(&g_home_shirt_tex);
-    SafeRelease(&g_home_shorts_tex);
-    SafeRelease(&g_home_socks_tex);
-    SafeRelease(&g_away_shirt_tex);
-    SafeRelease(&g_away_shorts_tex);
-    SafeRelease(&g_away_socks_tex);
-
     // unhook Present method
 	UnhookFunction(hk_D3D_Present,(DWORD)JucePresent);
     Log(&k_mydll,"Present unhooked.");
+
+    // clear the kit texture map
+    Log(&k_mydll,"Clearing 2Dkit textures and g_kitTextureMap.");
+    g_kitTextureMap.clear();
+    Log(&k_mydll,"JuceClear2Dkits: g_kitTextureMap cleared.");
+
+    Log(&k_mydll,"JuceClear2Dkits: g_home_shirt_tex RC:");
+    LogRC(&g_home_shirt_tex);
+    Log(&k_mydll,"JuceClear2Dkits: g_home_shorts_tex RC:");
+    LogRC(&g_home_shorts_tex);
+    Log(&k_mydll,"JuceClear2Dkits: g_home_socks_tex RC:");
+    LogRC(&g_home_socks_tex);
+    Log(&k_mydll,"JuceClear2Dkits: g_away_shirt_tex RC:");
+    LogRC(&g_away_shirt_tex);
+    Log(&k_mydll,"JuceClear2Dkits: g_away_shorts_tex RC:");
+    LogRC(&g_away_shorts_tex);
+    Log(&k_mydll,"JuceClear2Dkits: g_away_socks_tex RC:");
+    LogRC(&g_away_socks_tex);
+
+    Clear2DKitTextures(&g_home_shirt_tex, &g_home_shorts_tex, &g_home_socks_tex);
+    Log(&k_mydll,"JuceClear2Dkits: home texs released.");
+    Clear2DKitTextures(&g_away_shirt_tex, &g_away_shorts_tex, &g_away_socks_tex);
+    Log(&k_mydll,"JuceClear2Dkits: away texs released.");
 
     // Special logic for a case when team is playing against itself
     WORD id = GetTeamId(HOME); 
