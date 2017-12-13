@@ -37,17 +37,17 @@ enum {
 
 // Data addresses.
 DWORD dataArray[][DATALEN] = {
-// PES5 DEMO 2
+    // PES5 DEMO 2
     {
         0, 0,
     },
     // PES5
     {
-        0, 0,
+        0xe95460, 0xe95464,
     },
     // WE9
     {
-        0, 0,
+        0xe95460, 0xe95464,
     },
     // WE9:LE
     {
