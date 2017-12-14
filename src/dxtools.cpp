@@ -265,16 +265,16 @@ BOOL ReadConfig(DXCONFIG* config, const char* cfgFile)
 			LogWithNumber(&k_dxtools,"ReadConfig: dx.window.height = (%d)", value);
             config->window.height = value;
 		}
-        else if (lstrcmp(name, "dx.internal.width")==0)
+        else if (lstrcmp(name, "internal.resolution.width")==0)
         {
             if (sscanf(pValue, "%d", &value)!=1) continue;
-            LogWithNumber(&k_dxtools,"ReadConfig: dx.internal.width = (%d)", value);
+            LogWithNumber(&k_dxtools,"ReadConfig: internal.resolution.width = (%d)", value);
             config->internal.width = value;
         }
-        else if (lstrcmp(name, "dx.internal.height")==0)
+        else if (lstrcmp(name, "internal.resolution.height")==0)
         {
             if (sscanf(pValue, "%d", &value)!=1) continue;
-            LogWithNumber(&k_dxtools,"ReadConfig: dx.internal.height = (%d)", value);
+            LogWithNumber(&k_dxtools,"ReadConfig: internal.resolution.height = (%d)", value);
             config->internal.height = value;
         }
 	}
