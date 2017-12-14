@@ -67,16 +67,22 @@ KEXPORT DWORD GetFileIdByOffset(DWORD afsId, DWORD offset)
 {
     DWORD* pageLenTable = (DWORD*)data[AFS_PAGELEN_TABLE];
     AFS_INFO* afsInfo = (AFS_INFO*)pageLenTable[afsId];
-    DWORD fileId = 0;
-    DWORD offsetSoFar = 0;
+    DWORD prevFileId = 0, fileId = 0;
+    DWORD offsetSoFar = 0x800 * afsInfo->pages[0];
     for (; fileId<afsInfo->numItems; fileId++) {
-        offsetSoFar += 0x800 * afsInfo->pages[fileId];
-        if (offsetSoFar > offset)
-            return fileId-1;
+        if (offsetSoFar == offset) {
+            return fileId;
+        }
+        DWORD numPages = afsInfo->pages[fileId+1];
+        offsetSoFar += 0x800 * numPages;
+        if (offsetSoFar > offset) {
+            return prevFileId;
+        }
+        if (numPages > 0) {
+            prevFileId = fileId;
+        }
     }
-    if (fileId == afsInfo->numItems)
-        return 0xffffffff;
-    return fileId;
+    return 0xffffffff;
 }
 
 KEXPORT DWORD GetProbableFileIdForHandle(DWORD afsId, 

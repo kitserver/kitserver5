@@ -44,7 +44,7 @@ detect.obj: detect.cpp detect.h
 kload.lib: kload.obj detect.obj d3dfont.obj imageutil.obj log.obj kload_config.obj hook.obj  hooklib.obj dxutil.obj afsreplace.obj apihijack.obj
 kload.dll: kload.lib kload.res
 	$(LINK) $(LFLAGS) /out:kload.dll /DLL kload.obj d3dfont.obj dxutil.obj detect.obj imageutil.obj log.obj kload_config.obj hook.obj hooklib.obj afsreplace.obj apihijack.obj kload.res $(LIBS) d3dx8.lib winmm.lib
-kload.obj: kload.cpp kload.h
+kload.obj: kload.cpp kload.h kload_config.h hook.h manage.h
 detect.obj: detect.cpp detect.h
 kload.res: 
 	$(RC) -r -fo kload.res kload.rc
@@ -88,7 +88,7 @@ bootserv.res:
 	
 	
 stadium.lib: stadium.obj crc32.obj afsreader.obj hooklib.obj
-stadium.dll: stadium.lib kload.lib stadium.res
+stadium.dll: stadium.lib stadium.res
 	$(LINK) $(LFLAGS) /out:stadium.dll /DLL stadium.obj crc32.obj afsreader.obj kload.lib hooklib.obj stadium.res $(LIBSDLL) d3dx8.lib /LIBPATH:$(LPPNGDIB) /LIBPATH:$(LPLIBPNG) /LIBPATH:$(LPZLIB)
 stadium.obj: stadium.cpp stadium.h
 

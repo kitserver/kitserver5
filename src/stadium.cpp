@@ -910,7 +910,7 @@ bool stadAfterReadFile(HANDLE hFile,
         // check if stadium file exists
         int stadId = GetStadId(fileId);
         int stadFileId = GetFileId(fileId);
-        LOG(&k_stadium, "stadReadNumPages: stadId=%d, stadFileId=%d", 
+        LOG(&k_stadium, "stadAfterReadFile: stadId=%d, stadFileId=%d", 
                 stadId, stadFileId);
         LOG(&k_stadium, "stadAfterReadFile: stadium: %d", stadId);
         LOG(&k_stadium, "stadAfterReadFile: file: %s", FILE_NAMES[stadFileId]);

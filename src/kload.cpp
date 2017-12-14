@@ -163,9 +163,9 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
             GetActiveDevice()->Release();
         }
         
-        UnhookReadFile();
-        UnhookOthers();
-        UnhookKeyb();
+        //UnhookReadFile();
+        //UnhookOthers();
+        //UnhookKeyb();
 		
 		TRACE(&k_kload,"Closing memory log.");
 		strcpy(tmp,GetPESInfo()->mydir);

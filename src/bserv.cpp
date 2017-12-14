@@ -408,12 +408,12 @@ bool bservGetNumPages(DWORD afsId, DWORD fileId, DWORD orgNumPages, DWORD *numPa
 		};
 		
 		if (fileSize > 0) {
-            LogWithString(&k_bserv, "bservGetFileFromAFS: found GDB ball model file: %s", tmp);
-            LogWithTwoNumbers(&k_bserv,"bservGetFileFromAFS: had size: %08x pages (%08x bytes)", 
+            LogWithString(&k_bserv, "bservGetNumPages: found GDB ball model file: %s", tmp);
+            LogWithTwoNumbers(&k_bserv,"bservGetNumPages: had size: %08x pages (%08x bytes)", 
                     orgNumPages, orgNumPages*0x800);
 
             *numPages = ((fileSize-1)>>0x0b)+1;
-            LogWithTwoNumbers(&k_bserv,"bservGetFileFromAFS: new size: %08x pages (%08x bytes)", 
+            LogWithTwoNumbers(&k_bserv,"bservGetNumPages: new size: %08x pages (%08x bytes)", 
                     *numPages, (*numPages)*0x800);
             return true;
 		}

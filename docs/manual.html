@@ -34,9 +34,9 @@ Version history: <a href="history.txt">history.txt</a><br />
 </div>
 <h2>Kitserver 5.5 Manual</h2>
 <div>
-December 12, 2017<br />	
+December 14, 2017<br />	
 Module Versions: 
-<a href="#kitserver">Kserv 5.4.0</a>, 
+<a href="#kitserver">Kserv 5.5.1</a>, 
 <a href="#ballserver">BallServer: 5.5.0</a>, 
 <a href="#faceserver">Faceserver: 5.3.2</a>, 
 <a href="#stadiumserver">Stadium Server: 5.4.0</a>, 
@@ -1171,6 +1171,10 @@ dx.force-SW-TnL = 0
 dx.emulate-HW-TnL = 0
 #dx.fullscreen.width = 1280
 #dx.fullscreen.height = 800
+
+# Game's internal resolution
+internal.resolution.width = 0
+internal.resolution.height = 0
 </pre>
 
 <p>The top two DLLs - <b>zlib1.dll</b> and <b>libpng13.dll</b> are needed for PNG
@@ -1202,10 +1206,47 @@ To enable, just change the values from 0 to 1.
 </p>
 
 <p>
-The last two options - <b>dx.fullscreen.width</b> and <b>dx.fullscreen.height</b> - can be used
+The fullscreen options - <b>dx.fullscreen.width</b> and <b>dx.fullscreen.height</b> - can be used
 to enforce custom resolution in fullscreen mode. <i>Note that those two options are disabled by
 default; to enable, remove the comment sign ('#') at the begining of those two lines, and make 
 sure you specify resolution that your monitor supports.</i>
+</p>
+
+<h4>Game's internal resolution modifiers</h4>
+
+<p>
+Since version 5.5.1, the DXTOOLS module (dxtools.dll) also supports new set of options to
+modify the game's so-called "internal resolution". This internal resolution is what the game
+uses to render each frame, before the final image is resized to fit the window/fullscreen dimensions.
+So, if you play on a huge screen, but the internal resolution is still standard 1024x1024 pixels,
+then the picture quailty will still be bad. By increasing internal resolution, we can make the
+game looks absolutely magnificent on big screen monitors. This all was discovered by <b>Kingsley813</b> -
+for which he deserves huge credit. Because of his work, the old PES5-family of games suddenly got
+a fresh new life ;-).
+</p>
+
+<p>
+The internal resolution options are called: <b>internal.resolution.width</b> and <b>internal.resolution.height</b>.
+(By default they are set to 0, which means that internal resolution will NOT be modified.) Set them to values
+larger than zero to see the effect. Typically you would want values <i>equal or bigger</i> than the screen 
+resolution that you play on.
+</p>
+
+<p>
+For example, let's say your monitor resolution is 2880 x 1800 pixels, and you want to play fullscreen. Then set
+the following settings in your kload.cfg file:
+
+<pre>
+dx.fullscreen.width = 2880
+dx.fullscreen.height = 1800
+
+internal.resolution.width = 3072
+internal.resolution.height = 2048
+</pre>
+
+<p>
+If you are not sure that you see the effect these settings play, try something like this: set them both to 256.
+Right away, you will notice how crappy the game looks ;-)
 </p>
 
 <hr>
@@ -1215,6 +1256,7 @@ sure you specify resolution that your monitor supports.</i>
 
 <p>
 Programming: <b>juce</b>, <b>Robbie</b><br />
+Game reversing and analysis: <b>juce</b>, <b>Robbie</b>, <b>Kingsley813</b><br />
 Testing: <b>biker_jim_uk, ntalex, Gwidon, nt89, galagan, Vladis LOVE</b><br />
 Stadium Server GDB organization and "home team stadium" idea: <b>Gwidon</b><br />
 Information about stadiums in AFS: <b>nt89</b><br />

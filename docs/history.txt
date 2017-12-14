@@ -2,6 +2,14 @@ Kitserver 5 HISTORY notes
 =========================
 
 
+2017-12-14
+----------
+v5.5.1
+- dxtools: added internal resolution width/height. Thanks to Kingsley813!
+- kserv: small fixes to texture-release logic
+- kload: exit logic clean-up. Game should no longer crash/hang on exit
+
+
 2017-12-12
 ----------
 v5.5.0
