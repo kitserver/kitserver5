@@ -189,10 +189,13 @@ void SetPESInfo()
 	char *shortProcessfile;
 	char shortProcessfileNoExt[BUFLEN];
 	char logName[BUFLEN];
+    char tmp[BUFLEN];
 	
 	/* determine my directory */
+	ZeroMemory(tmp, BUFLEN);
+    GetModuleFileName(hInst, tmp, BUFLEN);
 	ZeroMemory(mydir, BUFLEN);
-	GetModuleFileName(hInst, mydir, BUFLEN);
+	GetLongPathName(tmp, mydir, BUFLEN);
 	char *q = mydir + lstrlen(mydir);
 	while ((q != mydir) && (*q != '\\')) { *q = '\0'; q--; }
 
@@ -201,8 +204,10 @@ void SetPESInfo()
 	
 	g_pesinfo.hProc = GetModuleHandle(NULL);
 	
+	ZeroMemory(tmp, BUFLEN);
+    GetModuleFileName(NULL, tmp, BUFLEN);
 	ZeroMemory(processfile, BUFLEN);
-	GetModuleFileName(NULL, processfile, BUFLEN);
+	GetLongPathName(tmp, processfile, BUFLEN);
 	
 	g_pesinfo.processfile=new char[strlen(processfile)+1];
 	strcpy(g_pesinfo.processfile,processfile);
@@ -212,8 +217,11 @@ void SetPESInfo()
 	
 	g_pesinfo.pesdir=new char[strlen(processfile)+1];
 	strcpy(g_pesinfo.pesdir,processfile);
-	
-	GetModuleFileName(NULL, processfile, BUFLEN);
+
+	ZeroMemory(tmp, BUFLEN);
+    GetModuleFileName(NULL, tmp, BUFLEN);
+	ZeroMemory(processfile, BUFLEN);
+	GetLongPathName(tmp, processfile, BUFLEN);
 
 	char* zero = processfile + lstrlen(processfile);
 	char* p = zero; while ((p != processfile) && (*p != '\\')) p--;

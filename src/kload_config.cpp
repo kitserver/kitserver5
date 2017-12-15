@@ -70,11 +70,44 @@ BOOL ReadConfig(KLOAD_CONFIG* config, char* cfgFile)
 
 			LogWithString(&k_kload,"ReadConfig: gdbDir = \"%s\"", buf);
 			
-			g_pesinfo.gdbDir=new char[strlen(buf)+1];
+			g_pesinfo.gdbDir=new char[strlen(buf)+2];
+            ZeroMemory(g_pesinfo.gdbDir, strlen(buf)+2);
 			
 			strcpy(g_pesinfo.gdbDir, buf);
+            // add trailing backslash, if missing
+            if (g_pesinfo.gdbDir[strlen(g_pesinfo.gdbDir)-1]!='\\') {
+                strcat(g_pesinfo.gdbDir, "\\");
+            }
 
 			hasGdbDir = true;
+		}
+       	else if (lstrcmp(name, "pes.dir")==0)
+		{
+			char* startQuote = strstr(pValue, "\"");
+			if (startQuote == NULL) continue;
+			char* endQuote = strstr(startQuote + 1, "\"");
+			if (endQuote == NULL) continue;
+
+			char buf[BUFLEN];
+			ZeroMemory(buf, BUFLEN);
+			memcpy(buf, startQuote + 1, endQuote - startQuote - 1);
+
+			LogWithString(&k_kload,"ReadConfig: pesdir = \"%s\"", buf);
+			
+			g_pesinfo.pesdir=new char[strlen(buf)+2];
+            ZeroMemory(g_pesinfo.pesdir, strlen(buf)+2);
+
+			strcpy(g_pesinfo.pesdir, buf);
+            // add trailing backslash, if missing
+            if (g_pesinfo.pesdir[strlen(g_pesinfo.pesdir)-1]!='\\') {
+                strcat(g_pesinfo.pesdir, "\\");
+            }
+		}
+		else if (stricmp(name, "reserved.memory")==0 || stricmp(name, "ReservedMemory")==0)
+		{
+			if (sscanf(pValue, "%d", &value)!=1) continue;
+			LogWithNumber(&k_kload,"ReadConfig: reserved.memory = (%d)", value);
+			config->newResMem = value;
 		}
 		else if (stricmp(name, "dx.force-SW-TnL")==0)
 		{
