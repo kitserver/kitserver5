@@ -996,15 +996,6 @@ void LogRC(void *ppObj)
     }
 }
 
-void Clear2DKitTextures(LPVOID one, LPVOID two, LPVOID three)
-{
-    bool doTwo = (*(DWORD*)one != *(DWORD*)two);
-    bool doThree = (*(DWORD*)two != *(DWORD*)three);
-    SafeRelease(one);
-    if (doTwo) { SafeRelease(two); }
-    if (doThree) { SafeRelease(three); }
-}
-
 void SetPosition(CUSTOMVERTEX2* dest, CUSTOMVERTEX2* src, int n, int x, int y) 
 {	
 	FLOAT xratio = GetPESInfo()->stretchX;
@@ -2400,11 +2391,21 @@ BOOL IsNarrowBack(int which )
         switch (which) {
             case HOME:
                 currKey = GET_HOME_SHIRT_KEY(typ);
-                kit = MAP_FIND(col->players,currKey);
+                if (typ == GK_TYPE) {
+                    kit = MAP_FIND(col->goalkeepers,currKey);
+                }
+                else {
+                    kit = MAP_FIND(col->players,currKey);
+                }
                 break;
             case AWAY:
                 currKey = GET_AWAY_SHIRT_KEY(typ);
-                kit = MAP_FIND(col->players,currKey);
+                if (typ == GK_TYPE) {
+                    kit = MAP_FIND(col->goalkeepers,currKey);
+                }
+                else {
+                    kit = MAP_FIND(col->players,currKey);
+                }
                 break;
         }
         // check the model
@@ -6492,28 +6493,18 @@ void JuceClear2Dkits()
     Log(&k_mydll,"Present unhooked.");
 
     // clear the kit texture map
+    map<string,IDirect3DTexture8*>::iterator it;
+    for (it = g_kitTextureMap.begin(); it != g_kitTextureMap.end(); it++) {
+        LogWithString(&k_mydll,"Releasing 2Dkit texture for key: %s", (char*)it->first.c_str());
+        IDirect3DTexture8* pTex = it->second;
+        SafeRelease(&it->second);
+    }
     Log(&k_mydll,"Clearing 2Dkit textures and g_kitTextureMap.");
     g_kitTextureMap.clear();
-    Log(&k_mydll,"JuceClear2Dkits: g_kitTextureMap cleared.");
 
-    Log(&k_mydll,"JuceClear2Dkits: g_home_shirt_tex RC:");
-    LogRC(&g_home_shirt_tex);
-    Log(&k_mydll,"JuceClear2Dkits: g_home_shorts_tex RC:");
-    LogRC(&g_home_shorts_tex);
-    Log(&k_mydll,"JuceClear2Dkits: g_home_socks_tex RC:");
-    LogRC(&g_home_socks_tex);
-    Log(&k_mydll,"JuceClear2Dkits: g_away_shirt_tex RC:");
-    LogRC(&g_away_shirt_tex);
-    Log(&k_mydll,"JuceClear2Dkits: g_away_shorts_tex RC:");
-    LogRC(&g_away_shorts_tex);
-    Log(&k_mydll,"JuceClear2Dkits: g_away_socks_tex RC:");
-    LogRC(&g_away_socks_tex);
-
-    Clear2DKitTextures(&g_home_shirt_tex, &g_home_shorts_tex, &g_home_socks_tex);
-    Log(&k_mydll,"JuceClear2Dkits: home texs released.");
-    Clear2DKitTextures(&g_away_shirt_tex, &g_away_shorts_tex, &g_away_socks_tex);
-    Log(&k_mydll,"JuceClear2Dkits: away texs released.");
-
+    g_home_shirt_tex = g_home_shorts_tex = g_home_socks_tex = NULL;
+    g_away_shirt_tex = g_away_shorts_tex = g_away_socks_tex = NULL;
+    
     // Special logic for a case when team is playing against itself
     WORD id = GetTeamId(HOME); 
     if (id == GetTeamId(AWAY) && id != 0xffff & TeamDirExists(id)) {
