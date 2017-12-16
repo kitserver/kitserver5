@@ -34,12 +34,12 @@ Version history: <a href="history.txt">history.txt</a><br />
 </div>
 <h2>Kitserver 5.5 Manual</h2>
 <div>
-December 14, 2017<br />	
+December 15, 2017<br />
 Module Versions: 
-<a href="#kitserver">Kserv 5.5.1</a>, 
+<a href="#kitserver">Kserv 5.5.3</a>,
 <a href="#ballserver">BallServer: 5.5.0</a>, 
 <a href="#faceserver">Faceserver: 5.3.2</a>, 
-<a href="#stadiumserver">Stadium Server: 5.4.0</a>, 
+<a href="#stadiumserver">Stadium Server: 5.5.0</a>,
 <a href="#lodmixer">LOD Mixer: 5.2.5</a>,
 <a href="#bootserver">Bootserver 5.5.9</a>,
 <a href="#afs2fs">AFS2FS 5.0.1</a>,
@@ -1147,6 +1147,8 @@ do that by modifying the <b>kload.cfg</b> file. Here's how the default config lo
 debug = 1
 gdb.dir = ".\"
 
+reserved.memory = 500000000
+
 DLL.num = 16
 DLL.0 = "kitserver\zlib1.dll"
 DLL.1 = "kitserver\libpng13.dll"
@@ -1195,6 +1197,13 @@ DLL.num = 16
 #DLL.4 = "kitserver\fserv.dll"
 ...
 </pre>
+
+<p>
+With <b>reserved.memory</b>, you can increase the size of memory which is reserved by the game. The value is
+in bytes. This is necessary if you want to use HD adboards, big HD stadiums and high-resolution crowd. If this
+line is missing (or commented out), nothing is changed and PES reserves its standard 31 megabytes.
+You cannot set the limit below this value, if you do so this will be ignored.
+</p>
 
 <p>
 The <b>dx.force-SW-TnL</b> and <b>dx.emulate-HW-TnL</b> options provide functionality similar to

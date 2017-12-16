@@ -2,6 +2,13 @@ Kitserver 5 HISTORY notes
 =========================
 
 
+2017-12-15
+----------
+v5.5.3
+- kserv: fixed crashes related to 2D-kit texture release.
+- kload: support for "reserved.memory" to support big HD stadiums
+
+
 2017-12-14
 ----------
 v5.5.1
