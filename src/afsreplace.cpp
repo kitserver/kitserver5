@@ -91,15 +91,13 @@ KEXPORT DWORD GetProbableFileIdForHandle(DWORD afsId,
     map<HANDLE,struct NEXT_LIKELY_READ>::iterator nit;
     nit = _next_likely_reads.find(hFile);
     if (nit != _next_likely_reads.end()) {
-        if (nit->second.afsId == afsId && nit->second.offset == offset) {
+        if (nit->second.afsId == afsId) {
             DWORD fileId = nit->second.fileId;
             DEEPDEBUGLOG(&k_kload,
                 "Probable fileId: %d (afsId:%d, offset:0x%08x, hFile:0x%08x)",
                 fileId, afsId, offset, hFile);
-            _next_likely_reads.erase(nit);
             return fileId;
         }
-        _next_likely_reads.erase(nit);
     }
     return GetFileIdByOffset(afsId, offset);
 }
@@ -111,8 +109,18 @@ KEXPORT void SetNextProbableReadForHandle(DWORD afsId,
     nlr.afsId = afsId;
     nlr.offset = offset;
     nlr.fileId = fileId;
-    _next_likely_reads.insert(
-        pair<HANDLE,struct NEXT_LIKELY_READ>(hFile, nlr));
+    _next_likely_reads[hFile] = nlr;
+}
+
+KEXPORT void ClearProbableReadForHandle(HANDLE hFile, DWORD wasOffset)
+{
+    map<HANDLE,struct NEXT_LIKELY_READ>::iterator nit;
+    nit = _next_likely_reads.find(hFile);
+    if (nit != _next_likely_reads.end()) {
+        if (nit->second.offset == wasOffset) {
+            _next_likely_reads.erase(nit);
+        }
+    }
 }
 
 KEXPORT DWORD GetOffsetByFileId(DWORD afsId, DWORD fileId)

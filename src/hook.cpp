@@ -1198,6 +1198,10 @@ BOOL STDMETHODCALLTYPE NewReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberO
 		if (NextCall(hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped))
             break; // processed
 	};
+
+    // clear next-likely-read, unless it is a new one
+    DWORD offset = SetFilePointer(hFile, 0, NULL, FILE_CURRENT);
+    ClearProbableReadForHandle(hFile, offset - *lpNumberOfBytesRead);
 	
 	return result;
 }

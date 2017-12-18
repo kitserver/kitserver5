@@ -13,6 +13,7 @@ KEXPORT DWORD GetProbableFileIdForHandle(DWORD afsId,
         DWORD offset, HANDLE hFile);
 KEXPORT void SetNextProbableReadForHandle(DWORD afsId, 
         DWORD offset, DWORD fileId, HANDLE hFile);
+KEXPORT void ClearProbableReadForHandle(HANDLE hFile, DWORD offset);
 
 typedef struct _AFS_INFO
 {
