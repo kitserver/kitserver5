@@ -1226,15 +1226,19 @@ void FixReservedMemory()
             if (VirtualProtect(c1-8, 0x100, newProtection, &protection)) {
                 DWORD currMem = *c1;
                 LogWithNumber(&k_kload,"Reserved memory was: %d bytes", *c1);
-                if (*c1 < g_config.newResMem) {
+                if (g_config.newResMem >= 32000000) {
                     *c1 = g_config.newResMem;
                     *c2 = g_config.newResMem >> 2;
                     *c3 = g_config.newResMem;
                 }
+                else {
+                    LogWithNumber(&k_kload, "WARN: Value too small for reserved.memory: %d. Must be >= 32000000",
+                        g_config.newResMem);
+                }
                 LogWithNumber(&k_kload,"Reserved memory now: %d bytes", *c1);
             }
             else {
-                Log(&k_kload,"Unable to increase reserved memory: VirtualProtect failed");
+                Log(&k_kload,"Unable to set reserved memory: VirtualProtect failed");
             }
         }
     }
