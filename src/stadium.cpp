@@ -23,6 +23,7 @@ KMOD k_stadium={MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG};
 
 HINSTANCE hInst;
 HHOOK g_hKeyboardHook=NULL;
+static STAD_CFG _stad_cfg;
 
 ///// multi-step reads //////////
 
@@ -344,6 +345,7 @@ static DWORD g_stadId = 0xffffffff;
 static char g_stadFileSpec[BUFLEN];
 static bool g_gameChoice = true;
 static bool g_homeTeamChoice = false;
+static bool g_homeStadiumSet = false;
 static bool isSelectMode=false;
 
 void SafeRelease(LPVOID ppObj);
@@ -499,6 +501,23 @@ static void InitStadiumMaps()
     // initialize stadium iterator
     g_stadiumMapIterator = g_stadiumMap.begin();
 
+    g_gameChoice = true;
+    if (_stad_cfg.mode == STAD_HOME_TEAM) {
+        // set the home team flag
+        g_homeTeamChoice = true;
+        g_gameChoice = false;
+
+    } else if (_stad_cfg.mode == STAD_SELECT) {
+        // try to find the stadium name in the map
+        std::string* key = new std::string(_stad_cfg.stadName);
+        map<std::string*,STADINFO*,ltstr>::iterator it = g_stadiumMap.find(key);
+        if (it != g_stadiumMap.end()) {
+            g_stadiumMapIterator = it;
+            g_gameChoice = false;
+        }
+        delete key;
+    }
+
     // step 2: read map.txt
     char mapFile[MAXFILENAME];
     ZeroMemory(mapFile,MAXFILENAME);
@@ -609,12 +628,24 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		HookFunction(hk_D3D_Reset,(DWORD)stadReset);
         
 		HookFunction(hk_Input,(DWORD)stadKeyboardProc);
+
+        //load settings
+        ZeroMemory(&_stad_cfg, sizeof(STAD_CFG));
+        char stadCfg[BUFLEN];
+        ZeroMemory(stadCfg, BUFLEN);
+        sprintf(stadCfg, "%s\\stadium.dat", GetPESInfo()->mydir);
+        FILE* f = fopen(stadCfg, "rb");
+        if (f) {
+            fread(&_stad_cfg, sizeof(STAD_CFG), 1, f);
+            fclose(f);
+        } else {
+            _stad_cfg.mode = STAD_GAME_CHOICE;
+        }
 	}
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
 		Log(&k_stadium,"Detaching dll...");
         DeleteCriticalSection(&g_cs);
-
         /*
         MasterUnhookFunction(code[C_GETSTRING_CS], stadGetString);
         Log(&k_stadium, "GetString unhooked.");
@@ -973,6 +1004,25 @@ void stadBeginUniSelect()
     SafeRelease( &g_preview_tex );
     g_newStad = true;
 
+    // check if home team has a home stadium
+    if (g_homeTeamChoice) {
+        g_stadiumMapIterator = NULL;
+        g_homeStadiumSet = false;
+        WORD teamId = GetTeamId(HOME);
+        std::string* folderString = MAP_FIND(g_HomeStadiumMap,teamId);
+        if (folderString != NULL) {
+            g_homeTeamChoice = true;
+            g_gameChoice = false;
+
+            std::map<std::string*,STADINFO*,ltstr>::iterator it = NULL;
+            it = g_stadiumMap.find(folderString);
+            if (it != g_stadiumMap.end()) {
+                g_stadiumMapIterator = it;
+                g_homeStadiumSet = true;
+            }
+        }
+    }
+
     //HookFunction(hk_Input,(DWORD)stadKeyboardProc);
     CheckViewStadiumMode();
     return;
@@ -984,8 +1034,29 @@ void stadEndUniSelect()
     //UnhookFunction(hk_Input,(DWORD)stadKeyboardProc);
     
     isSelectMode=false;
-    
-    return;
+
+    //save settings
+
+    ZeroMemory(_stad_cfg.stadName, sizeof(_stad_cfg.stadName));
+    if (g_homeTeamChoice) {
+        _stad_cfg.mode = STAD_HOME_TEAM;
+    } else if (g_gameChoice) {
+        _stad_cfg.mode = STAD_GAME_CHOICE;
+    } else {
+        _stad_cfg.mode = STAD_SELECT;
+        strcpy(_stad_cfg.stadName, g_stadiumMapIterator->first->c_str());
+    }
+    char stadCfg[BUFLEN];
+    ZeroMemory(stadCfg, BUFLEN);
+    sprintf(stadCfg, "%s\\stadium.dat", GetPESInfo()->mydir);
+    FILE* f = fopen(stadCfg, "wb");
+    if (f) {
+        fwrite(&_stad_cfg, sizeof(STAD_CFG), 1, f);
+        fclose(f);
+    }
+    else {
+        LogWithString(&k_stadium, "WARN: Unable to save stadium settings to: %s", stadCfg);
+    }
 }
 
 void stadKeyboardProc(int code1, WPARAM wParam, LPARAM lParam)
@@ -1080,6 +1151,24 @@ void stadKeyboardProc(int code1, WPARAM wParam, LPARAM lParam)
             // invalidate preview texture
             SafeRelease( &g_preview_tex );
             g_newStad = true;
+
+            if (g_homeTeamChoice) {
+                g_stadiumMapIterator = NULL;
+                g_homeStadiumSet = false;
+                WORD teamId = GetTeamId(HOME);
+                std::string* folderString = MAP_FIND(g_HomeStadiumMap,teamId);
+                if (folderString != NULL) {
+                    g_homeTeamChoice = true;
+                    g_gameChoice = false;
+
+                    std::map<std::string*,STADINFO*,ltstr>::iterator it = NULL;
+                    it = g_stadiumMap.find(folderString);
+                    if (it != g_stadiumMap.end()) {
+                        g_stadiumMapIterator = it;
+                        g_homeStadiumSet = true;
+                    }
+                }
+            }
 	
 		} else if (wParam == KeyRandomStadium) {
             //random
@@ -1118,26 +1207,33 @@ void stadShowMenu()
 	if (g_gameChoice) {
 		color = 0xffc0c0c0; // gray if stadium is game choice
         strcpy(text, "Stadium: game choice");
-
-    } else if (g_homeTeamChoice) {
-		color = 0xffffffc0; // pale yellow if stadium is home-team choice
-        strcpy(text, "Stadium: home team");
     } else {
-		//print stadium information
-        sprintf(text,"Built: %d",g_stadiumMapIterator->second->built);
-		KDrawText(24,576,color,16,text);
-		
-		sprintf(text,"Capacity: %d",g_stadiumMapIterator->second->capacity);
-		KDrawText(24,616,color,16,text);
+        if (g_homeTeamChoice) {
+		    color = 0xffffffc0; // pale yellow if stadium is home-team choice
+        }
+        if (g_stadiumMapIterator != NULL && g_stadiumMapIterator != g_stadiumMap.end()) {
+            //print stadium information
+            sprintf(text,"Built: %d",g_stadiumMapIterator->second->built);
+            KDrawText(24,576,color,16,text);
+            
+            sprintf(text,"Capacity: %d",g_stadiumMapIterator->second->capacity);
+            KDrawText(24,616,color,16,text);
 
-		if (strlen(g_stadiumMapIterator->second->city)>0) {
-			sprintf(text,"City: %s",g_stadiumMapIterator->second->city);
-			KDrawText(24,656,color,16,text);
-		};
-		
-		//if possible add some preview images of the stadium here
-		
-		sprintf(text, "Stadium: %s", g_stadiumMapIterator->first->c_str());
+            if (strlen(g_stadiumMapIterator->second->city)>0) {
+                sprintf(text,"City: %s",g_stadiumMapIterator->second->city);
+                KDrawText(24,656,color,16,text);
+            }
+            
+            if (g_homeTeamChoice && g_homeStadiumSet) {
+                sprintf(text, "Home stadium: %s", g_stadiumMapIterator->first->c_str());
+            }
+            else {
+                sprintf(text, "Stadium: %s", g_stadiumMapIterator->first->c_str());
+            }
+        }
+        else if (g_homeTeamChoice) {
+            strcpy(text, "Stadium: home team");
+        }
     }
 		
 	KGetTextExtent(text, 16, &size);
@@ -1328,6 +1424,10 @@ HRESULT InitVB(IDirect3DDevice8* dev)
 void DrawPreview(IDirect3DDevice8* dev)
 {
     if (g_gameChoice) {
+        return;
+    }
+
+    if (g_stadiumMapIterator == NULL || g_stadiumMapIterator == g_stadiumMap.end()) {
         return;
     }
 

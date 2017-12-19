@@ -3,7 +3,7 @@
 #include "afsreader.h"
 
 #define MODID 106
-#define NAMELONG "Stadium Server 5.5.0"
+#define NAMELONG "Stadium Server 5.5.1"
 #define NAMESHORT "STADIUM"
 
 #define DEFAULT_DEBUG 1
@@ -48,4 +48,13 @@ typedef struct _STADINFO {
     DWORD capacity;
     char city[255];
 } STADINFO;
+
+#define STAD_GAME_CHOICE 0
+#define STAD_SELECT 1
+#define STAD_HOME_TEAM 2
+
+typedef struct _STAD_CFG {
+    BYTE mode;
+    char stadName[512];
+} STAD_CFG;
 
