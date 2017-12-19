@@ -2,6 +2,14 @@ Kitserver 5 HISTORY notes
 =========================
 
 
+2017-12-19
+----------
+v5.5.4
+- kload, afs2fs: fixes for large files, which are read in chunks. HD crowd now works!
+- bserv, network: fixed conflicts with afs2fs module
+- stadium: state is now saved in "stadium.dat" file
+
+
 2017-12-15
 ----------
 v5.5.3

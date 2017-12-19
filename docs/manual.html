@@ -34,20 +34,18 @@ Version history: <a href="history.txt">history.txt</a><br />
 </div>
 <h2>Kitserver 5.5 Manual</h2>
 <div>
-December 15, 2017<br />
+December 19, 2017<br />
 Module Versions: 
 <a href="#kitserver">Kserv 5.5.3</a>,
-<a href="#ballserver">BallServer: 5.5.0</a>, 
+<a href="#ballserver">BallServer: 5.5.4</a>,
 <a href="#faceserver">Faceserver: 5.3.2</a>, 
-<a href="#stadiumserver">Stadium Server: 5.5.0</a>,
+<a href="#stadiumserver">Stadium Server: 5.5.1</a>,
 <a href="#lodmixer">LOD Mixer: 5.2.5</a>,
 <a href="#bootserver">Bootserver 5.5.9</a>,
 <a href="#afs2fs">AFS2FS 5.0.1</a>,
-<a href="#network">Network 5.5.0.3</a>,
+<a href="#network">Network 5.5.4.0</a>,
 <a href="#speeder">Speeder 5.0.0</a>
 </div><hr>
-
-
 
 <!-- ### GENERAL ### -->
 
@@ -1203,6 +1201,14 @@ With <b>reserved.memory</b>, you can increase the size of memory which is reserv
 in bytes. This is necessary if you want to use HD adboards, big HD stadiums and high-resolution crowd. If this
 line is missing (or commented out), nothing is changed and PES reserves its standard 31 megabytes.
 You cannot set the limit below this value, if you do so this will be ignored.
+</p>
+
+<p>
+An advanced option (which is not shown in default config, but is nevertheless supported) is <b>pes.dir</b>.
+Normally, you don't need to set it, because kitserver determines the root folder for the game automatically.
+However, in some rare situations, it may be necessary to do so. For example, if you have the game executable,
+and the kitserver folder in one place, but the actual game files (the "dat" directory with *.afs files) at
+another path or drive. In such scenario, make sure to set "pes.dir" to full path of the game's root.
 </p>
 
 <p>
