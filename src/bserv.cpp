@@ -326,7 +326,7 @@ bool bservAfterReadFile(HANDLE hFile,
 
     DWORD offset = SetFilePointer(hFile, 0, NULL, FILE_CURRENT)
         - (*lpNumberOfBytesRead);
-    DWORD fileId = GetFileIdByOffset(afsId, offset);
+    DWORD fileId = GetProbableFileIdForHandle(afsId, offset, hFile);
     if (fileId == 0xffffffff) 
         return false;
 
@@ -343,13 +343,39 @@ bool bservAfterReadFile(HANDLE hFile,
 			strcat(tmp,"GDB\\balls\\mdl\\");
 			strcat(tmp,model);
 			
-			DWORD NBW=0;
-			HANDLE hfile = CreateFile(tmp,GENERIC_READ,FILE_SHARE_READ,NULL,
+			HANDLE handle = CreateFile(tmp,GENERIC_READ,FILE_SHARE_READ,NULL,
                 OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
-            if (hfile!=INVALID_HANDLE_VALUE) {
-                DWORD fsize = GetFileSize(hfile,NULL);
-                ReadFile(hfile,lpBuffer,fsize,&NBW,NULL);
-                CloseHandle(hfile);
+            if (handle!=INVALID_HANDLE_VALUE) {
+                DWORD filesize = GetFileSize(handle,NULL);
+                DWORD curr_offset = offset - GetOffsetByFileId(afsId, fileId);
+                LOG(&k_bserv, 
+                        "offset=%08x, GetOffsetByFileId()=%08x, curr_offset=%08x",
+                        offset, GetOffsetByFileId(afsId, fileId), curr_offset);
+                DWORD bytesToRead = *lpNumberOfBytesRead;
+                if (filesize < curr_offset + *lpNumberOfBytesRead) {
+                    bytesToRead = filesize - curr_offset;
+                }
+
+                DWORD bytesRead = 0;
+                SetFilePointer(handle, curr_offset, NULL, FILE_BEGIN);
+                LOG(&k_bserv, "reading 0x%x bytes (0x%x) from {%s}", 
+                        bytesToRead, *lpNumberOfBytesRead, tmp);
+                ReadFile(handle, lpBuffer, bytesToRead, &bytesRead, lpOverlapped);
+                LOG(&k_bserv, "read 0x%x bytes from {%s}", bytesRead, tmp);
+                if (*lpNumberOfBytesRead - bytesRead > 0) {
+                    DEBUGLOG(&k_bserv, "zeroing out 0x%0x bytes",
+                            *lpNumberOfBytesRead - bytesRead);
+                    memset(
+                        (BYTE*)lpBuffer+bytesRead, 0, *lpNumberOfBytesRead-bytesRead);
+                }
+                CloseHandle(handle);
+
+                // set next likely read
+                if (filesize > curr_offset + bytesRead) {
+                    SetNextProbableReadForHandle(
+                        afsId, offset+bytesRead, fileId, hFile);
+                }
+ 
                 LOG(&k_bserv, "Ball model replaced");
                 return true;
             }

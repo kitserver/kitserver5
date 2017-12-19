@@ -634,7 +634,7 @@ bool rosterAfterReadFile(HANDLE hFile,
     if (afsId == 1) {
         DWORD offset = SetFilePointer(hFile, 0, NULL, FILE_CURRENT)
             - (*lpNumberOfBytesRead);
-        DWORD fileId = GetFileIdByOffset(afsId, offset);
+        DWORD fileId = GetProbableFileIdForHandle(afsId, offset, hFile);
 
         if ((fileId >= data[DB_FILE1] && fileId <= data[DB_FILE3] 
                     || (fileId >= data[ROSTER_FILEID] 
@@ -684,7 +684,7 @@ bool rosterAfterReadFile(HANDLE hFile,
             filename += "\\GDB\\network\\";
             filename += dirNames[GetPESInfo()->GameVersion];
             filename += shortName;
-            HANDLE rosterHandle = CreateFile(
+            HANDLE handle = CreateFile(
                         filename.c_str(), 
                         GENERIC_READ,
                         0,
@@ -693,15 +693,37 @@ bool rosterAfterReadFile(HANDLE hFile,
                         FILE_ATTRIBUTE_NORMAL,
                         NULL);
             bool result = false;
-            if (rosterHandle != INVALID_HANDLE_VALUE)
-            {
-                DWORD bytesRead=0;
-                DWORD base = GetOffsetByFileId(afsId, fileId);
-                SetFilePointer(rosterHandle, offset-base, NULL, FILE_BEGIN);
-                ReadFile(rosterHandle, lpBuffer,
-                        *lpNumberOfBytesRead,
-                        &bytesRead, 0);
-                CloseHandle(rosterHandle);
+            if (handle!=INVALID_HANDLE_VALUE) {
+                DWORD filesize = GetFileSize(handle,NULL);
+                DWORD curr_offset = offset - GetOffsetByFileId(afsId, fileId);
+                LOG(&k_network, 
+                        "offset=%08x, GetOffsetByFileId()=%08x, curr_offset=%08x",
+                        offset, GetOffsetByFileId(afsId, fileId), curr_offset);
+                DWORD bytesToRead = *lpNumberOfBytesRead;
+                if (filesize < curr_offset + *lpNumberOfBytesRead) {
+                    bytesToRead = filesize - curr_offset;
+                }
+
+                DWORD bytesRead = 0;
+                SetFilePointer(handle, curr_offset, NULL, FILE_BEGIN);
+                LOG(&k_network, "reading 0x%x bytes (0x%x) from {%s}", 
+                        bytesToRead, *lpNumberOfBytesRead, filename.c_str());
+                ReadFile(handle, lpBuffer, bytesToRead, &bytesRead, lpOverlapped);
+                LOG(&k_network, "read 0x%x bytes from {%s}", bytesRead, filename.c_str());
+                if (*lpNumberOfBytesRead - bytesRead > 0) {
+                    DEBUGLOG(&k_network, "zeroing out 0x%0x bytes",
+                            *lpNumberOfBytesRead - bytesRead);
+                    memset(
+                        (BYTE*)lpBuffer+bytesRead, 0, *lpNumberOfBytesRead-bytesRead);
+                }
+                CloseHandle(handle);
+
+                // set next likely read
+                if (filesize > curr_offset + bytesRead) {
+                    SetNextProbableReadForHandle(
+                        afsId, offset+bytesRead, fileId, hFile);
+                }
+ 
                 result = true;
 
                 // calculate roster hash

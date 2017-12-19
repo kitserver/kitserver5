@@ -91,7 +91,7 @@ KEXPORT DWORD GetProbableFileIdForHandle(DWORD afsId,
     map<HANDLE,struct NEXT_LIKELY_READ>::iterator nit;
     nit = _next_likely_reads.find(hFile);
     if (nit != _next_likely_reads.end()) {
-        if (nit->second.afsId == afsId) {
+        if (nit->second.afsId == afsId && nit->second.offset == offset) {
             DWORD fileId = nit->second.fileId;
             DEEPDEBUGLOG(&k_kload,
                 "Probable fileId: %d (afsId:%d, offset:0x%08x, hFile:0x%08x)",
