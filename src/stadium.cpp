@@ -844,7 +844,7 @@ DWORD FindStadiumFile(DWORD stadFileId, char* filename)
     LogWithNumber(&k_stadium, "isViewStadiumMode = %d", isViewStadiumMode);
     LogWithNumber(&k_stadium, "viewGdbStadiums = %d", viewGdbStadiums);
 
-    if (g_homeTeamChoice) {
+    if (!isViewStadiumMode && g_homeTeamChoice) {
         WORD teamId = GetTeamId(HOME);
         LogWithNumber(&k_stadium, "FindStadiumFile: home team = %d", teamId);
         std::string* folderString = MAP_FIND(g_HomeStadiumMap,teamId);
