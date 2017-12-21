@@ -1171,6 +1171,10 @@ void stadKeyboardProc(int code1, WPARAM wParam, LPARAM lParam)
             }
 	
 		} else if (wParam == KeyRandomStadium) {
+	        if (g_gameChoice || g_homeTeamChoice) {
+	            g_stadiumMapIterator = g_stadiumMap.begin();
+	        }
+
             //random
             LARGE_INTEGER num;
             QueryPerformanceCounter(&num);
