@@ -2,6 +2,14 @@ Kitserver 5 HISTORY notes
 =========================
 
 
+2017-12-20
+----------
+v5.5.5
+- stadium: fixed crash, which occured if switching stadium-server mode
+  from "Home stadium" to random GDB stadium, but no home stadium had been
+  actually assigned for the current home team.
+
+
 2017-12-19
 ----------
 v5.5.4

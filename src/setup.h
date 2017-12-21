@@ -6,7 +6,7 @@
 #else
 #define SETUP_WINDOW_TITLE "KitServer 5 Setup (debug build)"
 #endif
-#define CREDITS "About: v5.5.4 (12/2017) by Juce and Robbie."
+#define CREDITS "About: v5.5.5 (12/2017) by Juce and Robbie."
 
 #define LOG(f,x) if (f != NULL) fprintf x
 
