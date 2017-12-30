@@ -2,6 +2,15 @@ Kitserver 5 HISTORY notes
 =========================
 
 
+2017-12-30
+----------
+v5.5.6
+- lodmixer/lodcfg: added support for manual aspect ratio correction
+  this feature was actually done in 2012, but got lost when source code
+  was moved to Github. Now it is back :)
+- stadium: minor tweak for iterator logic
+
+
 2017-12-20
 ----------
 v5.5.5
