@@ -1006,7 +1006,7 @@ void stadBeginUniSelect()
 
     // check if home team has a home stadium
     if (g_homeTeamChoice) {
-        g_stadiumMapIterator = NULL;
+        g_stadiumMapIterator = g_stadiumMap.end();
         g_homeStadiumSet = false;
         WORD teamId = GetTeamId(HOME);
         std::string* folderString = MAP_FIND(g_HomeStadiumMap,teamId);
@@ -1153,7 +1153,7 @@ void stadKeyboardProc(int code1, WPARAM wParam, LPARAM lParam)
             g_newStad = true;
 
             if (g_homeTeamChoice) {
-                g_stadiumMapIterator = NULL;
+                g_stadiumMapIterator = g_stadiumMap.end();
                 g_homeStadiumSet = false;
                 WORD teamId = GetTeamId(HOME);
                 std::string* folderString = MAP_FIND(g_HomeStadiumMap,teamId);
@@ -1215,7 +1215,7 @@ void stadShowMenu()
         if (g_homeTeamChoice) {
 		    color = 0xffffffc0; // pale yellow if stadium is home-team choice
         }
-        if (g_stadiumMapIterator != NULL && g_stadiumMapIterator != g_stadiumMap.end()) {
+        if (g_stadiumMapIterator != g_stadiumMap.end()) {
             //print stadium information
             sprintf(text,"Built: %d",g_stadiumMapIterator->second->built);
             KDrawText(24,576,color,16,text);
@@ -1431,7 +1431,7 @@ void DrawPreview(IDirect3DDevice8* dev)
         return;
     }
 
-    if (g_stadiumMapIterator == NULL || g_stadiumMapIterator == g_stadiumMap.end()) {
+    if (g_stadiumMapIterator == g_stadiumMap.end()) {
         return;
     }
 
