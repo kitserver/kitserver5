@@ -150,6 +150,8 @@ setup.obj: setup.cpp setup.h setupgui.h
 
 lodcfg.exe: lodcfg.obj detect.obj lodcfgui.obj imageutil.obj
 	$(LINK) $(LFLAGS) /out:lodcfg.exe lodcfg.obj detect.obj lodcfgui.obj imageutil.obj $(LIBS)
+lodcfg.obj: lodcfg.cpp lodcfg.h
+lodcfgui.obj: lodcfgui.cpp lodcfgui.h
 
 afstest.obj: afstest.cpp afsreader.h
 afstest.exe: afstest.obj afsreader.obj crc32.obj alog.obj aconfig.obj
