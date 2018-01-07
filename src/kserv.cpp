@@ -3838,22 +3838,25 @@ void CreateGDBTextureFromFile(char* filename, IDirect3DTexture8** ppTex, PALETTE
 void CreateGDBTextureFromFolder(char* foldername, char* filename, IDirect3DTexture8** ppTex, PALETTEENTRY* pPal)
 {
     MAKE_BUFFER(name);
-	sprintf(name, "%sGDB\\%s\\%s", GetPESInfo()->gdbDir, foldername, filename);
-	LogWithString(&k_mydll,"CreateGDBTextureFromFolder: Loading texture: %s", name);
-	if (SUCCEEDED(JuceCreateTextureFromFile(GetActiveDevice(), name, ppTex, pPal))) {
-		Log(&k_mydll,"CreateGDBTextureFromFolder: JuceCreateTextureFromFile succeeded.");
-	} else {
-        // try "all.png"
-        CLEAR_BUFFER(name);
-        sprintf(name, "%sGDB\\%s\\all.png", GetPESInfo()->gdbDir, foldername);
+    string altFilename(filename);
+    altFilename.replace(altFilename.size()-4,4,".bmp");
+
+    vector<string> namesToTry;
+    namesToTry.push_back(string(filename));
+    namesToTry.push_back("all.png");
+    namesToTry.push_back(altFilename);
+    namesToTry.push_back("all.bmp");
+
+    for (vector<string>::iterator vit=namesToTry.begin(); vit!=namesToTry.end(); vit++) {
+        sprintf(name, "%sGDB\\%s\\%s", GetPESInfo()->gdbDir, foldername, vit->c_str());
         LogWithString(&k_mydll,"CreateGDBTextureFromFolder: Loading texture: %s", name);
         if (SUCCEEDED(JuceCreateTextureFromFile(GetActiveDevice(), name, ppTex, pPal))) {
-            Log(&k_mydll,"CreateGDBTextureFromFolder: JuceCreateTextureFromFile succeeded.");
-        } else {
-            Log(&k_mydll,"CreateGDBTextureFromFolder: JuceCreateTextureFromFile FAILED.");
-            *ppTex = NULL;
+            Log(&k_mydll,"CreateGDBTextureFromFolder: SUCCEEDED.");
+            return;
         }
-	}
+    }
+    Log(&k_mydll,"CreateGDBTextureFromFolder: FAILED.");
+    *ppTex = NULL;
 }
 
 DWORD JuceNavigateLeft(DWORD player)
