@@ -3905,7 +3905,7 @@ HRESULT JuceCreateTextureFromFile(IDirect3DDevice8* dev, char* name, IDirect3DTe
     switch (texType) {
         case TEXTYPE_PNG:
         case TEXTYPE_BMP:
-            if (SUCCEEDED(D3DXCreateTextureFromFile(dev, name, ppTex)) {
+            if (SUCCEEDED(D3DXCreateTextureFromFile(dev, name, ppTex))) {
                 return S_OK;
             }
             else {
