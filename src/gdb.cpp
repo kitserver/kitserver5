@@ -348,6 +348,11 @@ void gdbLoadConfig(GDB* gdb, Kit* kit)
                 if (ParseColor(value, &kit->radarColor))
                     kit->attDefined |= RADAR_COLOR;
             }
+			else if (lstrcmp(key, "shorts.color")==0)
+            {
+                if (ParseColor(value, &kit->shortsColor))
+                    kit->attDefined |= SHORTS_COLOR;
+            }
             else if (lstrcmp(key, "mask")==0)
             {
                 ZeroMemory(kit->maskFile,MAXFILENAME);

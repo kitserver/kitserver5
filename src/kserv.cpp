@@ -2186,7 +2186,7 @@ void Load2DkitTexture(WORD teamId, const char* kitFolder, char* filename, IDirec
                     (*ppTex)->GetLevelDesc(0, &desc);
                     ApplyOverlay(&rect, overlayfilename, &desc);
                     (*ppTex)->UnlockRect(0);
-                    TRACE(&k_mydll,"2D kit: overlay applied");
+                    TRACE4(&k_mydll,"2D kit: overlay applied: %s",overlayfilename);
                 }
             }
         }
@@ -3905,7 +3905,7 @@ HRESULT JuceCreateTextureFromFile(IDirect3DDevice8* dev, char* name, IDirect3DTe
     switch (texType) {
         case TEXTYPE_PNG:
         case TEXTYPE_BMP:
-            if (SUCCEEDED(D3DXCreateTextureFromFile(dev,name,ppTex))) {
+            if (SUCCEEDED(D3DXCreateTextureFromFile(dev, name, ppTex)) {
                 return S_OK;
             }
             else {
@@ -6221,6 +6221,15 @@ void SetKitInfo(Kit* kit, KITINFO* kitInfo, BOOL editable)
 			+0x20*((kit->radarColor.g>>3) & 31)
 			+0x400*((kit->radarColor.b>>3) & 31);
 	}
+
+	// set shorts main color (for under-shorts)
+	if (kit && (kit->attDefined & SHORTS_COLOR)) {
+		kitInfo->shortsColors[0] = 0x8000
+			+((kit->shortsColor.r>>3) & 31)
+			+0x20*((kit->shortsColor.g>>3) & 31)
+			+0x400*((kit->shortsColor.b>>3) & 31);
+	}
+
     /*
 	// set name type
 	if (kit && (kit->attDefined & NAME_TYPE)) {
