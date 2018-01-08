@@ -6164,15 +6164,18 @@ void MaskKitTexture(BITMAPINFOHEADER* tex, DWORD id, BITMAPINFO* maskTex)
 			break;
 		};
 	//LogWithNumber(&k_mydll,"splitting color is %d.",Index);
-	for (x=0; x<512; x++)
-	for (y=0; y<256; y++)
-		for (zx=0;zx<UnitX;zx++)
-		for (zy=0;zy<UnitY;zy++)
-			if (mask[y*512+x]!=Index)
-				pixels[(y*UnitY+zy)*tex->biWidth + (x*UnitX+zx)] = 0;
-
-	return;
-};
+	for (x=0; x<512; x++) {
+        for (y=0; y<256; y++) {
+            if (mask[y*512+x]!=Index) {
+                int zyto = (y+1)/256.0*tex->biHeight;
+                int zxto = (x+1)/512.0*tex->biWidth;
+                for (zy=y/256.0*tex->biHeight; zy<zyto; zy++)
+                for (zx=x/512.0*tex->biWidth; zx<zxto; zx++)
+                    pixels[zy*tex->biWidth + zx] = 0;
+            }
+        }
+    }
+}
 
 BOOL TeamDirExists(DWORD id) 
 {
@@ -6222,14 +6225,6 @@ void SetKitInfo(Kit* kit, KITINFO* kitInfo, BOOL editable)
 			+0x400*((kit->radarColor.b>>3) & 31);
 	}
 
-	// set shorts main color (for under-shorts)
-	if (kit && (kit->attDefined & SHORTS_COLOR)) {
-		kitInfo->shortsColors[0] = 0x8000
-			+((kit->shortsColor.r>>3) & 31)
-			+0x20*((kit->shortsColor.g>>3) & 31)
-			+0x400*((kit->shortsColor.b>>3) & 31);
-	}
-
     /*
 	// set name type
 	if (kit && (kit->attDefined & NAME_TYPE)) {
@@ -6247,6 +6242,14 @@ void SetShortsInfo(Kit* kit, KITINFO* kitInfo, BOOL editable)
     // set shorts number position
 	if (kit && (kit->attDefined & SHORTS_NUMBER_LOCATION)) {
 		kitInfo->shortsNumberLocation = kit->shortsNumberLocation;
+	}
+
+	// set shorts main color (for under-shorts)
+	if (kit && (kit->attDefined & SHORTS_COLOR)) {
+		kitInfo->shortsColors[0] = 0x8000
+			+((kit->shortsColor.r>>3) & 31)
+			+0x20*((kit->shortsColor.g>>3) & 31)
+			+0x400*((kit->shortsColor.b>>3) & 31);
 	}
 }
 
