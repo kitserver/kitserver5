@@ -354,6 +354,12 @@ void gdbLoadConfig(GDB* gdb, Kit* kit)
                 strncpy(kit->maskFile, value, MAXFILENAME);
                 kit->attDefined |= MASK_FILE;
             }
+            else if (lstrcmp(key, "overlay")==0)
+            {
+                ZeroMemory(kit->overlayFile,MAXFILENAME);
+                strncpy(kit->overlayFile, value, MAXFILENAME);
+                kit->attDefined |= OVERLAY_FILE;
+            }
 			else if (lstrcmp(key, "description")==0)
             {
                 ZeroMemory(kit->description,MAXFILENAME);

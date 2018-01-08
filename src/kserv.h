@@ -242,6 +242,7 @@ typedef struct _NEWKITFILES {
 	char shortsName[BUFLEN];
 	char socksName[BUFLEN];
 	char maskName[BUFLEN];
+    char overlayName[BUFLEN];
 } NEWKITFILES;
 
 /* ... more declarations as needed */

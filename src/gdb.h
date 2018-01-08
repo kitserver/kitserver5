@@ -27,6 +27,7 @@ using namespace std;
 #define RADAR_COLOR   0x4000
 #define MASK_FILE     0x8000
 #define KITDESCRIPTION   0x10000
+#define OVERLAY_FILE  0x20000
 
 // GDB data structures
 ///////////////////////////////
@@ -57,6 +58,7 @@ typedef struct _Kit {
     BYTE logoLocation;
     RGBAColor radarColor;
     char maskFile[MAXFILENAME];
+    char overlayFile[MAXFILENAME];
     char numbersFile[MAXFILENAME];
     char shirtPaletteFile[MAXFILENAME];
     StringCStrMap* shortsPaletteFiles;

@@ -125,6 +125,7 @@ IDirect3DTexture8* g_lastMediumTex = NULL;
 IDirect3DTexture8* g_lastBigTex = NULL;
 IDirect3DTexture8* lastBig = NULL;
 NEWKIT* boostTex=NULL;
+char *g_overlayfilename = NULL;
 
 DWORD bigCount=0;
 
@@ -936,6 +937,7 @@ void TryLoad2DkitTexture(WORD teamId, int strip, string currKey, string* key, CY
 void TryLoadSamePal2DkitTexture(WORD teamId, int strip, string currKey, string* key, CYCLEPROC proc, char* filename, IDirect3DTexture8** ppTex, PALETTEENTRY* pPal, PALETTEENTRY* cmpPal);
 BOOL IsSamePalette(PALETTEENTRY* a, PALETTEENTRY* b);
 PALETTEENTRY* MakePaletteCopy(PALETTEENTRY* src);
+void ApplyOverlay(D3DLOCKED_RECT* dest, char* overlayfilename, D3DSURFACE_DESC* desc);
 
 // palette buffers: for shared-palette kit checks
 PALETTEENTRY g_home_shirt_pal[0x100];
@@ -2102,6 +2104,29 @@ void Load2DkitTexture(WORD teamId, const char* kitFolder, char* filename, IDirec
 	MAKE_BUFFER(name);
 	sprintf(name, "%sGDB\\%s\\%s", GetPESInfo()->gdbDir, folder, filename);
 
+    MAKE_BUFFER(overlayfilename);
+    bool loadOverlay(false);
+    if (col && lstrcmpi(filename, "shirt.png")==0) {
+        if (kitFolder[0]=='p') {
+            StringKitMap::iterator it = col->players->find(kitFolder);
+            if (it != col->players->end()) {
+                if (it->second->overlayFile && it->second->overlayFile[0]!='\0') {
+                    sprintf(overlayfilename, "%sGDB\\%s\\%s", GetPESInfo()->gdbDir, folder, it->second->overlayFile);
+                    loadOverlay = true;
+                }
+            }
+        }
+        else if (kitFolder[0]=='g') {
+            StringKitMap::iterator it = col->goalkeepers->find(kitFolder);
+            if (it != col->goalkeepers->end()) {
+                if (it->second->overlayFile && it->second->overlayFile[0]!='\0') {
+                    sprintf(overlayfilename, "%sGDB\\%s\\%s", GetPESInfo()->gdbDir, folder, it->second->overlayFile);
+                    loadOverlay = true;
+                }
+            }
+        }
+    }
+
 	if (lstrcmpi(name + lstrlen(name)-4, ".png")==0) {
         if (!FileExists(name))
             lstrcpy(name + lstrlen(name)-4, ".bmp");
@@ -2152,6 +2177,18 @@ void Load2DkitTexture(WORD teamId, const char* kitFolder, char* filename, IDirec
             g_kitTextureMap[key] = *ppTex;
             // store palette in the palette cache
             g_kitPaletteMap[key] = MakePaletteCopy(pPal);
+
+            // apply overlay to shirt
+            if (loadOverlay) {
+                D3DLOCKED_RECT rect;
+	            D3DSURFACE_DESC desc;
+                if (SUCCEEDED((*ppTex)->LockRect(0, &rect, NULL, 0))) {
+                    (*ppTex)->GetLevelDesc(0, &desc);
+                    ApplyOverlay(&rect, overlayfilename, &desc);
+                    (*ppTex)->UnlockRect(0);
+                    TRACE(&k_mydll,"2D kit: overlay applied");
+                }
+            }
         }
     } else {
         // texture already loaded: get from cache
@@ -3111,6 +3148,66 @@ void CopyImageData(BYTE** dest,BITMAPINFO* src,BITMAPINFO* alphaTex)
 	destbih->biCompression=BI_RGB;
 	return;
 };
+
+// color 1 is alpha-blended over color 2
+DWORD BlendColors(DWORD color1, DWORD color2)
+{
+	BYTE alpha1 =  (color1 & 0xff000000) >> 24;
+
+	if (alpha1 == 0) return color2;		// transparent overlay
+	if (alpha1 == 255) return ((color1 & 0xffffff) | (color2 & 0xff000000));	// opaque overlay
+		
+	BYTE redValue = ((color1 & 0xff0000) * alpha1 + (color2 & 0xff0000) * (255 - alpha1)) / 0xff0000;
+	BYTE greenValue = ((color1 & 0xff00) * alpha1 + (color2 & 0xff00) * (255 - alpha1)) / 0xff00;
+	BYTE blueValue = ((color1 & 0xff) * alpha1 + (color2 & 0xff) * (255 - alpha1)) / 0xff;
+
+	DWORD alpha2 =  color2 & 0xff000000;	// keep the original alpha
+		
+	return (alpha2 | (redValue << 16) | (greenValue << 8) | blueValue);
+}
+
+void ApplyOverlay(D3DLOCKED_RECT* dest, char* overlayfilename, D3DSURFACE_DESC* desc)
+{
+	UINT width = desc->Width;
+	UINT height = desc->Height;
+
+	IDirect3DTexture8* pOvTexture = NULL;
+	D3DLOCKED_RECT rectOv;
+	
+	// create overlay texture
+	if (!SUCCEEDED(D3DXCreateTextureFromFileEx(
+            GetActiveDevice(), overlayfilename, 
+            width, height,
+            1, desc->Usage, desc->Format, desc->Pool,
+            D3DX_DEFAULT, D3DX_DEFAULT,
+            0, NULL, NULL, &pOvTexture))) {
+        LOG(&k_mydll, "Unable to create overlay texture from file: %s", overlayfilename);
+		return;
+	}
+	
+	if (!SUCCEEDED(pOvTexture->LockRect(0, &rectOv, NULL, 0))) {
+		pOvTexture->Release();
+        LOG(&k_mydll, "LockRect failed for overlay texture");
+		return;
+	}
+
+	BYTE* pDestRow = (BYTE*)dest->pBits;
+	BYTE* pSrcRow = (BYTE*)rectOv.pBits;
+	for (int y = 0; y < height; y++) {
+		DWORD* pDestPixel = (DWORD*)pDestRow;
+		DWORD* pSrcPixel = (DWORD*)pSrcRow;
+		for (int x = 0; x < width; x++) {
+			*pDestPixel = BlendColors(*pSrcPixel, *pDestPixel);
+			pDestPixel++;
+			pSrcPixel++;
+		}
+		pDestRow += dest->Pitch;
+		pSrcRow += rectOv.Pitch;
+	}
+		
+	pOvTexture->UnlockRect(0);
+	pOvTexture->Release();
+}
 
 void ResampleImage(BYTE* dest,BYTE* src,RECT* destSize,RECT* srcSize)
 {
@@ -5049,6 +5146,12 @@ DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** ppTexture, DWOR
 		
 		DECBUFFERHEADER* d=(DECBUFFERHEADER*)src;
 
+        g_overlayfilename = NULL;
+        std::map<DWORD,NEWKITFILES>::iterator it = NewKitFilesMap.find(src);
+        if (it != NewKitFilesMap.end()) {
+            g_overlayfilename = it->second.overlayName;
+        }
+
 		//DumpData((BYTE*)src,d->dwDecSize);
 
 		TRACE2(&k_mydll,"width  = %d", (DWORD)width);
@@ -5159,6 +5262,18 @@ void JuceUnlockRect(IDirect3DTexture8* self,UINT Level)
 							&(boostTex->sizeBig), D3DX_FILTER_NONE, 0)))
 			{ 
 				TRACE(&k_mydll,"BIG: g_med0 <- buffer COMPLETE");
+
+                // apply overlay
+                D3DLOCKED_RECT rect;
+	            D3DSURFACE_DESC desc;
+                if (g_overlayfilename && g_overlayfilename[0]!='\0') {
+                    if (SUCCEEDED(g_med0->LockRect(&rect, NULL, 0))) {
+                        texToBoost->GetLevelDesc(0, &desc);
+                        ApplyOverlay(&rect, g_overlayfilename, &desc);
+                        g_med0->UnlockRect();
+                        TRACE(&k_mydll,"BIG: g_med0: overlay applied");
+                    }
+                }
 			}
 			else
 			{
@@ -5213,6 +5328,18 @@ void JuceUnlockRect(IDirect3DTexture8* self,UINT Level)
 								&(boostTex->sizeSmall), D3DX_FILTER_NONE, 0)))
 				{
 					TRACE(&k_mydll,"MED: g_med1 <- g_med0 COMPLETE");
+
+                    // apply overlay
+                    D3DLOCKED_RECT rect;
+                    D3DSURFACE_DESC desc;
+                    if (g_overlayfilename && g_overlayfilename[0]!='\0') {
+                        if (SUCCEEDED(g_med1->LockRect(&rect, NULL, 0))) {
+                            texToBoost->GetLevelDesc(1, &desc);
+                            ApplyOverlay(&rect, g_overlayfilename, &desc);
+                            g_med1->UnlockRect();
+                            TRACE(&k_mydll,"MED: g_med1: overlay applied");
+                        }
+                    }
 				}
 				else
 				{
@@ -5229,6 +5356,18 @@ void JuceUnlockRect(IDirect3DTexture8* self,UINT Level)
 								&(boostTex->sizeMedium), D3DX_FILTER_NONE, 0)))
 				{
 					TRACE(&k_mydll,"MED: g_med0 <- buffer COMPLETE");
+
+                    // apply overlay
+                    D3DLOCKED_RECT rect;
+                    D3DSURFACE_DESC desc;
+                    if (g_overlayfilename && g_overlayfilename[0]!='\0') {
+                        if (SUCCEEDED(g_med0->LockRect(&rect, NULL, 0))) {
+                            texToBoost->GetLevelDesc(0, &desc);
+                            ApplyOverlay(&rect, g_overlayfilename, &desc);
+                            g_med0->UnlockRect();
+                            TRACE(&k_mydll,"MED: g_med0: overlay applied");
+                        }
+                    }
 				}
 				else
 				{
@@ -6563,6 +6702,9 @@ void FindKitPartsNames(DWORD id, NEWKITFILES* files)
     	strcpy(files->socksName,"\0");
     else
     	strcpy(files->socksName,filename);
+        
+    strcpy(files->maskName,"\0");
+    strcpy(files->overlayName,"\0");
 	
 	//Mask
 	WORD teamId = (id - data[FIRST_ID]) / 20;
@@ -6570,32 +6712,39 @@ void FindKitPartsNames(DWORD id, NEWKITFILES* files)
     Kit* kit=NULL;
     string kitKey = GetKitFolderKey(id);
     if (!col)
-    	 goto NoMaskFile;
+    	 goto NoCollection;
     
 	kit=((id - data[FIRST_ID]) % 20 < PA_SHIRT) ? MAP_FIND(col->goalkeepers,kitKey):
 												  MAP_FIND(col->players,kitKey);
 	
-	if (kit==NULL || !(kit->attDefined & MASK_FILE))
-		goto NoMaskFile;
+    if (kit != NULL || (kit->attDefined & MASK_FILE)) {
+        //First try to find it in the team's folder
+        ZeroMemory(filename, BUFLEN);
+        sprintf(filename,"%s%s\\%s",GetPESInfo()->gdbDir,kit->foldername,kit->maskFile);
+        if (FileExists(filename)==FALSE) {
+            //If not successful, try masks folder
+            ZeroMemory(filename, BUFLEN);
+            sprintf(filename,"%sGDB\\uni\\masks\\%s",GetPESInfo()->gdbDir,kit->maskFile);
+            if (FileExists(filename)==FALSE)
+                goto CheckOverlay;
+        }
+        strcpy(files->maskName,filename);
+    }
 
-	//First try to find it in the team's folder
-	ZeroMemory(filename, BUFLEN);
-	sprintf(filename,"%s%s\\%s",GetPESInfo()->gdbDir,kit->foldername,kit->maskFile);
-	if (FileExists(filename)==FALSE) {
-		//If not successful, try masks folder
-		ZeroMemory(filename, BUFLEN);
-		sprintf(filename,"%sGDB\\uni\\masks\\%s",GetPESInfo()->gdbDir,kit->maskFile);
-		if (FileExists(filename)==FALSE)
-			goto NoMaskFile;
-	};
-	
-	strcpy(files->maskName,filename);
-	return;
-	
-	NoMaskFile:
-	strcpy(files->maskName,"\0");
-	return;
-};
+    //Overlay
+    CheckOverlay:
+    if (kit != NULL || (kit->attDefined & OVERLAY_FILE)) {
+        ZeroMemory(filename, BUFLEN);
+        sprintf(filename,"%s%s\\%s",GetPESInfo()->gdbDir,kit->foldername,kit->overlayFile);
+        LOG(&k_mydll,"Checking file: {%s}",filename);
+        if (FileExists(filename)) {
+            strcpy(files->overlayName,filename);
+        }
+    }
+
+    NoCollection:
+    return;
+}
 
 bool HasKitFile(DWORD id, NEWKITFILES* newKitFiles)
 {
@@ -6806,6 +6955,7 @@ DWORD JuceUniSplit(DWORD id)
 			strcpy(NewKitFilesMap[addr].shortsName,lastKitFiles.shortsName);
 			strcpy(NewKitFilesMap[addr].socksName,lastKitFiles.socksName);
 			strcpy(NewKitFilesMap[addr].maskName,lastKitFiles.maskName);
+			strcpy(NewKitFilesMap[addr].overlayName,lastKitFiles.overlayName);
 			
 			isGdbKit[addr]=true;
 			DWORD size=((DECBUFFERHEADER*)addr)->dwDecSize;
