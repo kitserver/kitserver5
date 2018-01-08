@@ -3178,7 +3178,7 @@ void ApplyOverlay(D3DLOCKED_RECT* dest, char* overlayfilename, D3DSURFACE_DESC* 
 	if (!SUCCEEDED(D3DXCreateTextureFromFileEx(
             GetActiveDevice(), overlayfilename, 
             width, height,
-            1, desc->Usage, desc->Format, desc->Pool,
+            1, desc->Usage, D3DFMT_A8R8G8B8, desc->Pool,
             D3DX_DEFAULT, D3DX_DEFAULT,
             0, NULL, NULL, &pOvTexture))) {
         LOG(&k_mydll, "Unable to create overlay texture from file: %s", overlayfilename);
