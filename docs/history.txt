@@ -2,6 +2,14 @@ Kitserver 5 HISTORY notes
 =========================
 
 
+2018-01-09
+----------
+v5.5.7
+- kserv: kits of all dimensions (not just multiples of 512x256) can now be mixed correctly
+- kserv: support for kit overlays - "overlay" attribute in config.txt
+- kserv: support for "shorts.color" attribute
+
+
 2017-12-30
 ----------
 v5.5.6

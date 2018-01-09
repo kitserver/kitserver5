@@ -6,3 +6,4 @@ src/*.res
 src/*.exp
 src/output/*
 src/setenv.cmd
+.DS_Store

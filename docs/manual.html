@@ -6,6 +6,7 @@
         img { display:block;margin:10px 0 10px 0;border:1px solid #000; }
         div.note { background-color:#ffc;color:#800;padding:5px; }
         p.devnote { background-color:#ddd;color:#444;padding:5px; }
+        span.note { color:#888; }
         table {padding:10px 0 10px 0}
         table td {padding:5px;border:1px solid #000}
         table th {padding:5px;border:1px solid #000;background-color:#ccc}
@@ -34,9 +35,9 @@ Version history: <a href="history.txt">history.txt</a><br />
 </div>
 <h2>Kitserver 5.5 Manual</h2>
 <div>
-December 30, 2017<br />
+January 9, 2018<br />
 Module Versions: 
-<a href="#kitserver">Kserv 5.5.3</a>,
+<a href="#kitserver">Kserv 5.5.7</a>,
 <a href="#ballserver">BallServer: 5.5.4</a>,
 <a href="#faceserver">Faceserver: 5.3.2</a>, 
 <a href="#stadiumserver">Stadium Server: 5.5.6</a>,
@@ -333,6 +334,15 @@ type3 - curved.</td>
         <td><nobr>radar.color = 0A5D88</nobr></td>
     </tr>
 	<tr>
+        <td><b>shorts.color</b><br /><span class="note">(since 5.5.7)</span></td>
+        <td>This attribute specifies the color of the player/gk shorts. The color
+         of shorts is used by the game to determine correct color of the underpants
+         for those players who wear them, and have them set to match the shorts
+         color.</td>
+        <td>color, written in hexadecimal format RRGGBB (red,green,blue)</td>
+        <td><nobr>shorts.color = 0A5D88</nobr></td>
+    </tr>
+	<tr>
         <td><b>description</b></td>
         <td>Here you can specify the name of the kit. This will be used for
         <a href="#kitinfoscreen">kit information</a>, which is explained later.</td>
@@ -347,6 +357,13 @@ type3 - curved.</td>
         information)</td>
         <td>string in double quotes</td>
         <td><nobr>mask = "mask_juve.png"</nobr></td>
+    </tr>
+	<tr>
+        <td><b>overlay</b><br /><span class="note">(since 5.5.7)</span></td>
+        <td>This specifies an image which is laid over the texture. Please see
+        the <a href="#kitmakernotes">notes for kitmakers</a> section to learn more about this.</td>
+        <td>string in double quotes</td>
+        <td><nobr>overlay = "overlay.png"</nobr></td>
     </tr>
 </table>
 
@@ -434,11 +451,18 @@ If you still experience this, updating your video card drivers might help.</div>
 <h3 id="kitmakernotes">2.5 Notes for Kitmakers</h3>
 <p>One of the most important changes in version 5.2.1 is HDPES. It means that you can use much better
 kits now since there is no more restriction of texture size and color depth. For example 1024x512 or
-2048x1024 pixels big textures can be used now as long as the aspect ratio is 2 to 1 and the width is
-512 multiplied with an integer. All parts are resized in a proportional way, so the texture should look
-like before wenn you zoomed in. Furthermore you don't need to care about annoying shared palettes anymore
+2048x1024 pixels big textures can be used. Width and height are not required to be a power of two, so
+960x480 or 1234x642 textures will work too. Aspect ratio is recommended to be 2-to-1 (width twice as
+big as height) - to have the familiar appearance of the standard kit texture. However, it is not strictly
+required: the texture will be stretched as needed. Since version 5.5.7, you can mix kits of different
+arbitrary sizes, and everything should still be rendered correctly. 
+All parts are resized in a proportional way, so the texture should look
+like before when you zoomed in. Furthermore you don't need to care about annoying shared palettes anymore
 as the pictures can have more than 256 colors. Accepted are 32 bit images such as a PNG file with alpha
-channel and 24 bit images. For the last one Kitserver looks for a 256 color image in the same dimensions
+channel, 32 bit RGBA, and 24 bit RGB images. The easiest ones to work with are 32-bit RGBA images - so
+that is the format i would recommend, but the other formats are still fully supported.
+</p>
+<p>For 24-bit images without alpha information, Kitserver will look for a 256 color image in the same dimensions
 which is called like "all-alpha.png" or "shirt-alpha.bmp". If found, the palette index is taken as alpha
 value of the pixel at the same place in the texture. You can find a sample palette named "alpha.pal" in
 the kitserver folder. If you use that, black with an index of 0 will stand for full transparency and
@@ -448,11 +472,12 @@ images. Not the color is important, only the index.</div>
 </p>
 
 
+<h4>Masks</h4>
 <img src="mask.png" />
 <p>
 Something that's also important is the splitting into the individual parts. As before this happens with masks,
 but the format has changed. Now all three parts are saved in one file and marked with the colors red (shirt),
-blue (shorts) and yellow (socks). By default the "mask.png" in the <b>uni\masks</b> folder ist used. However,
+blue (shorts) and yellow (socks). By default the "mask.png" in the <b>uni\masks</b> folder is used. However,
 since Juventus has two individual socks you need a changed mask. This can be specified with the "mask" attribute
 and is then searched for first relatively to the folder holding the config.txt and then in the "masks" folder.
 The mask of the shirt is always used for all parts.<br />
@@ -462,6 +487,26 @@ Also combinations of different texture sizes are allowed. It is only important t
 otherwise splitting will not work.
 </p>
 
+<h4>Overlay</h4>
+<p>Often, teams use the same kits for different tournaments, only with a different
+badge on the sleeves or other modifications. To avoid creating too many textures, you can
+use this option to overlay the texture with another one. The transparency plays a big
+part here: only parts of the overlay texture should be used. This is why theses textures
+have to be saved either as 32 bit or indexed 256 color images with alpha channel in the PNG format. <br />
+</p>
+<p>
+The path is seen as relative to the kit folder. Dimensions of the overlay can be arbitrary. Generally, you would want
+the same dimensions as the shirt texture - to avoid resampling, but it is not required: the overlay will be
+automatically scaled as needed - to fit the shirt.
+Here is an example for an overlay image, which can be used with standard (wide-back) kit textures:
+<img src="overlay.png" />
+The white parts you see are fully transparent, so only the logos will be visible later.
+</p>
+<div class="NOTE">
+Note that this particular overlay will not render correctly for so-called "narrow-back" kits, because the
+sleeves for narrow-backs are located and oriented differently on the texture. For those kits, you will need
+a different overlay - with badges oriented and placed to fit the narrow-back kit texture.</div>
+ 
 
 <!-- ad middle -->
 <!-- ### BALLSERVER ### -->
