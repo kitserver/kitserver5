@@ -6745,6 +6745,10 @@ void FindKitPartsNames(DWORD id, NEWKITFILES* files)
 
     //Overlay
     CheckOverlay:
+    kitKey = GetKitFolderKey(baseId);
+    kit=((id - data[FIRST_ID]) % 20 < PA_SHIRT) ? MAP_FIND(col->goalkeepers,kitKey):
+                                                  MAP_FIND(col->players,kitKey);
+
     if (kit != NULL || (kit->attDefined & OVERLAY_FILE)) {
         ZeroMemory(filename, BUFLEN);
         sprintf(filename,"%s%s\\%s",GetPESInfo()->gdbDir,kit->foldername,kit->overlayFile);
@@ -6888,6 +6892,7 @@ void JuceUniDecode(DWORD addr, DWORD size, DWORD result)
 		strcpy(lastKitFiles.shortsName,"\0");
 		strcpy(lastKitFiles.socksName,"\0");
 		strcpy(lastKitFiles.maskName,"\0");
+		strcpy(lastKitFiles.overlayName,"\0");
 		lastUniDecodeResult=result;
 	};
 
