@@ -16,7 +16,14 @@ KMOD k_bserv={MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG};
 #define MAX_NUM_BALL_FILES 22
 
 AFSENTRY AFSArray[MAX_NUM_BALL_FILES];
-BSERV_CFG bserv_cfg;
+BSERV_CFG bserv_cfg = {
+    DEFAULT_SELECTED_BALL,
+    DEFAULT_PREVIEW_ENABLED,
+    DEFAULT_KEY_RESET_BALL,
+    DEFAULT_KEY_RANDOM_BALL,
+    DEFAULT_KEY_PREV_BALL,
+    DEFAULT_KEY_NEXT_BALL
+};
 int selectedBall=-1;
 DWORD numBalls=0;
 BALLS *balls;
@@ -270,7 +277,7 @@ void InitBserv()
 {
 	//MasterHookFunction(code[C_GETFILEFROMAFS_CS], 2, bservGetFileFromAFS);
 	MasterHookFunction(code[C_SETBALLNAME_CS], 7, SetBallName);
-	
+
     //load settings
     char ballCfg[BUFLEN];
     ZeroMemory(ballCfg, BUFLEN);
@@ -285,7 +292,7 @@ void InitBserv()
     };
     LOG(&k_bserv, "selected ball: %d", bserv_cfg.selectedBall);
 
-    //read preview setting
+    //read preview and virtual keys settings
     bserv_cfg.previewEnabled = TRUE;
     ZeroMemory(ballCfg, BUFLEN);
     sprintf(ballCfg, "%s\\bserv.cfg", GetPESInfo()->mydir);
@@ -604,16 +611,16 @@ void bservKeyboardProc(int code1, WPARAM wParam, LPARAM lParam)
 		return; 
 
 	if ((code1==HC_ACTION) && (lParam & 0x80000000)) {
-		if (wParam == KeyNextBall) {
+		if (wParam == bserv_cfg.keyNextBall) {
 			SetBall(selectedBall+1);
-		} else if (wParam == KeyPrevBall) {
+		} else if (wParam == bserv_cfg.keyPrevBall) {
 			if (selectedBall<0)
 				SetBall(numBalls-1);
 			else
 				SetBall(selectedBall-1);
-		} else if (wParam == KeyResetBall) {
+		} else if (wParam == bserv_cfg.keyResetBall) {
 			SetBall(-1);
-		} else if (wParam == KeyRandomBall) {
+		} else if (wParam == bserv_cfg.keyRandomBall) {
 			LARGE_INTEGER num;
 			QueryPerformanceCounter(&num);
 			int iterations = num.LowPart % MAX_ITERATIONS;
@@ -1231,6 +1238,26 @@ BOOL ReadConfig(BSERV_CFG* config, char* cfgFile)
 			LogWithNumber(&k_bserv,"ReadConfig: preview = (%d)", value);
             config->previewEnabled = (value == 1);
 		}
+        else if (lstrcmpi(name, "key.resetBall")==0) {
+            if (sscanf(pValue, "%x", &value)!=1) continue;
+			LogWithNumber(&k_bserv,"ReadConfig: key.resetBall = (0x%02x)", value);
+            config->keyResetBall = (BYTE)value;
+        }
+        else if (lstrcmpi(name, "key.randomBall")==0) {
+            if (sscanf(pValue, "%x", &value)!=1) continue;
+			LogWithNumber(&k_bserv,"ReadConfig: key.randomBall = (0x%02x)", value);
+            config->keyRandomBall = (BYTE)value;
+        }
+        else if (lstrcmpi(name, "key.prevBall")==0 || lstrcmpi(name, "key.previousBall")==0) {
+            if (sscanf(pValue, "%x", &value)!=1) continue;
+			LogWithNumber(&k_bserv,"ReadConfig: key.prevBall = (0x%02x)", value);
+            config->keyPrevBall = (BYTE)value;
+        }
+        else if (lstrcmpi(name, "key.nextBall")==0) {
+            if (sscanf(pValue, "%x", &value)!=1) continue;
+			LogWithNumber(&k_bserv,"ReadConfig: key.nextBall = (0x%02x)", value);
+            config->keyNextBall = (BYTE)value;
+        }
 	}
 	fclose(cfg);
 	return true;

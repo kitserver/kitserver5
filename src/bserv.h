@@ -1,7 +1,7 @@
 // bserv.h
 
 #define MODID 101
-#define NAMELONG "Ballserver 5.5.4"
+#define NAMELONG "Ballserver 5.5.8"
 #define NAMESHORT "BSERV"
 
 #define DEFAULT_DEBUG 1
@@ -63,11 +63,6 @@ static DWORD data[DATALEN];
 
 #define MAX_ITERATIONS 1000
 
-#define KeyNextBall 0x42
-#define KeyPrevBall 0x56
-#define KeyResetBall 0x43
-#define KeyRandomBall 0x52
-
 typedef struct _AFSENTRY {
 	DWORD FileNumber;
 	DWORD AFSAddr;
@@ -110,8 +105,19 @@ typedef struct _PNG_CHUNK_HEADER {
     DWORD dwName;
 } PNG_CHUNK_HEADER;
 
+#define DEFAULT_SELECTED_BALL 0
+#define DEFAULT_PREVIEW_ENABLED 1
+#define DEFAULT_KEY_RESET_BALL 0x43
+#define DEFAULT_KEY_RANDOM_BALL 0x52
+#define DEFAULT_KEY_PREV_BALL  0x56
+#define DEFAULT_KEY_NEXT_BALL 0x42
+
 typedef struct _BSERV_CFG {
     int selectedBall;
     BOOL previewEnabled;
+    BYTE keyResetBall;
+    BYTE keyRandomBall;
+    BYTE keyPrevBall;
+    BYTE keyNextBall;
 } BSERV_CFG;
 
