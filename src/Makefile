@@ -144,9 +144,11 @@ speeder.dll: speeder.lib speeder.res
 speeder.obj: speeder.cpp speeder.h apihijack.h
 
 setupgui.obj: setupgui.cpp setupgui.h
-setup.exe: setup.obj detect.obj setupgui.obj imageutil.obj
-	$(LINK) $(LFLAGS) /out:setup.exe setup.obj detect.obj setupgui.obj imageutil.obj $(LIBS)
+setup.exe: setup.obj detect.obj setupgui.obj imageutil.obj setup.res
+	$(LINK) $(LFLAGS) /out:setup.exe setup.obj detect.obj setupgui.obj imageutil.obj setup.res $(LIBS)
 setup.obj: setup.cpp setup.h setupgui.h
+setup.res: setup.rc
+	$(RC) -r -fo setup.res setup.rc
 
 lodcfg.exe: lodcfg.obj detect.obj lodcfgui.obj imageutil.obj
 	$(LINK) $(LFLAGS) /out:lodcfg.exe lodcfg.obj detect.obj lodcfgui.obj imageutil.obj $(LIBS)
