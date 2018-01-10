@@ -243,6 +243,7 @@ string g_awaySocksKeyPL;
 #define GET_AWAY_SHIRT_KEY(typ) ((typ==GK_TYPE)?g_awayShirtKeyGK:g_awayShirtKeyPL)
 #define GET_AWAY_SHORTS_KEY(typ) ((typ==GK_TYPE)?g_awayShortsKeyGK:g_awayShortsKeyPL)
 #define GET_AWAY_SOCKS_KEY(typ) ((typ==GK_TYPE)?g_awaySocksKeyGK:g_awaySocksKeyPL)
+#define GET_KIT_ITER(typ,col) ((typ==GK_TYPE)?col->goalkeepers:col->players)
 
 // global kit selection type
 int typ = PL_TYPE;
@@ -871,7 +872,7 @@ void UnloadNewKits();
 void UnloadNewKits(DWORD Index);
 
 void DrawKitInfo(IDirect3DDevice8* dev);
-void GetKitName(BYTE which, char* KitName);
+void GetKitName(BYTE which, KitCollection* col, char* KitName);
 
 void ApplyGlovesDIBTexture(TEXIMGPACKHEADER* texPack, BITMAPINFO* bitmapInfo);
 
@@ -2700,39 +2701,42 @@ void DrawKitInfo(IDirect3DDevice8* dev)
 	DWORD color=0xffffffff;
 	char tmp[BUFLEN], KitName[BUFLEN];
 
+    KitCollection* hcol = MAP_FIND(gdb->uni,GetTeamId(HOME));
+    KitCollection* acol = MAP_FIND(gdb->uni,GetTeamId(AWAY));
+
 	//HOME TEAM
-	GetKitName(0,KitName);
+	GetKitName(0,hcol,KitName);
 	if (strlen(KitName)>0) {
 		sprintf(tmp,"Shirt: %s",KitName);
 		KDrawText(24,576,color,16,tmp);
 	};
 	
-	GetKitName(1,KitName);
+	GetKitName(1,hcol,KitName);
 	if (strlen(KitName)>0) {
 		sprintf(tmp,"Shorts: %s",KitName);
 		KDrawText(24,616,color,16,tmp);
 	};
 	
-	GetKitName(2,KitName);
+	GetKitName(2,hcol,KitName);
 	if (strlen(KitName)>0) {
 		sprintf(tmp,"Socks: %s",KitName);
 		KDrawText(24,656,color,16,tmp);
 	};
 	
 	//AWAY TEAM
-	GetKitName(3,KitName);
+	GetKitName(3,acol,KitName);
 	if (strlen(KitName)>0) {
 		sprintf(tmp,"Shirt: %s",KitName);
 		KDrawText(536,576,color,16,tmp);
 	};
 	
-	GetKitName(4,KitName);
+	GetKitName(4,acol,KitName);
 	if (strlen(KitName)>0) {
 		sprintf(tmp,"Shorts: %s",KitName);
 		KDrawText(536,616,color,16,tmp);
 	};
 	
-	GetKitName(5,KitName);
+	GetKitName(5,acol,KitName);
 	if (strlen(KitName)>0) {
 		sprintf(tmp,"Socks: %s",KitName);
 		KDrawText(536,656,color,16,tmp);
@@ -2741,89 +2745,48 @@ void DrawKitInfo(IDirect3DDevice8* dev)
 	return;
 };
 
-void GetKitName(BYTE which, char* KitName)
+void GetKitName(BYTE which, KitCollection* col, char* KitName)
 {
-	WORD teamId = GetTeamId(HOME);
-	if (which>2)
-		teamId = GetTeamId(AWAY);
-	KitCollection* col = MAP_FIND(gdb->uni,teamId);
-	KitIterator ki;
-	Kit* kit;
-	string sfoldername;
-	char foldername[BUFLEN];
+    if (!col) {
+        KitName[0]='\0';
+        return;
+    }
 
-	if (!col) {
-		strcpy(KitName,"\0");
-		return;
-	};
-	
+	string key;
 	switch (which) {
-	case 0:
-		sfoldername=GET_HOME_SHIRT_KEY(typ);
-		ki=g_homeShirtIterator;
-		break;
-	case 1:
-		sfoldername=GET_HOME_SHORTS_KEY(typ);
-		ki=g_homeShortsIterator;
-		break;
-	case 2:
-		sfoldername=GET_HOME_SOCKS_KEY(typ);
-		ki=g_homeSocksIterator;
-		break;
-	case 3:
-		sfoldername=GET_AWAY_SHIRT_KEY(typ);
-		ki=g_awayShirtIterator;
-		break;
-	case 4:
-		sfoldername=GET_AWAY_SHORTS_KEY(typ);
-		ki=g_awayShortsIterator;
-		break;
-	case 5:
-		sfoldername=GET_AWAY_SOCKS_KEY(typ);
-		ki=g_awaySocksIterator;
-		break;
-	};
-	
-	strcpy(foldername,sfoldername.c_str());
-	kit=ki->second;
-	
-    switch (typ) {
-        case GK_TYPE:
-            if ((*(col->goalkeepers)).end() == (*(col->goalkeepers)).begin()) {
-                strcpy(KitName,"\0");
-                return;
-			};
-			if (kit->attDefined & KITDESCRIPTION) {
-				strcpy(KitName,kit->description);
-				return;
-			};
-			if (strcmp(foldername,"ga")==0)
-				strcpy(KitName,"Standard Home");
-			else if (strcmp(foldername,"gb")==0)
-				strcpy(KitName,"Standard Away");
-			else
-				strcpy(KitName,foldername);
-			break;
-        case PL_TYPE:
-			if ((*(col->players)).end() == (*(col->players)).begin()) {
-                strcpy(KitName,"\0");
-                return;
-			};
-			if (kit->attDefined & KITDESCRIPTION) {
-				strcpy(KitName,kit->description);
-				return;
-			};
-			if (strcmp(foldername,"pa")==0)
-				strcpy(KitName,"Standard Home");
-			else if (strcmp(foldername,"pb")==0)
-				strcpy(KitName,"Standard Away");
-			else
-				strcpy(KitName,foldername);
-			break;
-	};
-	
-	return;
-};
+        case 0:
+            key=GET_HOME_SHIRT_KEY(typ);
+            break;
+        case 1:
+            key=GET_HOME_SHORTS_KEY(typ);
+            break;
+        case 2:
+            key=GET_HOME_SOCKS_KEY(typ);
+            break;
+        case 3:
+            key=GET_AWAY_SHIRT_KEY(typ);
+            break;
+        case 4:
+            key=GET_AWAY_SHORTS_KEY(typ);
+            break;
+        case 5:
+            key=GET_AWAY_SOCKS_KEY(typ);
+            break;
+	}
+
+    KitIterator ki = GET_KIT_ITER(typ,col)->find(key);
+    if (ki != GET_KIT_ITER(typ,col)->end()) {
+        if (ki->second->attDefined & KITDESCRIPTION) {
+            strcpy(KitName,ki->second->description);
+        }
+        else {
+            strcpy(KitName,key.c_str());
+        }
+        return;
+    }
+
+    KitName[0]='\0';
+}
 
 // sanity-check for team id
 BOOL GoodTeamId(WORD id)
