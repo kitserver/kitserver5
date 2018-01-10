@@ -17,3 +17,4 @@ Makefile text
 *.dll binary
 *.lib binary
 *.exe binary
+*.pal binary
