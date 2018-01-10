@@ -26,6 +26,8 @@
         a:visited {color: #00c;}
         a:hover {color: #00c; background-color: #ccf;}
         a:active {color: #00c;}
+        a.imglink:hover { background-color:#fff;}
+        a.imglink img { display:inline; }
         div.hist {color:#888;float:right;}
     </style>
 </head>
@@ -363,7 +365,7 @@ type3 - curved.</td>
         <td>This specifies an image which is laid over the texture. Please see
         the <a href="#kitmakernotes">notes for kitmakers</a> section to learn more about this.</td>
         <td>string in double quotes</td>
-        <td><nobr>overlay = "overlay.png"</nobr></td>
+        <td><nobr>overlay = "epl-overlay.png"</nobr></td>
     </tr>
 </table>
 
@@ -498,12 +500,17 @@ have to be saved either as 32 bit or indexed 256 color images with alpha channel
 The path is seen as relative to the kit folder. Dimensions of the overlay can be arbitrary. Generally, you would want
 the same dimensions as the shirt texture - to avoid resampling, but it is not required: the overlay will be
 automatically scaled as needed - to fit the shirt.
-Here is an example for an overlay image, which can be used with standard (wide-back) kit textures:
-<img src="overlay.png" />
-The white parts you see are fully transparent, so only the logos will be visible later.
+Here are a couple of examples of overlay images, which can be used with standard (wide-back) kit textures:
+</p>
+<p>
+<a class="imglink" href="epl-overlay.png"><img width="512" height="256" src="epl-overlay.png" /></a>
+<a class="imglink" href="epl-overlay-gold.png"><img width="512" height="256" src="epl-overlay-gold.png" /></a>
+</p>
+<p>
+Click on the images above to see full-size overlays. Feel free to use them for your kits, if you want :-)
 </p>
 <div class="NOTE">
-Note that this particular overlay will not render correctly for so-called "narrow-back" kits, because the
+NOTE that these 2 particular overlays will not render correctly for so-called "narrow-back" kits, because the
 sleeves for narrow-backs are located and oriented differently on the texture. For those kits, you will need
 a different overlay - with badges oriented and placed to fit the narrow-back kit texture.</div>
  
