@@ -5,9 +5,11 @@ Kitserver 5 HISTORY notes
 2018-01-09
 ----------
 v5.5.7
+- kserv: fix for transparency handling of 32-bit RGBA kit images
 - kserv: kits of all dimensions (not just multiples of 512x256) can now be mixed correctly
 - kserv: support for kit overlays - "overlay" attribute in config.txt
 - kserv: support for "shorts.color" attribute
+- kserv: fixed logic for displaying kit names/descriptions
 
 
 2017-12-30
