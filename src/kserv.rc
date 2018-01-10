@@ -19,7 +19,7 @@ BEGIN
 		BEGIN
 			VALUE "FileDescription", "KitServer 5 Module\0"
 			VALUE "FileVersion", "5.5.7.0\0"
-			VALUE "LegalCopyright", "Copyright © 2005-2017 Juce, Robbie\0"
+			VALUE "LegalCopyright", "Copyright © 2005-2018 Juce, Robbie\0"
 			VALUE "Comments", "Add-on component for PES5, WE9, WE9LE:\
 selection of kits/numbers/fonts for players and goalkeepers.\0"
 		END

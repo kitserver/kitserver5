@@ -70,7 +70,8 @@ KSERV_CONFIG g_config = {
 	DEFAULT_VKEY_AWAYKIT,
 	DEFAULT_VKEY_GKHOMEKIT,
 	DEFAULT_VKEY_GKAWAYKIT,
-	true
+	DEFAULT_SHOW_KIT_INFO,
+    DEFAULT_DISABLE_OVERLAYS,
 };
 #pragma data_seg()
 #pragma comment(linker, "/section:.HKT,rws")
@@ -2179,7 +2180,7 @@ void Load2DkitTexture(WORD teamId, const char* kitFolder, char* filename, IDirec
             g_kitPaletteMap[key] = MakePaletteCopy(pPal);
 
             // apply overlay to shirt
-            if (loadOverlay) {
+            if (!g_config.disableOverlays && loadOverlay) {
                 D3DLOCKED_RECT rect;
 	            D3DSURFACE_DESC desc;
                 if (SUCCEEDED((*ppTex)->LockRect(0, &rect, NULL, 0))) {
@@ -4567,14 +4568,15 @@ DWORD LoadPNGTexture(BITMAPINFO** tex, char* filename)
 
     pngdib_p2d_set_png_memblk(pngdib,memblk,memblksize);
 	pngdib_p2d_set_use_file_bg(pngdib,1);
-	
-	
-	if (pngdib_p2d_get_colortype(pngdib)==6)
-		pngdib_set_dibalpha32(pngdib,1);
-	else
-		pngdib_set_dibalpha32(pngdib,0);
-	
 	pngdib_p2d_run(pngdib);
+	
+	if (pngdib_p2d_get_colortype(pngdib)==6) { // RGBA+alpha
+        BITMAPINFOHEADER *pDIB = NULL;
+        pngdib_p2d_get_dib(pngdib, &pDIB, (int*)&size);
+        pngdib_p2d_free_dib(pngdib, pDIB);
+		pngdib_set_dibalpha32(pngdib,1);
+        pngdib_p2d_run(pngdib);
+    }
 
 	//TRACE(&k_mydll,"LoadPNGTexture: run done");
     pngdib_p2d_get_dib(pngdib, ppDIB, (int*)&size);
@@ -5165,7 +5167,7 @@ DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** ppTexture, DWOR
 			LogWithNumber(&k_mydll,"CreateTexture (512x256) of %x",src);
 			TRACE(&k_mydll,"JuceCreateTexture: Using LARGER big texture for the kit.");
 			res = OrgCreateTexture(self, boostTex->sizeBig.right, boostTex->sizeBig.bottom,
-					levels,usage,format,pool,ppTexture);
+					levels,usage,D3DFMT_A8R8G8B8,pool,ppTexture);
 			g_lastBigTex = *ppTexture;
 			TRACE2(&k_mydll,"big tex = %08x", (DWORD)g_lastBigTex);
 			
@@ -5173,7 +5175,7 @@ DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** ppTexture, DWOR
 			LogWithNumber(&k_mydll,"CreateTexture (256x128) of %x",src);
 			TRACE(&k_mydll,"JuceCreateTexture: Using LARGER middle texture for the kit.");
 			res = OrgCreateTexture(self, boostTex->sizeMedium.right, boostTex->sizeMedium.bottom,
-					levels,usage,format,pool,ppTexture);
+					levels,usage,D3DFMT_A8R8G8B8,pool,ppTexture);
 			g_lastMediumTex = *ppTexture;
 			TRACE2(&k_mydll,"med tex = %08x", (DWORD)g_lastMediumTex);
 			
@@ -5266,7 +5268,7 @@ void JuceUnlockRect(IDirect3DTexture8* self,UINT Level)
                 // apply overlay
                 D3DLOCKED_RECT rect;
 	            D3DSURFACE_DESC desc;
-                if (g_overlayfilename && g_overlayfilename[0]!='\0') {
+                if (!g_config.disableOverlays && g_overlayfilename && g_overlayfilename[0]!='\0') {
                     if (SUCCEEDED(g_med0->LockRect(&rect, NULL, 0))) {
                         texToBoost->GetLevelDesc(0, &desc);
                         ApplyOverlay(&rect, g_overlayfilename, &desc);
@@ -5332,7 +5334,7 @@ void JuceUnlockRect(IDirect3DTexture8* self,UINT Level)
                     // apply overlay
                     D3DLOCKED_RECT rect;
                     D3DSURFACE_DESC desc;
-                    if (g_overlayfilename && g_overlayfilename[0]!='\0') {
+                    if (!g_config.disableOverlays && g_overlayfilename && g_overlayfilename[0]!='\0') {
                         if (SUCCEEDED(g_med1->LockRect(&rect, NULL, 0))) {
                             texToBoost->GetLevelDesc(1, &desc);
                             ApplyOverlay(&rect, g_overlayfilename, &desc);
@@ -5360,7 +5362,7 @@ void JuceUnlockRect(IDirect3DTexture8* self,UINT Level)
                     // apply overlay
                     D3DLOCKED_RECT rect;
                     D3DSURFACE_DESC desc;
-                    if (g_overlayfilename && g_overlayfilename[0]!='\0') {
+                    if (!g_config.disableOverlays && g_overlayfilename && g_overlayfilename[0]!='\0') {
                         if (SUCCEEDED(g_med0->LockRect(&rect, NULL, 0))) {
                             texToBoost->GetLevelDesc(0, &desc);
                             ApplyOverlay(&rect, g_overlayfilename, &desc);

@@ -15,6 +15,8 @@
 #define DEFAULT_VKEY_AWAYKIT 0x32
 #define DEFAULT_VKEY_GKHOMEKIT 0x33
 #define DEFAULT_VKEY_GKAWAYKIT 0x34
+#define DEFAULT_SHOW_KIT_INFO true
+#define DEFAULT_DISABLE_OVERLAYS false
 
 typedef struct _KSERV_CONFIG_STRUCT {
     BYTE   narrowBackModels[256];
@@ -23,6 +25,7 @@ typedef struct _KSERV_CONFIG_STRUCT {
 	WORD   vKeyGKHomeKit;
 	WORD   vKeyGKAwayKit;
 	bool   ShowKitInfo;
+    bool   disableOverlays;
 } KSERV_CONFIG;
 
 BOOL ReadConfig(KSERV_CONFIG* config, char* cfgFile);
