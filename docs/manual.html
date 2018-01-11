@@ -37,10 +37,10 @@ Version history: <a href="history.txt">history.txt</a><br />
 </div>
 <h2>Kitserver 5.5 Manual</h2>
 <div>
-January 9, 2018<br />
+January 10, 2018<br />
 Module Versions: 
-<a href="#kitserver">Kserv 5.5.7</a>,
-<a href="#ballserver">BallServer: 5.5.4</a>,
+<a href="#kitserver">Kserv 5.5.8</a>,
+<a href="#ballserver">BallServer: 5.5.8</a>,
 <a href="#faceserver">Faceserver: 5.3.2</a>, 
 <a href="#stadiumserver">Stadium Server: 5.5.6</a>,
 <a href="#lodmixer">LOD Mixer: 5.5.0</a>,
@@ -588,6 +588,37 @@ say "Ball selection" then.
 
 </p>
 
+<h3>3.4 Ballserver configuration file (bserv.cfg)</h3>
+
+<pre>
+# Ball server configuration file
+#########################################################
+# To disable ball preview, change "preview" setting to 0.
+
+preview = 1
+
+# Hot keys: defined as Microsoft Virtual-Key codes
+# See this page, if you want to re-map the ballserver actions to
+# different keys: https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
+
+key.resetBall = 0x43   #'C'
+key.randomBall = 0x52  #'R'
+key.prevBall = 0x56    #'V'
+key.nextBall = 0x42    #'B'
+</pre>
+
+<p>Normally, you do not need to worry about the configuration file - defaults are fine. But if you want, you can
+tweak the behaviour of ballserver. The <b>preview</b> settings allows to turn on/off the 3D ball preview. By default
+it is enabled (set to 1); if you want to disable preview, set the value to 0. Another set of options allows to re-map
+the hot keys that are used for ball selection. You will need to lookup the so-called "Virtual-Key codes" on the
+<a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx">MSDN web page</a> that
+lists them.
+</p>
+
+<p>NOTE that it is ok to re-map the keys to the same ones that are used by other module - for example,
+stadium server. This is possible, because ballserver and stadium server only respond to their hot keys, when
+corresponding information panel (with the text) is shown.
+</p>
 
 
 <!-- ### FACESERVER ### -->
@@ -1348,13 +1379,17 @@ Italian: <b>FabioS</b><br />
 </p>
 
 <p>
-Kitserver and Ballserver use the following open source software:<br />
+Kitserver uses the following open source software:<br />
 <span class="soft">pngdib</span> by Jason Summers 
 <a href="http://entropymine.com/jason/pngdib/">http://entropymine.com/jason/pngdib/</a><br />
 <span class="soft">libpng</span> by Guy Eric Schalnat, Andreas Dilger, Glenn Randers-Pehrson, and others 
 <a href="http://libpng.org/pub/png/libpng.html">http://libpng.org/pub/png/libpng.html</a><br />
 <span class="soft">zlib</span> by Jean-loup Gailly and Mark Adler, and others
 <a href="http://www.zlib.net/">http://www.zlib.net/</a><br />
+</p>
+
+<p>
+Kitserver license can be see here: <a href="license.txt">license.txt</a>
 </p>
 
 </body>

@@ -2,6 +2,15 @@ Kitserver 5 HISTORY notes
 =========================
 
 
+2018-01-10
+----------
+v5.5.8
+- kserv: fixed bug introduced in 5.5.7: game would crash on match load, if a team was
+         selected that was specified in GDB/uni/map.txt, but didn't have one of the
+         standard kits: pa/pb/ga/gb. This problem is now fixed.
+- bserv: hot keys can now be re-mapped in bserv.cfg
+
+
 2018-01-09
 ----------
 v5.5.7
