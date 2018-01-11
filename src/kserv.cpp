@@ -6694,7 +6694,7 @@ void FindKitPartsNames(DWORD id, NEWKITFILES* files)
 	kit=((id - data[FIRST_ID]) % 20 < PA_SHIRT) ? MAP_FIND(col->goalkeepers,kitKey):
 												  MAP_FIND(col->players,kitKey);
 	
-    if (kit != NULL || (kit->attDefined & MASK_FILE)) {
+    if (kit != NULL && (kit->attDefined & MASK_FILE)) {
         //First try to find it in the team's folder
         ZeroMemory(filename, BUFLEN);
         sprintf(filename,"%s%s\\%s",GetPESInfo()->gdbDir,kit->foldername,kit->maskFile);
@@ -6714,7 +6714,7 @@ void FindKitPartsNames(DWORD id, NEWKITFILES* files)
     kit=((id - data[FIRST_ID]) % 20 < PA_SHIRT) ? MAP_FIND(col->goalkeepers,kitKey):
                                                   MAP_FIND(col->players,kitKey);
 
-    if (kit != NULL || (kit->attDefined & OVERLAY_FILE)) {
+    if (kit != NULL && (kit->attDefined & OVERLAY_FILE)) {
         ZeroMemory(filename, BUFLEN);
         sprintf(filename,"%s%s\\%s",GetPESInfo()->gdbDir,kit->foldername,kit->overlayFile);
         LOG(&k_mydll,"Checking file: {%s}",filename);
