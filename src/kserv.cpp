@@ -254,18 +254,23 @@ BYTE g_cycleDirection[8];
 #define CYCLE_LEFT 1
 #define CYCLE_RIGHT 0
 
+void set_radar_colors();
+RGBAColor *radar_home = NULL;
+RGBAColor *radar_away = NULL;
+void StoreRadarColors();
+
 // Kit afs-item IDs
 
 DWORD* g_AFS_id = NULL;
 MEMITEMINFO* g_AFS_memItemInfo = NULL;
 
-#define CODELEN 8
+#define CODELEN 9
 
 // code array names
 enum {
 	C_NAVIGATELEFT,C_NAVIGATERIGHT,
 	C_SPLITDONE_CS1, C_SPLITDONE_CS2, C_SPLITDONE_CS3, C_SPLITDONE2_CS1, C_SPLITDONE2_CS2,
-	C_GETSPLITADDR_CS,
+	C_GETSPLITADDR_CS, C_SETRADARCOLORS,
 };
 
 // Code addresses.
@@ -273,27 +278,27 @@ DWORD codeArray[][CODELEN] = {
     // PES5 DEMO 2
     { 0,0,
     0,0,0,0,0,
-    0,
+    0, 0,
     },
     // PES5
     { 0x51ba51, 0x51ba71,
     0x84ca01,0x84ca41,0x84cbef,0x84c5ad,0x84c6bd,
-    0x8d5605,
+    0x8d5605, 0,
     },
     // WE9
     { 0x51bed1, 0x51bef1,
 	0x84ceb1,0x84cef1,0x84d09f,0x84ca5d,0x84cb6d,
-	0x8d5b65,
+	0x8d5b65, 0,
     },
     // WE9:LE
     { 0x5169d1, 0x5169f1,
 	0x874161,0x8741a1,0x87434f,0x873d0d,0x873e1d,
-	0x8d4d95,
+	0x8d4d95, 0x511d57,
     },
 };
 
 
-#define DATALEN 16
+#define DATALEN 18
 
 // data array names
 enum {
@@ -303,6 +308,7 @@ enum {
     NATIONAL_TEAMS_ADDR, CLUB_TEAMS_ADDR, 
 	ML_HOME_AREA, ML_AWAY_AREA,
 	SINGLEPLAYER, KITSELECTSIDE, PLAYERSIDE,	
+    RADARCOLOR_HOME, RADARCOLOR_AWAY,
 };
 
 // Data addresses.
@@ -313,6 +319,7 @@ DWORD dataArray[][DATALEN] = {
       0, 5810, 8109, 
       0, 0, 0, 0,
       0,0,0,
+      0, 0,
     },
     // PES5
     { 0x3be0f40, 0x3b7f2c6, 0,
@@ -320,6 +327,7 @@ DWORD dataArray[][DATALEN] = {
       0, 4576, 8935, // was 8615: added All-Star teams
       0x38b77dc, 0x38b77e0, 0x38b77a4, 0x38b77a8,
       0x3be10a0, 0xfdeefc, 0xc0e4d0,
+      0, 0,
     },
     // WE9
     { 0x3be0f60, 0x3b7f2e6, 0,
@@ -327,6 +335,7 @@ DWORD dataArray[][DATALEN] = {
       0, 4576, 8935, // was 8615: added All-Star teams
       0x38b77dc, 0x38b77e0, 0x38b77a4, 0x38b77a8,
       0x3be10c0, 0xfdef04, 0xc0e4d0,
+      0, 0,
     },
     // WE9:LE
     { 0x3b68a80, 0x3adb606, 0, 
@@ -334,6 +343,7 @@ DWORD dataArray[][DATALEN] = {
       0, 4583, 8942,
       0x37f20ec, 0x37f20f0, 0x37f20b4, 0x37f20b8,
       0x3b68be0, 0xf18e94, 0xb4d548,
+      0x3b697ac, 0x3b697b0,
     },
 };
 
@@ -2745,6 +2755,27 @@ void DrawKitInfo(IDirect3DDevice8* dev)
 	return;
 };
 
+Kit* GetKitForShirt(BYTE which, KitCollection* col)
+{
+    if (col) {
+        string key;
+        switch (which) {
+            case 0:
+                key=GET_HOME_SHIRT_KEY(typ);
+                break;
+            case 1:
+                key=GET_AWAY_SHIRT_KEY(typ);
+                break;
+        }
+
+        KitIterator ki = GET_KIT_ITER(typ,col)->find(key);
+        if (ki != GET_KIT_ITER(typ,col)->end()) {
+            return ki->second;
+        }
+    }
+    return NULL;
+}
+
 void GetKitName(BYTE which, KitCollection* col, char* KitName)
 {
     if (!col) {
@@ -3680,7 +3711,17 @@ void InitKserv()
 		        Log(&k_mydll,"NavigateRight HOOKED at code[C_NAVIGATERIGHT]");
 			};
 		};
-		
+
+		if (code[C_SETRADARCOLORS] != 0) {
+		    bptr = (BYTE*)code[C_SETRADARCOLORS];
+		    ptr = (DWORD*)(code[C_SETRADARCOLORS] + 1);
+		    if (VirtualProtect(bptr, 5, newProtection, &protection)) {
+		        bptr[0] = 0xe8;
+		        ptr[0] = (DWORD)set_radar_colors + 6 - (DWORD)(code[C_SETRADARCOLORS] + 5);
+		        Log(&k_mydll,"SetRadarColors HOOKED at code[C_SETRADARCOLORS]");
+			};
+		};
+
 		MasterHookFunction(code[C_SPLITDONE_CS1],1,JuceSplitDone1);
 		MasterHookFunction(code[C_SPLITDONE_CS2],1,JuceSplitDone1);
 		MasterHookFunction(code[C_SPLITDONE_CS3],1,JuceSplitDone1);
@@ -3939,6 +3980,56 @@ DWORD JuceNavigateRight(DWORD player)
 	
 	return oldEAX;
 };
+
+DWORD RGBAColorToDWORD(RGBAColor *clr)
+{
+    DWORD res = clr->r;
+    res += ((clr->g << 8) & 0xff00);
+    res += ((clr->b << 16) & 0xff0000);
+    res += ((clr->a << 24) & 0xff000000);
+    return res;
+}
+
+DWORD SetRadarColors()
+{
+    DWORD home_radar = *(DWORD*)data[RADARCOLOR_HOME];
+    DWORD away_radar = *(DWORD*)data[RADARCOLOR_AWAY];
+    LOG(&k_mydll, "Radar Colors WAS: HOME(%08x) vs AWAY(%08x)", home_radar, away_radar);
+    if (radar_home) {
+        *(DWORD*)data[RADARCOLOR_HOME] = RGBAColorToDWORD(radar_home);
+    }
+    if (radar_away) {
+        *(DWORD*)data[RADARCOLOR_AWAY] = RGBAColorToDWORD(radar_away);
+    }
+    home_radar = *(DWORD*)data[RADARCOLOR_HOME];
+    away_radar = *(DWORD*)data[RADARCOLOR_AWAY];
+    LOG(&k_mydll, "Radar Colors NOW: HOME(%08x) vs AWAY(%08x)", home_radar, away_radar);
+    return 0;
+}
+
+void set_radar_colors()
+{
+    __asm {
+        pushfd
+        push ebp
+        push eax
+        push ebx
+        push ecx
+        push edx
+        push esi
+        push edi
+        call SetRadarColors
+        pop edi
+        pop esi
+        pop edx
+        pop ecx
+        pop ebx
+        pop eax
+        pop ebp
+        popfd
+        retn
+    }
+}
 
 void CycleIterator(BYTE which,KitIterator* ki,StringKitMap* skm)
 {
@@ -6328,6 +6419,7 @@ void JuceGetClubTeamInfo(DWORD id,DWORD result)
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
             SetShortsInfo(paShorts, &kitPackInfo->plHome, editable);
             SetShortsInfo(pbShorts, &kitPackInfo->plAway, editable);
+            StoreRadarColors();
         }
 	}
 	return;
@@ -6338,6 +6430,9 @@ void clearTeamKitInfo()
 	if (g_teamKitInfo.size() == 0) {
 		return;
 	}
+
+    radar_home = NULL;
+    radar_away = NULL;
 
 	Log(&k_mydll,"clearTeamKitInfo: restoring kitinfo edits");
 
@@ -6447,6 +6542,7 @@ void JuceGetClubTeamInfoML2(DWORD id,DWORD result)
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
             SetShortsInfo(paShorts, &kitPackInfo->plHome, editable);
             SetShortsInfo(pbShorts, &kitPackInfo->plAway, editable);
+            StoreRadarColors();
         }
 	}
 	return;
@@ -6506,6 +6602,7 @@ void JuceGetNationalTeamInfo(DWORD id,DWORD result)
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
             SetShortsInfo(paShorts, &kitPackInfo->plHome, editable);
             SetShortsInfo(pbShorts, &kitPackInfo->plAway, editable);
+            StoreRadarColors();
         }
 	}
 	return;
@@ -6600,6 +6697,21 @@ void JuceSet2Dkits()
 
     Log(&k_mydll,"Show 2D kits");
     return;
+}
+
+void StoreRadarColors()
+{
+    KitCollection* hcol = MAP_FIND(gdb->uni,GetTeamId(HOME));
+    KitCollection* acol = MAP_FIND(gdb->uni,GetTeamId(AWAY));
+    Kit* k;
+    k = GetKitForShirt(0, hcol);
+    if (k && (k->attDefined && RADAR_COLOR)) {
+        radar_home = &(k->radarColor);
+    }
+    k = GetKitForShirt(1, acol);
+    if (k && (k->attDefined && RADAR_COLOR)) {
+        radar_away = &(k->radarColor);
+    }
 }
 
 void JuceClear2Dkits()
