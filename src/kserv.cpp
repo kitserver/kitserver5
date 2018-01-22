@@ -283,7 +283,7 @@ DWORD codeArray[][CODELEN] = {
     // PES5
     { 0x51ba51, 0x51ba71,
     0x84ca01,0x84ca41,0x84cbef,0x84c5ad,0x84c6bd,
-    0x8d5605, 0,
+    0x8d5605, 0x516dc7,
     },
     // WE9
     { 0x51bed1, 0x51bef1,
@@ -327,7 +327,7 @@ DWORD dataArray[][DATALEN] = {
       0, 4576, 8935, // was 8615: added All-Star teams
       0x38b77dc, 0x38b77e0, 0x38b77a4, 0x38b77a8,
       0x3be10a0, 0xfdeefc, 0xc0e4d0,
-      0, 0,
+      0x3be1c6c, 0x3be1c70,
     },
     // WE9
     { 0x3be0f60, 0x3b7f2e6, 0,
