@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include "fserv.h"
+#include "fserv_config.h"
 #include "kload_exp.h"
 
 #include <map>
@@ -19,6 +20,8 @@ BYTE g_savedReplCopyPlayerData[11];
 
 bool bGetHairTranspHooked=false;
 bool bEditCopyPlayerDataHooked=false;
+
+FSERV_CONFIG *g_config;
 
 COPYPLAYERDATA orgCopyPlayerData=NULL;
 GETHAIRTRANSP orgGetHairTransp=NULL;
@@ -122,7 +125,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
             string hdfilename = g_lastFaceFile.substr(0,g_lastFaceFile.size()-4);
             hdfilename += ".png";
             if (FileExists(hdfilename.c_str())) {
-                res = OrgCreateTexture(self, width*4, height*4, levels, usage, format, pool, ppTexture);
+                res = OrgCreateTexture(self, g_config->hd_face_width, g_config->hd_face_height, levels, usage, format, pool, ppTexture);
                 if (res == D3D_OK) {
                     *IsProcessed = true;
                     g_BigFaceTextures[*ppTexture] = hdfilename;
@@ -136,13 +139,16 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
             std::map<DWORD,string>::iterator it = g_FaceSources.find(src);
             if (it != g_FaceSources.end()) {
                 LOG(&k_fserv, "Big tex from already seen source: src=%08x", src);
-                res = OrgCreateTexture(self, width*4, height*4, levels, usage, format, pool, ppTexture);
+                res = OrgCreateTexture(self, g_config->hd_face_width, g_config->hd_face_height, levels, usage, format, pool, ppTexture);
                 if (res == D3D_OK) {
                     *IsProcessed = true;
                     g_BigFaceTextures[*ppTexture] = it->second;
                     LOG(&k_fserv, "Big tex [%08x] [src=%08x] : %s", (DWORD)(*ppTexture), src, it->second.c_str());
                     g_FaceSources[src] = it->second;
                 }
+
+                // exp: remove from sources
+                g_FaceSources.erase(it);
             }
         }
     }
@@ -154,7 +160,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
             string hdfilename = g_lastFaceFile.substr(0,g_lastFaceFile.size()-4);
             hdfilename += ".png";
             if (FileExists(hdfilename.c_str())) {
-                res = OrgCreateTexture(self, width*4, height*4, levels, usage, format, pool, ppTexture);
+                res = OrgCreateTexture(self, g_config->hd_face_width/2, g_config->hd_face_height/2, levels, usage, format, pool, ppTexture);
                 if (res == D3D_OK) {
                     *IsProcessed = true;
                     g_SmallFaceTextures[*ppTexture] = hdfilename;
@@ -169,7 +175,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
             std::map<DWORD,string>::iterator it = g_FaceSources.find(src);
             if (it != g_FaceSources.end()) {
                 LOG(&k_fserv, "Small tex from already seen source: src=%08x", src);
-                res = OrgCreateTexture(self, width*4, height*4, levels, usage, format, pool, ppTexture);
+                res = OrgCreateTexture(self, g_config->hd_face_width/2, g_config->hd_face_height/2, levels, usage, format, pool, ppTexture);
                 if (res == D3D_OK) {
                     *IsProcessed = true;
                     g_SmallFaceTextures[*ppTexture] = it->second;
@@ -216,14 +222,16 @@ void fservUnlockRect(IDirect3DTexture8* self,UINT Level) {
         // replace with HD texture
         fservLoadTextureFromFile(self, it->second.c_str());
 
-        char buf[BUFLEN];
-        string fname = it->second.substr(it->second.rfind("\\")+1);
-        sprintf(buf,"%s\\%03d - %s.bmp", GetPESInfo()->mydir, count, fname.c_str());
-        if (SUCCEEDED(D3DXSaveTextureToFile(buf, D3DXIFF_BMP, self, NULL))) {
-            LOG(&k_fserv, "Saved texture to: %s", buf);
-        }
-        else {
-            LOG(&k_fserv, "FAILED to save texture to: %s", buf);
+        if (g_config->dump_face_textures) {
+            char buf[BUFLEN];
+            string fname = it->second.substr(it->second.rfind("\\")+1);
+            sprintf(buf,"%s\\%03d - %s.bmp", GetPESInfo()->mydir, count, fname.c_str());
+            if (SUCCEEDED(D3DXSaveTextureToFile(buf, D3DXIFF_BMP, self, NULL))) {
+                LOG(&k_fserv, "Saved texture to: %s", buf);
+            }
+            else {
+                LOG(&k_fserv, "FAILED to save texture to: %s", buf);
+            }
         }
 
         count++;
@@ -234,14 +242,16 @@ void fservUnlockRect(IDirect3DTexture8* self,UINT Level) {
         // replace with HD texture
         fservLoadTextureFromFile(self, it->second.c_str());
 
-        char buf[BUFLEN];
-        string fname = it->second.substr(it->second.rfind("\\")+1);
-        sprintf(buf,"%s\\%03d - %s.bmp", GetPESInfo()->mydir, count, fname.c_str());
-        if (SUCCEEDED(D3DXSaveTextureToFile(buf, D3DXIFF_BMP, self, NULL))) {
-            LOG(&k_fserv, "Saved texture to: %s", buf);
-        }
-        else {
-            LOG(&k_fserv, "FAILED to save texture to: %s", buf);
+        if (g_config->dump_face_textures) {
+            char buf[BUFLEN];
+            string fname = it->second.substr(it->second.rfind("\\")+1);
+            sprintf(buf,"%s\\%03d - %s.bmp", GetPESInfo()->mydir, count, fname.c_str());
+            if (SUCCEEDED(D3DXSaveTextureToFile(buf, D3DXIFF_BMP, self, NULL))) {
+                LOG(&k_fserv, "Saved texture to: %s", buf);
+            }
+            else {
+                LOG(&k_fserv, "FAILED to save texture to: %s", buf);
+            }
         }
 
         count++;
@@ -310,7 +320,19 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		GameVersIsOK:
 
 		RegisterKModule(&k_fserv);
-		
+
+        g_config = new FSERV_CONFIG();
+        g_config->dump_face_textures = DEFAULT_DUMP_FACE_TEXTURES;
+        g_config->hd_face_width = DEFAULT_HD_FACE_WIDTH;
+        g_config->hd_face_height = DEFAULT_HD_FACE_HEIGHT;
+
+		// read configuration
+		char cfgFile[BUFLEN];
+		ZeroMemory(cfgFile, BUFLEN);
+		strcpy(cfgFile, GetPESInfo()->mydir); 
+		strcat(cfgFile, CONFIG_FILE);
+		ReadConfig(g_config, cfgFile);
+	
 		//copy the FaceIDs for the right game version
 		memcpy(fIDs,fIDsArray[v-1],sizeof(fIDs));	
 		orgCopyPlayerData=(COPYPLAYERDATA)fIDs[C_COPYPLAYERDATA];

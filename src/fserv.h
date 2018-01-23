@@ -2,7 +2,7 @@
 #define KEXPORT EXTERN_C __declspec(dllexport)
 
 #define MODID 103
-#define NAMELONG "Faceserver 5.3.2.4"
+#define NAMELONG "Faceserver 5.5.0"
 #define NAMESHORT "FSERV"
 
 #define DEFAULT_DEBUG 1

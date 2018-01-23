@@ -70,10 +70,11 @@ bserv.obj: bserv.cpp bserv.h
 bserv.res: 
 	$(RC) -r -fo bserv.res bserv.rc
 	
-fserv.lib: fserv.obj
+fserv.lib: fserv.obj fserv_config.obj
 fserv.dll: fserv.lib fserv.res
-	$(LINK) $(LFLAGS) /out:fserv.dll /DLL fserv.obj kload.lib fserv.res d3dx8.lib $(LIBS)
+	$(LINK) $(LFLAGS) /out:fserv.dll /DLL fserv.obj fserv_config.obj kload.lib fserv.res d3dx8.lib $(LIBS)
 fserv.obj: fserv.cpp fserv.h
+fserv_config.obj: fserv_config.cpp fserv_config.h
 
 fserv.res: 
 	$(RC) -r -fo fserv.res fserv.rc
