@@ -72,7 +72,7 @@ bserv.res:
 	
 fserv.lib: fserv.obj
 fserv.dll: fserv.lib fserv.res
-	$(LINK) $(LFLAGS) /out:fserv.dll /DLL fserv.obj kload.lib fserv.res $(LIBS)
+	$(LINK) $(LFLAGS) /out:fserv.dll /DLL fserv.obj kload.lib fserv.res d3dx8.lib $(LIBS)
 fserv.obj: fserv.cpp fserv.h
 
 fserv.res: 

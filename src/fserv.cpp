@@ -60,13 +60,18 @@ bool lastWasFromGDB=false, lastHairWasFromGDB=false, hasChanged=true;
 char lastPlayerNumberString[BUFLEN],lastFaceFileString[BUFLEN];
 char lastHairFileString[BUFLEN];
 
+string g_lastFaceFile("");
+int g_faceLoadingSequence = 0;
+std::map<IDirect3DTexture8*,string> g_BigFaceTextures;
+std::map<IDirect3DTexture8*,string> g_SmallFaceTextures;
+std::map<DWORD,string> g_FaceSources;
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
 void InitFserv();
 
 void ReadPlayerInfo(PLAYERINFO* pi, DWORD StartAddr);
 void WritePlayerInfo(PLAYERINFO* pi, DWORD StartAddr);
-bool FileExists(char* filename);
+bool FileExists(const char* filename);
 
 void GetGDBFaces();
 void AddPlayerFace(DWORD PlayerNumber,char* sfile);
@@ -94,6 +99,155 @@ BYTE fservGetHairTransp(DWORD addr);
 void fservConnectAddrToId(DWORD addr, DWORD id);
 
 SAVEGAMEFUNCS* sgf;
+
+HRESULT STDMETHODCALLTYPE fservCreateTexture(
+        IDirect3DDevice8* self, UINT width, UINT height,UINT levels,
+        DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** ppTexture,
+        DWORD src, bool* IsProcessed);
+void fservUnlockRect(IDirect3DTexture8* self,UINT Level);
+
+HRESULT STDMETHODCALLTYPE fservCreateTexture(
+        IDirect3DDevice8* self, UINT width, UINT height,UINT levels,
+        DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** ppTexture,
+        DWORD src, bool* IsProcessed) {
+
+    HRESULT res = D3D_OK;
+    //LOG(&k_fserv, "CreateTexture (%dx%dx%d): %08x (src=%08x)",
+    //    width, height, levels, (DWORD)*ppTexture, src);
+    if (width == 64 && height == 128 && levels == 1) {
+        if (g_faceLoadingSequence == 1 && g_lastFaceFile.size()>0) {
+            //LOG(&k_fserv, ">>> Looks like a big face texture (%dx%dx%d): %08x (src=%08x)",
+            //    width, height, levels, (DWORD)*ppTexture, src);
+
+            string hdfilename = g_lastFaceFile.substr(0,g_lastFaceFile.size()-4);
+            hdfilename += ".png";
+            if (FileExists(hdfilename.c_str())) {
+                res = OrgCreateTexture(self, width*4, height*4, levels, usage, format, pool, ppTexture);
+                if (res == D3D_OK) {
+                    *IsProcessed = true;
+                    g_BigFaceTextures[*ppTexture] = hdfilename;
+                    LOG(&k_fserv, "Big tex [%08x] [src=%08x] : %s", (DWORD)(*ppTexture), src, hdfilename.c_str());
+                    g_FaceSources[src] = hdfilename;
+                }
+            }
+            g_faceLoadingSequence = 2;
+        }
+        else {
+            std::map<DWORD,string>::iterator it = g_FaceSources.find(src);
+            if (it != g_FaceSources.end()) {
+                LOG(&k_fserv, "Big tex from already seen source: src=%08x", src);
+                res = OrgCreateTexture(self, width*4, height*4, levels, usage, format, pool, ppTexture);
+                if (res == D3D_OK) {
+                    *IsProcessed = true;
+                    g_BigFaceTextures[*ppTexture] = it->second;
+                    LOG(&k_fserv, "Big tex [%08x] [src=%08x] : %s", (DWORD)(*ppTexture), src, it->second.c_str());
+                    g_FaceSources[src] = it->second;
+                }
+            }
+        }
+    }
+    else if (width == 32 && height == 64 && levels == 1) {
+        if (g_faceLoadingSequence == 2 && g_lastFaceFile.size()>0) {
+            //LOG(&k_fserv, ">>> Looks like a small face texture (%dx%dx%d): %08x (src=%08x)",
+            //    width, height, levels, (DWORD)*ppTexture, src);
+
+            string hdfilename = g_lastFaceFile.substr(0,g_lastFaceFile.size()-4);
+            hdfilename += ".png";
+            if (FileExists(hdfilename.c_str())) {
+                res = OrgCreateTexture(self, width*4, height*4, levels, usage, format, pool, ppTexture);
+                if (res == D3D_OK) {
+                    *IsProcessed = true;
+                    g_SmallFaceTextures[*ppTexture] = hdfilename;
+                    LOG(&k_fserv, "Small tex [%08x] : %s", (DWORD)(*ppTexture), hdfilename.c_str());
+                    g_FaceSources[src] = hdfilename;
+                }
+            }
+            g_faceLoadingSequence = 0;
+            g_lastFaceFile = "";
+        }
+        else {
+            std::map<DWORD,string>::iterator it = g_FaceSources.find(src);
+            if (it != g_FaceSources.end()) {
+                LOG(&k_fserv, "Small tex from already seen source: src=%08x", src);
+                res = OrgCreateTexture(self, width*4, height*4, levels, usage, format, pool, ppTexture);
+                if (res == D3D_OK) {
+                    *IsProcessed = true;
+                    g_SmallFaceTextures[*ppTexture] = it->second;
+                    LOG(&k_fserv, "Big tex [%08x] [src=%08x] : %s", (DWORD)(*ppTexture), src, it->second.c_str());
+                    g_FaceSources[src] = it->second;
+                }
+            }
+        }
+    }
+    return res;
+}
+
+void fservLoadTextureFromFile(IDirect3DTexture8* tex, const char *filename)
+{
+    IDirect3DSurface8* surf;
+    LOG(&k_fserv, "fservLoadTextureFromFile: [%08x] %s", (DWORD)tex, filename);
+    HRESULT res = tex->GetSurfaceLevel(0, &surf);
+    if (SUCCEEDED(res))
+    {
+        if (FileExists(filename)) {
+            if (SUCCEEDED(D3DXLoadSurfaceFromFile(
+                            surf, NULL, NULL,
+                            filename, NULL,
+                            D3DX_FILTER_LINEAR, 0, NULL))) { 
+                LOG(&k_fserv, "Loaded face texture from: %s", filename);
+            }
+            else {
+                LOG(&k_fserv, "FAILED Loaded face texture from: %s", filename);
+            }
+        }
+        surf->Release();
+    }
+    else {
+        LOG(&k_fserv, "FAILED tex->GetSurfaceLevel for: [%08x] %s", (DWORD)tex, filename);
+    }
+}
+
+void fservUnlockRect(IDirect3DTexture8* self,UINT Level) {
+    static int count = 1;
+    // Dump the texture if we have it
+    std::map<IDirect3DTexture8*,string>::iterator it;
+    it = g_BigFaceTextures.find(self);
+    if (it != g_BigFaceTextures.end()) {
+        // replace with HD texture
+        fservLoadTextureFromFile(self, it->second.c_str());
+
+        char buf[BUFLEN];
+        string fname = it->second.substr(it->second.rfind("\\")+1);
+        sprintf(buf,"%s\\%03d - %s.bmp", GetPESInfo()->mydir, count, fname.c_str());
+        if (SUCCEEDED(D3DXSaveTextureToFile(buf, D3DXIFF_BMP, self, NULL))) {
+            LOG(&k_fserv, "Saved texture to: %s", buf);
+        }
+        else {
+            LOG(&k_fserv, "FAILED to save texture to: %s", buf);
+        }
+
+        count++;
+        g_BigFaceTextures.erase(it);
+    }
+    it = g_SmallFaceTextures.find(self);
+    if (it != g_SmallFaceTextures.end()) {
+        // replace with HD texture
+        fservLoadTextureFromFile(self, it->second.c_str());
+
+        char buf[BUFLEN];
+        string fname = it->second.substr(it->second.rfind("\\")+1);
+        sprintf(buf,"%s\\%03d - %s.bmp", GetPESInfo()->mydir, count, fname.c_str());
+        if (SUCCEEDED(D3DXSaveTextureToFile(buf, D3DXIFF_BMP, self, NULL))) {
+            LOG(&k_fserv, "Saved texture to: %s", buf);
+        }
+        else {
+            LOG(&k_fserv, "FAILED to save texture to: %s", buf);
+        }
+
+        count++;
+        g_SmallFaceTextures.erase(it);
+    }
+}
 
 bool HookProcAtAddr(DWORD proc, DWORD proc_cs, DWORD newproc, char* sproc, char* sproc_cs)
 {
@@ -167,12 +321,23 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		SetSavegameExpFuncs(SGEFM_FSERV,SGEF_GIVEIDTOMODULE,(DWORD)&fservConnectAddrToId);
 		
 		HookFunction(hk_D3D_Create,(DWORD)InitFserv);
-		
+
+        HookFunction(hk_D3D_CreateTexture,(DWORD)fservCreateTexture);
+        HookFunction(hk_D3D_UnlockRect,(DWORD)fservUnlockRect);
 	}
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
 		Log(&k_fserv,"Detaching dll...");
 		SavePlayerList();
+
+        // log face textures
+        std::map<IDirect3DTexture8*,string>::iterator it;
+        for (it = g_BigFaceTextures.begin(); it != g_BigFaceTextures.end(); it++) {
+            LOG(&k_fserv,"Big face tex: %08x --> %s", (DWORD)it->first, it->second.c_str());
+        }
+        for (it = g_SmallFaceTextures.begin(); it != g_SmallFaceTextures.end(); it++) {
+            LOG(&k_fserv,"Small face tex: %08x --> %s", (DWORD)it->first, it->second.c_str());
+        }
 		
 		UnhookFunction(hk_FileFromAFS,(DWORD)fservFileFromAFS);
 		UnhookFunction(hk_BeforeFreeMemory,(DWORD)fservFreeMemory);
@@ -385,9 +550,9 @@ void WritePlayerInfo(PLAYERINFO* pi, DWORD StartAddr)
 	return;
 };
 
-bool FileExists(char* filename)
+bool FileExists(const char* filename)
 {
-    TRACE4(&k_fserv,"FileExists: Checking file: %s", filename);
+    TRACE4(&k_fserv,"FileExists: Checking file: %s", (char*)filename);
     HANDLE hFile;
     hFile = CreateFile(TEXT(filename),        // file to open
                        GENERIC_READ,          // open for reading
@@ -706,6 +871,8 @@ void fservFileFromAFS(DWORD infoBlock)
 		if (g_Faces[FaceID]!=NULL) {
             //strcat(filename,g_Faces[Skincolor][FaceID]);
             strcat(filename,g_Faces[FaceID]);
+            g_lastFaceFile = filename;
+            g_faceLoadingSequence = 1;
         } else {
 			Log(&k_fserv,"FAILED! No file is assigned to this parameter combination!");
 			goto Processed;
@@ -741,7 +908,7 @@ void fservFileFromAFS(DWORD infoBlock)
 	LoadFileNow:
 	
 	//load data from a file
-	LogWithString(&k_fserv,"Loading file %s ...",filename);
+	LOG(&k_fserv,"Loading file %s ...",filename);
 	file=CreateFile(filename,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,
 			FILE_ATTRIBUTE_NORMAL,NULL);
 	if (file!=INVALID_HANDLE_VALUE) {
@@ -755,7 +922,7 @@ void fservFileFromAFS(DWORD infoBlock)
 	};
 	ib->src=(DWORD)FileBuffer;
 	
-	
+
 	Processed:
 	
 	return;
