@@ -17,6 +17,7 @@
 #define DEFAULT_VKEY_GKAWAYKIT 0x34
 #define DEFAULT_SHOW_KIT_INFO true
 #define DEFAULT_DISABLE_OVERLAYS false
+#define DEFAULT_ENFORCE_RADAR_COLORS true
 
 typedef struct _KSERV_CONFIG_STRUCT {
     BYTE   narrowBackModels[256];
@@ -26,6 +27,7 @@ typedef struct _KSERV_CONFIG_STRUCT {
 	WORD   vKeyGKAwayKit;
 	bool   ShowKitInfo;
     bool   disableOverlays;
+    bool   enforceRadarColors;
 } KSERV_CONFIG;
 
 BOOL ReadConfig(KSERV_CONFIG* config, char* cfgFile);

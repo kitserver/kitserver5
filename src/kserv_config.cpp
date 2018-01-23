@@ -113,6 +113,12 @@ BOOL ReadConfig(KSERV_CONFIG* config, char* cfgFile)
 			LogWithNumber(&k_mydll,"ReadConfig: disableOverlays = (%d)", value);
 			config->disableOverlays = (value > 0);
 		}
+       	else if (lstrcmp(name, "enforceRadarColors")==0)
+		{
+			if (sscanf(pValue, "%d", &value)!=1) continue;
+			LogWithNumber(&k_mydll,"ReadConfig: enforceRadarColors = (%d)", value);
+			config->enforceRadarColors = (value > 0);
+		}
 	}
 	fclose(cfg);
 

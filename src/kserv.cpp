@@ -72,6 +72,7 @@ KSERV_CONFIG g_config = {
 	DEFAULT_VKEY_GKAWAYKIT,
 	DEFAULT_SHOW_KIT_INFO,
     DEFAULT_DISABLE_OVERLAYS,
+    DEFAULT_ENFORCE_RADAR_COLORS,
 };
 #pragma data_seg()
 #pragma comment(linker, "/section:.HKT,rws")
@@ -3712,7 +3713,7 @@ void InitKserv()
 			};
 		};
 
-		if (code[C_SETRADARCOLORS] != 0) {
+		if (g_config.enforceRadarColors && code[C_SETRADARCOLORS] != 0) {
 		    bptr = (BYTE*)code[C_SETRADARCOLORS];
 		    ptr = (DWORD*)(code[C_SETRADARCOLORS] + 1);
 		    if (VirtualProtect(bptr, 5, newProtection, &protection)) {
