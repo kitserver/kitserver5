@@ -288,7 +288,7 @@ DWORD codeArray[][CODELEN] = {
     // WE9
     { 0x51bed1, 0x51bef1,
 	0x84ceb1,0x84cef1,0x84d09f,0x84ca5d,0x84cb6d,
-	0x8d5b65, 0,
+	0x8d5b65, 0x517247,
     },
     // WE9:LE
     { 0x5169d1, 0x5169f1,
@@ -335,7 +335,7 @@ DWORD dataArray[][DATALEN] = {
       0, 4576, 8935, // was 8615: added All-Star teams
       0x38b77dc, 0x38b77e0, 0x38b77a4, 0x38b77a8,
       0x3be10c0, 0xfdef04, 0xc0e4d0,
-      0, 0,
+      0x3be1c8c, 0x3be1c90,
     },
     // WE9:LE
     { 0x3b68a80, 0x3adb606, 0, 
