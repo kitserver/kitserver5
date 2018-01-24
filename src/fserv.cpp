@@ -109,12 +109,38 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
         DWORD src, bool* IsProcessed);
 void fservUnlockRect(IDirect3DTexture8* self,UINT Level);
 
+void SetDimensions(D3DXIMAGE_INFO *ii, UINT &w, UINT &h) {
+    if (g_config->npot_textures) {
+        // Not-Power-Of-2 textures allowed
+        w = (ii->Width/64)*64;
+        h = (ii->Height/128)*128;
+    }
+    else {
+        // Find closest smallest Power-Of-2 texture
+        w = HD_FACE_MIN_WIDTH;
+        while ((w<<1) <= ii->Width) w = w<<1;
+        h = HD_FACE_MIN_HEIGHT;
+        while ((h<<1) <= ii->Height) h = h<<1;
+    }
+    // clamp to max dimensions, if set
+    if (g_config->hd_face_max_width > 0 && w > g_config->hd_face_max_width) {
+        w = g_config->hd_face_max_width;
+    }
+    if (g_config->hd_face_max_height > 0 && h > g_config->hd_face_max_height) {
+        h = g_config->hd_face_max_height;
+    }
+    w = (w < HD_FACE_MIN_WIDTH)?HD_FACE_MIN_WIDTH:w;
+    h = (h < HD_FACE_MIN_HEIGHT)?HD_FACE_MIN_HEIGHT:h;
+}
+
 HRESULT STDMETHODCALLTYPE fservCreateTexture(
         IDirect3DDevice8* self, UINT width, UINT height,UINT levels,
         DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** ppTexture,
         DWORD src, bool* IsProcessed) {
 
+    D3DXIMAGE_INFO ii;
     HRESULT res = D3D_OK;
+
     //LOG(&k_fserv, "CreateTexture (%dx%dx%d): %08x (src=%08x)",
     //    width, height, levels, (DWORD)*ppTexture, src);
     if (width == 64 && height == 128 && levels == 1) {
@@ -124,9 +150,14 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
 
             string hdfilename = g_lastFaceFile.substr(0,g_lastFaceFile.size()-4);
             hdfilename += ".png";
-            if (FileExists(hdfilename.c_str())) {
-                res = OrgCreateTexture(self, g_config->hd_face_width, g_config->hd_face_height, levels, usage, format, pool, ppTexture);
+            ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
+            if (SUCCEEDED(D3DXGetImageInfoFromFile(hdfilename.c_str(), &ii))) {
+                LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, hdfilename.c_str());
+                UINT w,h;
+                SetDimensions(&ii, w, h);
+                res = OrgCreateTexture(self, w, h, levels, usage, format, pool, ppTexture);
                 if (res == D3D_OK) {
+                    LOG(&k_fserv, "Created big HD face texture: (%dx%d)", w, h);
                     *IsProcessed = true;
                     g_BigFaceTextures[*ppTexture] = hdfilename;
                     LOG(&k_fserv, "Big tex [%08x] [src=%08x] : %s", (DWORD)(*ppTexture), src, hdfilename.c_str());
@@ -139,12 +170,19 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
             std::map<DWORD,string>::iterator it = g_FaceSources.find(src);
             if (it != g_FaceSources.end()) {
                 LOG(&k_fserv, "Big tex from already seen source: src=%08x", src);
-                res = OrgCreateTexture(self, g_config->hd_face_width, g_config->hd_face_height, levels, usage, format, pool, ppTexture);
-                if (res == D3D_OK) {
-                    *IsProcessed = true;
-                    g_BigFaceTextures[*ppTexture] = it->second;
-                    LOG(&k_fserv, "Big tex [%08x] [src=%08x] : %s", (DWORD)(*ppTexture), src, it->second.c_str());
-                    g_FaceSources[src] = it->second;
+                ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
+                if (SUCCEEDED(D3DXGetImageInfoFromFile(it->second.c_str(), &ii))) {
+                    LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, it->second.c_str());
+                    UINT w,h;
+                    SetDimensions(&ii, w, h);
+                    res = OrgCreateTexture(self, w, h, levels, usage, format, pool, ppTexture);
+                    if (res == D3D_OK) {
+                        LOG(&k_fserv, "Created big HD face texture: (%dx%d)", w, h);
+                        *IsProcessed = true;
+                        g_BigFaceTextures[*ppTexture] = it->second;
+                        LOG(&k_fserv, "Big tex [%08x] [src=%08x] : %s", (DWORD)(*ppTexture), src, it->second.c_str());
+                        g_FaceSources[src] = it->second;
+                    }
                 }
 
                 // exp: remove from sources
@@ -159,9 +197,14 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
 
             string hdfilename = g_lastFaceFile.substr(0,g_lastFaceFile.size()-4);
             hdfilename += ".png";
-            if (FileExists(hdfilename.c_str())) {
-                res = OrgCreateTexture(self, g_config->hd_face_width/2, g_config->hd_face_height/2, levels, usage, format, pool, ppTexture);
+            ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
+            if (SUCCEEDED(D3DXGetImageInfoFromFile(hdfilename.c_str(), &ii))) {
+                LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, hdfilename.c_str());
+                UINT w,h;
+                SetDimensions(&ii, w, h);
+                res = OrgCreateTexture(self, w/2, h/2, levels, usage, format, pool, ppTexture);
                 if (res == D3D_OK) {
+                    LOG(&k_fserv, "Created small HD face texture: (%dx%d)", w/2, h/2);
                     *IsProcessed = true;
                     g_SmallFaceTextures[*ppTexture] = hdfilename;
                     LOG(&k_fserv, "Small tex [%08x] : %s", (DWORD)(*ppTexture), hdfilename.c_str());
@@ -175,12 +218,19 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
             std::map<DWORD,string>::iterator it = g_FaceSources.find(src);
             if (it != g_FaceSources.end()) {
                 LOG(&k_fserv, "Small tex from already seen source: src=%08x", src);
-                res = OrgCreateTexture(self, g_config->hd_face_width/2, g_config->hd_face_height/2, levels, usage, format, pool, ppTexture);
-                if (res == D3D_OK) {
-                    *IsProcessed = true;
-                    g_SmallFaceTextures[*ppTexture] = it->second;
-                    LOG(&k_fserv, "Big tex [%08x] [src=%08x] : %s", (DWORD)(*ppTexture), src, it->second.c_str());
-                    g_FaceSources[src] = it->second;
+                ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
+                if (SUCCEEDED(D3DXGetImageInfoFromFile(it->second.c_str(), &ii))) {
+                    LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, it->second.c_str());
+                    UINT w,h;
+                    SetDimensions(&ii, w, h);
+                    res = OrgCreateTexture(self, w/2, h/2, levels, usage, format, pool, ppTexture);
+                    if (res == D3D_OK) {
+                        LOG(&k_fserv, "Created small HD face texture: (%dx%d)", w/2, h/2);
+                        *IsProcessed = true;
+                        g_SmallFaceTextures[*ppTexture] = it->second;
+                        LOG(&k_fserv, "Small tex [%08x] [src=%08x] : %s", (DWORD)(*ppTexture), src, it->second.c_str());
+                        g_FaceSources[src] = it->second;
+                    }
                 }
             }
         }
@@ -323,8 +373,8 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 
         g_config = new FSERV_CONFIG();
         g_config->dump_face_textures = DEFAULT_DUMP_FACE_TEXTURES;
-        g_config->hd_face_width = DEFAULT_HD_FACE_WIDTH;
-        g_config->hd_face_height = DEFAULT_HD_FACE_HEIGHT;
+        g_config->hd_face_max_width = DEFAULT_HD_FACE_MAX_WIDTH;
+        g_config->hd_face_max_height = DEFAULT_HD_FACE_MAX_HEIGHT;
 
 		// read configuration
 		char cfgFile[BUFLEN];

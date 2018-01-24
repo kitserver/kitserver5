@@ -52,25 +52,31 @@ BOOL ReadConfig(FSERV_CONFIG* config, char* cfgFile)
 			LOG(&k_fserv,"ReadConfig: dump.textures = (%d)", value);
 			config->dump_face_textures = (value > 0);
 		}
-       	else if (lstrcmp(name, "hd.face.width")==0)
+		else if (lstrcmp(name, "npot.textures")==0)
 		{
 			if (sscanf(pValue, "%d", &value)!=1) continue;
-			LOG(&k_fserv,"ReadConfig: hd.face.width = (%d)", value);
-            if (value < MIN_HD_FACE_WIDTH) {
-                value = MIN_HD_FACE_WIDTH;
-                LOG(&k_fserv,"Enforcing minimum for hd.face.width: %d", value);
-            }
-			config->hd_face_width = value;
+			LOG(&k_fserv,"ReadConfig: npot.textures = (%d)", value);
+			config->npot_textures = (value > 0);
 		}
-       	else if (lstrcmp(name, "hd.face.height")==0)
+       	else if (lstrcmp(name, "hd.face.max.width")==0)
 		{
 			if (sscanf(pValue, "%d", &value)!=1) continue;
-			LOG(&k_fserv,"ReadConfig: hd.face.height = (%d)", value);
-            if (value < MIN_HD_FACE_HEIGHT) {
-                value = MIN_HD_FACE_HEIGHT;
-                LOG(&k_fserv,"Enforcing minimum for hd.face.height: %d", value);
+			LOG(&k_fserv,"ReadConfig: hd.face.max.width = (%d)", value);
+            if (value < HD_FACE_MIN_WIDTH) {
+                value = HD_FACE_MIN_WIDTH;
+                LOG(&k_fserv,"Enforcing minimum for hd.face.max.width: %d", value);
             }
-			config->hd_face_height = value;
+			config->hd_face_max_width = value;
+		}
+       	else if (lstrcmp(name, "hd.face.max.height")==0)
+		{
+			if (sscanf(pValue, "%d", &value)!=1) continue;
+			LOG(&k_fserv,"ReadConfig: hd.face.max.height = (%d)", value);
+            if (value < HD_FACE_MIN_HEIGHT) {
+                value = HD_FACE_MIN_HEIGHT;
+                LOG(&k_fserv,"Enforcing minimum for hd.face.max.height: %d", value);
+            }
+			config->hd_face_max_height = value;
 		}
 	}
 	fclose(cfg);
