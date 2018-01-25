@@ -74,12 +74,10 @@ KEXPORT DWORD GetFileIdByOffset(DWORD afsId, DWORD offset)
             return fileId;
         }
         DWORD numPages = afsInfo->pages[fileId+1];
+        prevFileId = (numPages > 0) ? fileId : prevFileId;
         offsetSoFar += 0x800 * numPages;
         if (offsetSoFar > offset) {
             return prevFileId;
-        }
-        if (numPages > 0) {
-            prevFileId = fileId;
         }
     }
     return 0xffffffff;
