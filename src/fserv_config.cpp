@@ -50,7 +50,7 @@ BOOL ReadConfig(FSERV_CONFIG* config, char* cfgFile)
 		{
 			if (sscanf(pValue, "%d", &value)!=1) continue;
 			LOG(&k_fserv,"ReadConfig: dump.textures = (%d)", value);
-			config->dump_face_textures = (value > 0);
+			config->dump_textures = (value > 0);
 		}
 		else if (lstrcmp(name, "npot.textures")==0)
 		{
@@ -77,6 +77,26 @@ BOOL ReadConfig(FSERV_CONFIG* config, char* cfgFile)
                 LOG(&k_fserv,"Enforcing minimum for hd.face.max.height: %d", value);
             }
 			config->hd_face_max_height = value;
+		}
+       	else if (lstrcmp(name, "hd.hair.max.width")==0)
+		{
+			if (sscanf(pValue, "%d", &value)!=1) continue;
+			LOG(&k_fserv,"ReadConfig: hd.hair.max.width = (%d)", value);
+            if (value < HD_HAIR_MIN_WIDTH) {
+                value = HD_HAIR_MIN_WIDTH;
+                LOG(&k_fserv,"Enforcing minimum for hd.hair.max.width: %d", value);
+            }
+			config->hd_hair_max_width = value;
+		}
+       	else if (lstrcmp(name, "hd.hair.max.height")==0)
+		{
+			if (sscanf(pValue, "%d", &value)!=1) continue;
+			LOG(&k_fserv,"ReadConfig: hd.hair.max.height = (%d)", value);
+            if (value < HD_HAIR_MIN_HEIGHT) {
+                value = HD_HAIR_MIN_HEIGHT;
+                LOG(&k_fserv,"Enforcing minimum for hd.hair.max.height: %d", value);
+            }
+			config->hd_hair_max_height = value;
 		}
 	}
 	fclose(cfg);
