@@ -15,6 +15,9 @@ KMOD k_bserv={MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG};
 
 #define MAX_NUM_BALL_FILES 22
 
+#define HOME 0
+#define AWAY 1
+
 AFSENTRY AFSArray[MAX_NUM_BALL_FILES];
 BSERV_CFG bserv_cfg = {
     DEFAULT_SELECTED_BALL,
@@ -22,7 +25,9 @@ BSERV_CFG bserv_cfg = {
     DEFAULT_KEY_RESET_BALL,
     DEFAULT_KEY_RANDOM_BALL,
     DEFAULT_KEY_PREV_BALL,
-    DEFAULT_KEY_NEXT_BALL
+    DEFAULT_KEY_NEXT_BALL,
+    DEFAULT_HOME_TEAM_CHOICE,
+    DEFAULT_AUTO_RANDOM_MODE,
 };
 int selectedBall=-1;
 DWORD numBalls=0;
@@ -32,6 +37,12 @@ bool isSelectMode=false;
 char display[BUFLEN];
 char model[BUFLEN];
 char texture[BUFLEN];
+static std::map<WORD,int> g_HomeBallMap;
+static std::map<string,int> g_BallIdMap;
+static bool g_homeTeamChoice = false;
+static bool g_userChoice = true;
+bool autoRandomMode = false;
+bool noHomeBall = true;
 
 DWORD gdbBallAddr=0;
 DWORD gdbBallSize=0;
@@ -43,7 +54,9 @@ bool isPNGtexture=false;
 char currTextureName[BUFLEN];
 IDirect3DTexture8* g_lastBallTex;
 
-	
+#define MAP_FIND(map,key) map[key]
+#define MAP_CONTAINS(map,key) (map.find(key)!=map.end())
+
 //preview
 #define D3DFVF_BALLVERTEX (D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1)
 DWORD BVTX=0x100;
@@ -116,6 +129,7 @@ void AddBall(LPTSTR sdisplay,LPTSTR smodel,LPTSTR stexture);
 void FreeBalls();
 void SetBall(DWORD id);
 void bservKeyboardProc(int code1, WPARAM wParam, LPARAM lParam);
+void bservBeginUniSelect();
 void BeginDrawBallLabel();
 void EndDrawBallLabel();
 void DrawBallLabel(IDirect3DDevice8* self);
@@ -130,6 +144,7 @@ HRESULT STDMETHODCALLTYPE bservCreateTexture(IDirect3DDevice8* self, UINT width,
 	DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** ppTexture, DWORD src, bool* IsProcessed);
 void bservUnlockRect(IDirect3DTexture8* self,UINT Level);
 
+void updateHomeBall();
 DWORD SetBallName(char** names, DWORD numNames, DWORD p3, DWORD p4, DWORD p5, DWORD p6, DWORD p7);
 
 
@@ -220,6 +235,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		HookFunction(hk_Unpack,(DWORD)bservUnpack);
 	    HookFunction(hk_Input,(DWORD)bservKeyboardProc);
 	    		
+		HookFunction(hk_BeginUniSelect, (DWORD)bservBeginUniSelect);
 	    HookFunction(hk_DrawKitSelectInfo,(DWORD)DrawBallLabel);
 	    HookFunction(hk_OnShowMenu,(DWORD)BeginDrawBallLabel);
 	    HookFunction(hk_OnHideMenu,(DWORD)EndDrawBallLabel);
@@ -234,6 +250,8 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		//save settings
         char ballCfg[BUFLEN];
 		bserv_cfg.selectedBall=selectedBall;
+        bserv_cfg.homeTeamChoice = g_homeTeamChoice;
+        bserv_cfg.autoRandomMode = autoRandomMode;
 	    ZeroMemory(ballCfg, BUFLEN);
 	    sprintf(ballCfg, "%s\\bserv.dat", GetPESInfo()->mydir);
 	    FILE* f = fopen(ballCfg, "wb");
@@ -266,6 +284,9 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		
 		FreeBallTextureBuf(&ballTextureBuf);
 		FreeBalls();
+
+		g_BallIdMap.clear();
+		g_HomeBallMap.clear();
 		
 		Log(&k_bserv,"Detaching done.");
 	};
@@ -287,8 +308,11 @@ void InitBserv()
     if (f) {
         fread(&bserv_cfg, sizeof(BSERV_CFG), 1, f);
         fclose(f);
+        g_homeTeamChoice = bserv_cfg.homeTeamChoice;
+        autoRandomMode = bserv_cfg.autoRandomMode;
     } else {
         bserv_cfg.selectedBall=-1;
+        g_userChoice = false;
     };
     LOG(&k_bserv, "selected ball: %d", bserv_cfg.selectedBall);
 
@@ -538,9 +562,69 @@ void ReadBalls()
 			AddBall(sdisplay,smodel,stexture);
 	};
 	fclose(cfg);
+
+	//home map
+	
+    char mapFile[BUFLEN];
+    ZeroMemory(mapFile,BUFLEN);
+
+    sprintf(mapFile, "%sGDB\\balls\\home_map.txt", GetPESInfo()->gdbDir);
+    FILE* map = fopen(mapFile, "rt");
+    if (map == NULL) {
+        LOG(&k_bserv, "Unable to find home-ball-map: %s", mapFile);
+        return;
+    }
+
+	// go line by line
+    char buf[BUFLEN];
+	while (!feof(map))
+	{
+		ZeroMemory(buf, BUFLEN);
+		fgets(buf, BUFLEN, map);
+		if (lstrlen(buf) == 0) break;
+
+		// strip off comments
+		char* comm = strstr(buf, "#");
+		if (comm != NULL) comm[0] = '\0';
+
+        // find team id
+        WORD teamId = 0xffff;
+        if (sscanf(buf, "%d", &teamId)==1) {
+            LogWithNumber(&k_bserv, "teamId = %d", teamId);
+            char* ballname = NULL;
+            // look for comma
+            char* pComma = strstr(buf,",");
+            if (pComma) {
+                // what follows is the filename.
+                // It can be contained within double quotes, so 
+                // strip those off, if found.
+                char* start = NULL;
+                char* end = NULL;
+                start = strstr(pComma + 1,"\"");
+                if (start) end = strstr(start + 1,"\"");
+                if (start && end) {
+                    // take what inside the quotes
+                    end[0]='\0';
+                    ballname = start + 1;
+                } else {
+                    // just take the rest of the line
+                    ballname = pComma + 1;
+                }
+
+                LOG(&k_bserv, "ballname = {%s}", ballname);
+
+                // store in the home-ball map
+                if (MAP_CONTAINS(g_BallIdMap, ballname)) {
+                	g_HomeBallMap[teamId] = g_BallIdMap[ballname];
+                }
+            }
+        }
+    }
+    fclose(map);
 	
 	return;
 };
+
 
 void AddBall(LPTSTR sdisplay,LPTSTR smodel,LPTSTR stexture)
 {
@@ -557,6 +641,8 @@ void AddBall(LPTSTR sdisplay,LPTSTR smodel,LPTSTR stexture)
 	
 	balls[numBalls].texture=new char [strlen(stexture)+1];
 	strcpy(balls[numBalls].texture,stexture);
+
+	g_BallIdMap[sdisplay]=numBalls;
 
 	numBalls++;
 	return;
@@ -613,24 +699,69 @@ void bservKeyboardProc(int code1, WPARAM wParam, LPARAM lParam)
 	if ((code1==HC_ACTION) && (lParam & 0x80000000)) {
 		if (wParam == bserv_cfg.keyNextBall) {
 			SetBall(selectedBall+1);
+			g_homeTeamChoice = false;
+			g_userChoice = true;
 		} else if (wParam == bserv_cfg.keyPrevBall) {
 			if (selectedBall<0)
 				SetBall(numBalls-1);
 			else
 				SetBall(selectedBall-1);
+			g_homeTeamChoice = false;
+			g_userChoice = true;
 		} else if (wParam == bserv_cfg.keyResetBall) {
 			SetBall(-1);
+			if (!autoRandomMode && g_homeTeamChoice) {
+        		autoRandomMode = true;
+        		g_homeTeamChoice = false;
+        		g_userChoice = true;
+	            
+        	} else {
+	        	if (g_userChoice) g_homeTeamChoice = true;
+				SetBall(-1);
+				g_homeTeamChoice = !g_homeTeamChoice;
+				updateHomeBall();
+				g_userChoice = false;
+				autoRandomMode = false;
+			}
+			
+			if (autoRandomMode || noHomeBall) {
+				LARGE_INTEGER num;
+				QueryPerformanceCounter(&num);
+				int iterations = num.LowPart % MAX_ITERATIONS;
+				for (int j=0;j<iterations;j++) {
+					SetBall(selectedBall+1);
+		        }
+			}
+
 		} else if (wParam == bserv_cfg.keyRandomBall) {
 			LARGE_INTEGER num;
 			QueryPerformanceCounter(&num);
 			int iterations = num.LowPart % MAX_ITERATIONS;
 			for (int j=0;j<iterations;j++)
 				SetBall(selectedBall+1);
-		};
-	};
+
+			g_homeTeamChoice = false;
+			g_userChoice = true;
+		}
+	}
 	
 	return;
 };
+
+void bservBeginUniSelect()
+{
+	updateHomeBall();
+	
+	if (autoRandomMode || noHomeBall) {
+		LARGE_INTEGER num;
+		QueryPerformanceCounter(&num);
+		int iterations = num.LowPart % MAX_ITERATIONS;
+		for (int j=0;j<iterations;j++) {
+			SetBall(selectedBall+1);
+        }
+	}
+	return;
+}
 
 void BeginDrawBallLabel()
 {
@@ -655,7 +786,17 @@ void DrawBallLabel(IDirect3DDevice8* self)
 	
 	if (selectedBall<0)
 		color = 0xffc0c0c0; // gray if ball is game choice
-	
+		
+	if (autoRandomMode)
+		color = 0xffaad0ff; // light blue for randomly selected ball
+		
+	if (g_homeTeamChoice) {
+		if (noHomeBall)
+			color = 0xffffaa00; // orange for home-choice, but team has no ball
+		else
+			color = 0xffffffb0; // pale yellow if ball is home-team choice
+	}
+		
 	UINT g_bbWidth=GetPESInfo()->bbWidth;
 	UINT g_bbHeight=GetPESInfo()->bbHeight;
 	double stretchX=GetPESInfo()->stretchX;
@@ -663,8 +804,8 @@ void DrawBallLabel(IDirect3DDevice8* self)
 	
 	KGetTextExtent(display,16,&size);
 	//draw shadow
-	if (selectedBall>=0)
-		KDrawText((g_bbWidth-size.cx)/2+3*stretchX,g_bbHeight*0.75+3*stretchY,0xff000000,16,display,true);
+	if (selectedBall>=0 || g_homeTeamChoice || autoRandomMode)
+		KDrawText((g_bbWidth-size.cx)/2+2*stretchX,g_bbHeight*0.75+2*stretchY,0xff000000,16,display,true);
 	//print ball label
 	KDrawText((g_bbWidth-size.cx)/2,g_bbHeight*0.75,color,16,display,true);
 
@@ -1409,4 +1550,44 @@ DWORD SetBallName(char** names, DWORD numNames, DWORD p3, DWORD p4, DWORD p5, DW
 	
 	return MasterCallNext(names,numNames,p3,p4,p5,p6,p7);
 };
-	
+
+WORD GetTeamId(int which)
+{
+    BYTE* mlData;
+    if (data[TEAM_IDS]==0) return 0xffff;
+    WORD id = ((WORD*)data[TEAM_IDS])[which];
+    if (id==0xf2 || id==0xf3) {
+        switch (id) {
+            case 0xf2:
+                // master league team (home)
+                mlData = *((BYTE**)data[ML_HOME_AREA]);
+                id = *((DWORD*)(mlData + 0x6c)) & 0xffff; // 3rd byte is a flag of "edited" kit
+                break;
+            case 0xf3:
+                // master league team (away)
+                mlData = *((BYTE**)data[ML_AWAY_AREA]);
+                id = *((DWORD*)(mlData + 0x6c)) & 0xffff; // 3rd byte is a flag of "edited" kit
+                break;
+        }
+    }
+    return id;
+}
+
+void updateHomeBall()
+{
+	if (g_homeTeamChoice) {
+        WORD teamId = GetTeamId(HOME);
+        std::map<WORD,int>::iterator hit = g_HomeBallMap.find(teamId);
+        if (hit !=  g_HomeBallMap.end()) {
+            SetBall(hit->second);
+            noHomeBall = false;
+
+        } else {
+        	noHomeBall = true;
+            return;
+        }
+    } else {
+    	noHomeBall = false;
+    }
+    return;
+}
