@@ -18,3 +18,4 @@ Makefile text
 *.lib binary
 *.exe binary
 *.pal binary
+*.bin binary

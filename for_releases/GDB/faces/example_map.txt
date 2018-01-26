@@ -1,0 +1,10 @@
+# Example map file
+# You real map must be named: map.txt
+#
+# Format: 
+# <id>,"relative\path\to\bin\file"
+#
+##########################################
+
+2934,"Juventus\Del Piero.bin"
+

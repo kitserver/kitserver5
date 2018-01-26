@@ -29,6 +29,12 @@
         a.imglink:hover { background-color:#fff;}
         a.imglink img { display:inline; }
         div.hist {color:#888;float:right;}
+        td.mgc {color:#c0c0c0;}
+        td.msel {color:#ffffff;}
+        td.mhome {color:#ffffb0;}
+        td.mhomemiss {color:#ffaa00;}
+        td.mar {color:#aad0ff;}
+        td.left {background-color:#343; font-weight:bold; white-space:nowrap; }
     </style>
 </head>
 <body>
@@ -37,11 +43,11 @@ Version history: <a href="history.txt">history.txt</a><br />
 </div>
 <h2>Kitserver 5.5 Manual</h2>
 <div>
-January 10, 2018<br />
+January 25, 2018<br />
 Module Versions: 
-<a href="#kitserver">Kserv 5.5.8</a>,
-<a href="#ballserver">BallServer: 5.5.8</a>,
-<a href="#faceserver">Faceserver: 5.3.2</a>, 
+<a href="#kitserver">Kserv 5.5.9</a>,
+<a href="#ballserver">BallServer: 5.5.9</a>,
+<a href="#faceserver">Faceserver: 5.5.2</a>, 
 <a href="#stadiumserver">Stadium Server: 5.5.6</a>,
 <a href="#lodmixer">LOD Mixer: 5.5.0</a>,
 <a href="#bootserver">Bootserver 5.5.9</a>,
@@ -528,6 +534,8 @@ With version 5.2.3 you have now a real 3D preview how the ball will looks ingame
 <li><b>Support for different texture sizes.</b><br />
 You can use 256x256, 512x512 and even 1024x1024 pixel textures, saved in either 
 BMP or PNG format. The size is auto-detected, so there's no need  to configure it.</li>
+<li><b>Assignment of a "home ball" for each team.</b><br />
+You can tell Ballserver to automatically select a specific ball if you play with team.</li>
 </p>
 
 <h3>3.2 GDB configuration</h3>
@@ -569,7 +577,34 @@ each model file only once. In general, models are independent from the texture s
 texture should work with a 512x512 texture as well. If you're unsure, just try it with different models.
 </p>
 
-<h3>3.3 Ball selection</h3>
+<h3>3.3 Home ball assignment</h3>
+
+<p>
+With help of the <b>home_map.txt</b>, you can assign a "home ball" to each team. This means that
+if Ballserver is in the "home ball" mode (see section 3.4 for information on selecting this mode)
+and you select that team as home team, the "home ball" will automatically be chosen. If you are
+in the "home ball" mode but the home team has no ball assigned, a random ball will be chosen instead.
+Here is a simple map.txt, with 2 teams having home balls associated with them:</p>
+
+<pre>
+# Ball Server home ball map file
+# --------------------------------------------------------------
+# This config maps team number into its home ball name
+# Please note: the ball name is the first parameter in map.txt
+# Format: &lt;team-num&gt;,"&lt;ball name&gt;"
+# Example: 8,"adidas Teamgeist Blue"
+
+8,"adidas Teamgeist Blue"
+125,"Adidas Teamgeist FC Bayern M&uuml;nchen White/Red"
+
+</pre>
+<p>Please also look at the format explanations in the first lines, they help you to configure the
+home map correctly.</p>
+
+<div class="note">IMPORTANT: Double quotes are required - just so that there is no ambiguity about 
+ball name. For IDs for all the teams - see <a href="uni.txt">uni.txt</a> file</div>
+
+<h3>3.4 Ball selection</h3>
 <p>
 Start the game just as usual. When you come to Strip Selection, you will see a new text under the mini-kits saying 
 <b>"Ball: game choice"</b> by default. In this case, you will recognize no change when playing as the ball you selected in 
@@ -588,7 +623,40 @@ say "Ball selection" then.
 
 </p>
 
-<h3>3.4 Ballserver configuration file (bserv.cfg)</h3>
+<h4>Selection modes</h4>
+<p>
+There are two special modes how the ball is selected. You can switch between these using
+<a class="ac" href="#ac_reset">Reset</a> multiple times. You can see which mode is currently
+selected at the color of the ball name: </p>
+<table>
+    <tr><th>The color you see</th><th>Meaning</th></tr>
+    <tr>
+        <td class="left mgc">Ball: game choice</td>
+        <td>The ball selected in the game options will be used.</td>
+    </tr>
+    <tr>
+        <td class="left msel">Ball: Nike T90 Omni LFP White-Blue</td>
+        <td>Always play with this ball (normal mode).</td>
+    </tr>
+	<tr>
+        <td class="left mhome">Ball: Ordem EPL</td>
+        <td>Home ball mode for a team with home ball assigned. If you play the next match
+        with another home team, the ball will automatically change to that team's home ball.</td>
+    </tr>
+    <tr>
+        <td class="left mhomemiss">Ball: Ordem EPL (Winter)</td>
+        <td>Home ball mode too, but for a team without home ball. In that case, a random ball
+        will be chosen. However, the home ball mode is still active, so if you next team has
+        a home ball, that one will be used.</td>
+    </tr>
+    <tr>
+        <td class="left mar">Ball: Adidas Champions League</td>
+        <td>Auto-random mode: For each match, a random ball is chosen.</td>
+    </tr>
+</table>
+
+
+<h3>3.5 Ballserver configuration file (bserv.cfg)</h3>
 
 <pre>
 # Ball server configuration file
@@ -677,6 +745,48 @@ everything right, you will see it in edit mode at the same place as the face fil
 please check first if this is the reason before posting in the forums.
 </div>
 
+
+<h3>4.3 HD faces and hair</h3>
+
+<p>Since Faceserver version 5.5.2, new experimental feature exists: HD (High-Definition) support
+for faces and hair. It is not very well tested yet, but appears to work fine.</p>
+
+<p>Standard faces use textures of two sizes: 64x128 and 32x64 pixels. Those two textures share the
+same palette and are inside the BIN file that also contains a 3D-model of the face. If you have
+an original texture that has a bigger size - say, for example, 256x512 or 512x1024 - you can include
+it as a "companion" PNG file, and faceserver will try to use it. The PNG file must be named the same
+way as your BIN file, except the file extension should be ".png". It should be placed into the same
+folder, where the BIN is.</p>
+
+<p>For example, let's assume you have the following entry in your <b>GDB\faces\map.txt</b>:</p>
+<pre>
+
+2934,"Juventus\Del Piero.bin"
+
+</pre>
+
+<p>Then, your high-resolution PNG with the face texture must be: <b>
+<span style="color:#484">GDB\faces\Juventus\Del Piero.png</span></b><br />
+There is no need to modify the map.txt: faceserver will automatically check for presense of the 
+PNG file.</p>
+
+<p>Format of the HD face image is also flexible: it can be 8-bit paletted PNG or 32-bit RGBA with alpha
+channel - it's your choice.</p>
+
+<div class="note">Please note, that the textures inside the BIN file must still be of standard
+size (64x128 and 32x64). If you try to put bigger textures in there - it will not work the way you
+might expect. Instead the face rendering will be broken</div>
+
+<p>HD hair works in a very similar way: in the hair BIN, there are two standard size textures:
+128x64 and 64x32 pixels. The BIN also contains 3D model for the hair. Again, we don't modify the
+textures in the BIN, but instead put a companion PNG file with high-definition hair image. Faceserver
+will automatically check for presence of PNG file with the same name as hair BIN, and if present, the
+HD image will be used to hair texture.</p>
+
+<img src="del-piero-hd.png"/>
+
+<p>Alessandro Del Piero with HD face (but standard non-HD hair) by <b>anffs</b>.<br />
+(Screenshot made from WE9 LE with <a href="#intres">internal resolution</a> set to 2880x1800)</p>
 
 
 <!-- ### STADIUM SERVER ### -->
@@ -1310,6 +1420,7 @@ default; to enable, remove the comment sign ('#') at the begining of those two l
 sure you specify resolution that your monitor supports.</i>
 </p>
 
+<a name="intres"> </a>
 <h4>Game's internal resolution modifiers</h4>
 
 <p>
@@ -1355,13 +1466,15 @@ Right away, you will notice how crappy the game looks ;-)
 <p>
 Programming: <b>juce</b>, <b>Robbie</b><br />
 Game reversing and analysis: <b>juce</b>, <b>Robbie</b>, <b>Kingsley813</b><br />
-Testing: <b>biker_jim_uk, ntalex, Gwidon, nt89, galagan, Vladis LOVE</b><br />
+Testing: <b>biker_jim_uk, ntalex, Gwidon, nt89, galagan, Vladis LOVE</b> and many others
+from Evo-Web and PesWe forums<br />
 Stadium Server GDB organization and "home team stadium" idea: <b>Gwidon</b><br />
 Information about stadiums in AFS: <b>nt89</b><br />
 Kits: <b>Spark, kel, qiankun</b>.<br />
 Balls: <b>DAMned</b>.<br />
 Ball models: <b>Ariel, Gwidon</b>.<br />
 Face: <b>Chris79</b>.<br />
+HD Face: <b>anffs</b>.<br />
 "Saturn Ramenskoye" stadium: <b>Asiat</b><br />
 "Santiago Bernabeu" stadium: <b>Gwidon</b><br /></p>
 <p>

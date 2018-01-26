@@ -2,6 +2,15 @@ Kitserver 5 HISTORY notes
 =========================
 
 
+2018-01-25
+----------
+v5.5.9
+- fserv: HD faces and hair
+- kserv: exact radar.color (from config.txt) is enforced for in-game radar
+- bserv: added support for home ball and auto-randome mode (as in ks6)
+- kload: fixed bug which led to problems with looped ADX sound tracks
+
+
 2018-01-10
 ----------
 v5.5.8
