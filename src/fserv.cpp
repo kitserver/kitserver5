@@ -4,8 +4,10 @@
 #include "fserv.h"
 #include "fserv_config.h"
 #include "kload_exp.h"
+#include "crc32.h"
 
 #include <map>
+#include <queue>
 
 KMOD k_fserv={MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG};
 
@@ -63,17 +65,22 @@ bool lastWasFromGDB=false, lastHairWasFromGDB=false, hasChanged=true;
 char lastPlayerNumberString[BUFLEN],lastFaceFileString[BUFLEN];
 char lastHairFileString[BUFLEN];
 
-string g_lastFaceFile("");
-int g_faceLoadingSequence = 0;
+typedef struct _TEX_SRC {
+    DWORD crc;
+    string filename;
+} TEX_SRC;
+
+std::queue<string> g_faceFilesBig;
+std::queue<string> g_faceFilesSmall;
 std::map<IDirect3DTexture8*,string> g_BigFaceTextures;
 std::map<IDirect3DTexture8*,string> g_SmallFaceTextures;
-std::map<DWORD,string> g_FaceSources;
+std::map<DWORD,TEX_SRC> g_FaceSources;
 
-string g_lastHairFile("");
-int g_hairLoadingSequence = 0;
+std::queue<string> g_hairFilesBig;
+std::queue<string> g_hairFilesSmall;
 std::map<IDirect3DTexture8*,string> g_BigHairTextures;
 std::map<IDirect3DTexture8*,string> g_SmallHairTextures;
-std::map<DWORD,string> g_HairSources;
+std::map<DWORD,TEX_SRC> g_HairSources;
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
 void InitFserv();
@@ -176,11 +183,13 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
 
     // faces
     if (width == 64 && height == 128 && levels == 1) {
-        if (g_faceLoadingSequence == 1 && g_lastFaceFile.size()>0) {
-            //LOG(&k_fserv, ">>> Looks like a big face texture (%dx%dx%d): %08x (src=%08x)",
-            //    width, height, levels, (DWORD)*ppTexture, src);
+        if (g_faceFilesBig.size()>0) {
+            string filename = g_faceFilesBig.front();
+            g_faceFilesBig.pop();
+            LOG(&k_fserv, ">>> Looks like a big face texture (%dx%dx%d): src=%08x",
+                width, height, levels, src);
 
-            string hdfilename = g_lastFaceFile.substr(0,g_lastFaceFile.size()-4);
+            string hdfilename = filename.substr(0,filename.size()-4);
             hdfilename += ".png";
             ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
             if (SUCCEEDED(D3DXGetImageInfoFromFile(hdfilename.c_str(), &ii))) {
@@ -192,40 +201,48 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                     LOG(&k_fserv, "Created big HD face texture: (%dx%d)", w, h);
                     *IsProcessed = true;
                     g_BigFaceTextures[*ppTexture] = hdfilename;
-                    g_FaceSources[src] = hdfilename;
+                    TEX_SRC tsrc;
+                    tsrc.crc = GetCRC((unsigned char*)src, width*height);
+                    tsrc.filename = hdfilename;
+                    g_FaceSources[src] = tsrc;
                 }
             }
-            g_faceLoadingSequence = 2;
         }
         else {
-            std::map<DWORD,string>::iterator it = g_FaceSources.find(src);
+            std::map<DWORD,TEX_SRC>::iterator it = g_FaceSources.find(src);
             if (it != g_FaceSources.end()) {
-                LOG(&k_fserv, "Big tex from already seen source: src=%08x", src);
-                ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
-                if (SUCCEEDED(D3DXGetImageInfoFromFile(it->second.c_str(), &ii))) {
-                    LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, it->second.c_str());
-                    UINT w,h;
-                    SetFaceDimensions(&ii, w, h);
-                    res = OrgCreateTexture(self, w, h, levels, usage, format, pool, ppTexture);
-                    if (res == D3D_OK) {
-                        LOG(&k_fserv, "Created big HD face texture: (%dx%d)", w, h);
-                        *IsProcessed = true;
-                        g_BigFaceTextures[*ppTexture] = it->second;
-                        g_FaceSources[src] = it->second;
+                DWORD crc = GetCRC((unsigned char*)src, width*height);
+                LOG(&k_fserv, "crc check: %08x vs %08x", crc, it->second.crc);
+                if (crc == it->second.crc) {
+                    LOG(&k_fserv, "Big tex from already seen source: src=%08x", src);
+                    ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
+                    if (SUCCEEDED(D3DXGetImageInfoFromFile(it->second.filename.c_str(), &ii))) {
+                        LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, it->second.filename.c_str());
+                        UINT w,h;
+                        SetFaceDimensions(&ii, w, h);
+                        res = OrgCreateTexture(self, w, h, levels, usage, format, pool, ppTexture);
+                        if (res == D3D_OK) {
+                            LOG(&k_fserv, "Created big HD face texture: (%dx%d)", w, h);
+                            *IsProcessed = true;
+                            g_BigFaceTextures[*ppTexture] = it->second.filename;
+                        }
                     }
                 }
-
-                // exp: remove from sources
-                g_FaceSources.erase(it);
+                else {
+                    LOG(&k_fserv, "CRC check mismatch: buffer must have been re-used");
+                    g_FaceSources.erase(it);
+                }
             }
         }
     }
     else if (width == 32 && height == 64 && levels == 1) {
-        if (g_faceLoadingSequence == 2 && g_lastFaceFile.size()>0) {
-            //LOG(&k_fserv, ">>> Looks like a small face texture (%dx%dx%d): %08x (src=%08x)",
-            //    width, height, levels, (DWORD)*ppTexture, src);
+        if (g_faceFilesSmall.size()>0) {
+            string filename = g_faceFilesSmall.front();
+            g_faceFilesSmall.pop();
+            LOG(&k_fserv, ">>> Looks like a small face texture (%dx%dx%d): src=%08x",
+                width, height, levels, src);
 
-            string hdfilename = g_lastFaceFile.substr(0,g_lastFaceFile.size()-4);
+            string hdfilename = filename.substr(0,filename.size()-4);
             hdfilename += ".png";
             ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
             if (SUCCEEDED(D3DXGetImageInfoFromFile(hdfilename.c_str(), &ii))) {
@@ -237,28 +254,35 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                     LOG(&k_fserv, "Created small HD face texture: (%dx%d)", w/2, h/2);
                     *IsProcessed = true;
                     g_SmallFaceTextures[*ppTexture] = hdfilename;
-                    g_FaceSources[src] = hdfilename;
+                    TEX_SRC tsrc;
+                    tsrc.crc = GetCRC((unsigned char*)src, width*height);
+                    tsrc.filename = hdfilename;
+                    g_FaceSources[src] = tsrc;
                 }
             }
-            g_faceLoadingSequence = 0;
-            g_lastFaceFile = "";
         }
         else {
-            std::map<DWORD,string>::iterator it = g_FaceSources.find(src);
+            std::map<DWORD,TEX_SRC>::iterator it = g_FaceSources.find(src);
             if (it != g_FaceSources.end()) {
-                LOG(&k_fserv, "Small tex from already seen source: src=%08x", src);
-                ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
-                if (SUCCEEDED(D3DXGetImageInfoFromFile(it->second.c_str(), &ii))) {
-                    LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, it->second.c_str());
-                    UINT w,h;
-                    SetFaceDimensions(&ii, w, h);
-                    res = OrgCreateTexture(self, w/2, h/2, levels, usage, format, pool, ppTexture);
-                    if (res == D3D_OK) {
-                        LOG(&k_fserv, "Created small HD face texture: (%dx%d)", w/2, h/2);
-                        *IsProcessed = true;
-                        g_SmallFaceTextures[*ppTexture] = it->second;
-                        g_FaceSources[src] = it->second;
+                DWORD crc = GetCRC((unsigned char*)src, width*height);
+                if (crc == it->second.crc) {
+                    LOG(&k_fserv, "Small tex from already seen source: src=%08x", src);
+                    ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
+                    if (SUCCEEDED(D3DXGetImageInfoFromFile(it->second.filename.c_str(), &ii))) {
+                        LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, it->second.filename.c_str());
+                        UINT w,h;
+                        SetFaceDimensions(&ii, w, h);
+                        res = OrgCreateTexture(self, w/2, h/2, levels, usage, format, pool, ppTexture);
+                        if (res == D3D_OK) {
+                            LOG(&k_fserv, "Created small HD face texture: (%dx%d)", w/2, h/2);
+                            *IsProcessed = true;
+                            g_SmallFaceTextures[*ppTexture] = it->second.filename;
+                        }
                     }
+                }
+                else {
+                    LOG(&k_fserv, "CRC check mismatch: buffer must have been re-used");
+                    g_FaceSources.erase(it);
                 }
             }
         }
@@ -266,9 +290,13 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
 
     // hair
     if (width == 128 && height == 64 && levels == 1) {
-        if (g_hairLoadingSequence == 1 && g_lastHairFile.size()>0) {
+        if (g_hairFilesBig.size() > 0) {
+            string filename = g_hairFilesBig.front();
+            g_hairFilesBig.pop();
+            LOG(&k_fserv, ">>> Looks like a big hair texture (%dx%dx%d): src=%08x",
+                width, height, levels, src);
 
-            string hdfilename = g_lastHairFile.substr(0,g_lastHairFile.size()-4);
+            string hdfilename = filename.substr(0,filename.size()-4);
             hdfilename += ".png";
             ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
             if (SUCCEEDED(D3DXGetImageInfoFromFile(hdfilename.c_str(), &ii))) {
@@ -280,40 +308,47 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                     LOG(&k_fserv, "Created big HD hair texture: (%dx%d)", w, h);
                     *IsProcessed = true;
                     g_BigHairTextures[*ppTexture] = hdfilename;
-                    g_HairSources[src] = hdfilename;
+                    TEX_SRC tsrc;
+                    tsrc.crc = GetCRC((unsigned char*)src, width*height);
+                    tsrc.filename = hdfilename;
+                    g_HairSources[src] = tsrc;
                 }
             }
-            g_hairLoadingSequence = 2;
         }
         else {
-            std::map<DWORD,string>::iterator it = g_HairSources.find(src);
+            std::map<DWORD,TEX_SRC>::iterator it = g_HairSources.find(src);
             if (it != g_HairSources.end()) {
-                LOG(&k_fserv, "Big tex from already seen source: src=%08x", src);
-                ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
-                if (SUCCEEDED(D3DXGetImageInfoFromFile(it->second.c_str(), &ii))) {
-                    LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, it->second.c_str());
-                    UINT w,h;
-                    SetHairDimensions(&ii, w, h);
-                    res = OrgCreateTexture(self, w, h, levels, usage, format, pool, ppTexture);
-                    if (res == D3D_OK) {
-                        LOG(&k_fserv, "Created big HD hair texture: (%dx%d)", w, h);
-                        *IsProcessed = true;
-                        g_BigHairTextures[*ppTexture] = it->second;
-                        g_HairSources[src] = it->second;
+                DWORD crc = GetCRC((unsigned char*)src, width*height);
+                if (crc == it->second.crc) {
+                    LOG(&k_fserv, "Big tex from already seen source: src=%08x", src);
+                    ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
+                    if (SUCCEEDED(D3DXGetImageInfoFromFile(it->second.filename.c_str(), &ii))) {
+                        LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, it->second.filename.c_str());
+                        UINT w,h;
+                        SetHairDimensions(&ii, w, h);
+                        res = OrgCreateTexture(self, w, h, levels, usage, format, pool, ppTexture);
+                        if (res == D3D_OK) {
+                            LOG(&k_fserv, "Created big HD hair texture: (%dx%d)", w, h);
+                            *IsProcessed = true;
+                            g_BigHairTextures[*ppTexture] = it->second.filename;
+                        }
                     }
                 }
-
-                // exp: remove from sources
-                g_HairSources.erase(it);
+                else {
+                    LOG(&k_fserv, "CRC check mismatch: buffer must have been re-used");
+                    g_HairSources.erase(it);
+                }
             }
         }
     }
     else if (width == 64 && height == 32 && levels == 1) {
-        if (g_hairLoadingSequence == 2 && g_lastHairFile.size()>0) {
-            //LOG(&k_fserv, ">>> Looks like a small face texture (%dx%dx%d): %08x (src=%08x)",
-            //    width, height, levels, (DWORD)*ppTexture, src);
+        if (g_hairFilesSmall.size()>0) {
+            string filename = g_hairFilesSmall.front();
+            g_hairFilesSmall.pop();
+            LOG(&k_fserv, ">>> Looks like a small hair texture (%dx%dx%d): src=%08x",
+                width, height, levels, src);
 
-            string hdfilename = g_lastHairFile.substr(0,g_lastHairFile.size()-4);
+            string hdfilename = filename.substr(0,filename.size()-4);
             hdfilename += ".png";
             ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
             if (SUCCEEDED(D3DXGetImageInfoFromFile(hdfilename.c_str(), &ii))) {
@@ -325,28 +360,35 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                     LOG(&k_fserv, "Created small HD hair texture: (%dx%d)", w/2, h/2);
                     *IsProcessed = true;
                     g_SmallHairTextures[*ppTexture] = hdfilename;
-                    g_HairSources[src] = hdfilename;
+                    TEX_SRC tsrc;
+                    tsrc.crc = GetCRC((unsigned char*)src, width*height);
+                    tsrc.filename = hdfilename;
+                    g_HairSources[src] = tsrc;
                 }
             }
-            g_hairLoadingSequence = 0;
-            g_lastHairFile = "";
         }
         else {
-            std::map<DWORD,string>::iterator it = g_HairSources.find(src);
+            std::map<DWORD,TEX_SRC>::iterator it = g_HairSources.find(src);
             if (it != g_HairSources.end()) {
-                LOG(&k_fserv, "Small tex from already seen source: src=%08x", src);
-                ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
-                if (SUCCEEDED(D3DXGetImageInfoFromFile(it->second.c_str(), &ii))) {
-                    LOG(&k_fserv, "HD hair exists: (%dx%d) %s", ii.Width, ii.Height, it->second.c_str());
-                    UINT w,h;
-                    SetHairDimensions(&ii, w, h);
-                    res = OrgCreateTexture(self, w/2, h/2, levels, usage, format, pool, ppTexture);
-                    if (res == D3D_OK) {
-                        LOG(&k_fserv, "Created small HD hair texture: (%dx%d)", w/2, h/2);
-                        *IsProcessed = true;
-                        g_SmallHairTextures[*ppTexture] = it->second;
-                        g_HairSources[src] = it->second;
+                DWORD crc = GetCRC((unsigned char*)src, width*height);
+                if (crc == it->second.crc) {
+                    LOG(&k_fserv, "Small tex from already seen source: src=%08x", src);
+                    ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
+                    if (SUCCEEDED(D3DXGetImageInfoFromFile(it->second.filename.c_str(), &ii))) {
+                        LOG(&k_fserv, "HD hair exists: (%dx%d) %s", ii.Width, ii.Height, it->second.filename.c_str());
+                        UINT w,h;
+                        SetHairDimensions(&ii, w, h);
+                        res = OrgCreateTexture(self, w/2, h/2, levels, usage, format, pool, ppTexture);
+                        if (res == D3D_OK) {
+                            LOG(&k_fserv, "Created small HD hair texture: (%dx%d)", w/2, h/2);
+                            *IsProcessed = true;
+                            g_SmallHairTextures[*ppTexture] = it->second.filename;
+                        }
                     }
+                }
+                else {
+                    LOG(&k_fserv, "CRC check mismatch: buffer must have been re-used");
+                    g_HairSources.erase(it);
                 }
             }
         }
@@ -1104,8 +1146,8 @@ void fservFileFromAFS(DWORD infoBlock)
 		if (g_Faces[FaceID]!=NULL) {
             //strcat(filename,g_Faces[Skincolor][FaceID]);
             strcat(filename,g_Faces[FaceID]);
-            g_lastFaceFile = filename;
-            g_faceLoadingSequence = 1;
+            g_faceFilesBig.push(filename);
+            g_faceFilesSmall.push(filename);
         } else {
 			Log(&k_fserv,"FAILED! No file is assigned to this parameter combination!");
 			goto Processed;
@@ -1123,8 +1165,8 @@ void fservFileFromAFS(DWORD infoBlock)
 		strcat(filename,"GDB\\hair\\");
 		if (g_Hair[HairID]!=NULL) {
             strcat(filename,g_Hair[HairID]);
-            g_lastHairFile = filename;
-            g_hairLoadingSequence = 1;
+            g_hairFilesBig.push(filename);
+            g_hairFilesSmall.push(filename);
         } else {
 			Log(&k_fserv,"FAILED! No file is assigned to this parameter combination!");
 			goto Processed;
