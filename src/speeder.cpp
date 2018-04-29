@@ -18,6 +18,8 @@
 #define round(x) ((abs((x)-(int)(x))<0.5)?(int)(x):(int)((x)+1))
 
 #define FLOAT_ZERO 0.0001f
+#define MFACTOR 10000
+#define HMFACTOR 5000
 #define DBG(x) {if (k_speed.debug) x;}
 #define BUFLEN 1024
 
@@ -31,7 +33,8 @@ class config_t
 {
 public:
     config_t() : count_factor(0.9), debug(false) {}
-    float count_factor;
+    double count_factor;
+    DWORD factor;
     bool debug;
 };
 
@@ -43,6 +46,9 @@ bool readConfig(config_t& config);
 
 KEXPORT BOOL WINAPI Override_QueryPerformanceFrequency(
         LARGE_INTEGER *lpPerformanceFrequency);
+KEXPORT BOOL WINAPI Override_QueryPerformanceCounter(
+        LARGE_INTEGER *lpPerformanceCounter);
+KEXPORT DWORD WINAPI Override_GetTickCount(void);
 
 
 /*******************/
@@ -70,23 +76,28 @@ void initModule()
 	UnhookFunction(hk_D3D_Create, (DWORD)initModule);
 
     // read configuration
+    ZeroMemory(&_speeder_config, sizeof(_speeder_config));
     readConfig(_speeder_config);
 
-    if (_speeder_config.count_factor >= 0.0001)
+    if (_speeder_config.factor > 0)
     {
        SDLLHook Kernel32Hook = 
        {
           "KERNEL32.DLL",
           false, NULL,		// Default hook disabled, NULL function pointer.
           {
-              { "QueryPerformanceFrequency", 
-                  Override_QueryPerformanceFrequency },
+              //{ "QueryPerformanceFrequency",
+              //    Override_QueryPerformanceFrequency },
+              { "QueryPerformanceCounter",
+                  Override_QueryPerformanceCounter },
+              //{ "GetTickCount",
+              //    Override_GetTickCount },
               { NULL, NULL }
           }
        };
        HookAPICalls( &Kernel32Hook );
     }
-    LogWithDouble(&k_speed, "count.factor = %0.2f", 
+    LogWithDouble(&k_speed, "count.factor = %0.4f",
             (double)_speeder_config.count_factor);
     Log(&k_speed, "module initialized.");
 }
@@ -105,7 +116,7 @@ bool readConfig(config_t& config)
 	char str[BUFLEN];
 	char name[BUFLEN];
 	int value = 0;
-	float dvalue = 0.0f;
+	double dvalue = 0.0f;
 
 	char *pName = NULL, *pValue = NULL, *comment = NULL;
 	while (true)
@@ -137,9 +148,10 @@ bool readConfig(config_t& config)
 		}
         else if (strcmp(name, "count.factor")==0)
 		{
-            float value = 1.0;
-			if (sscanf(pValue, "%f", &value)!=1) continue;
+            double value = 1.0;
+			if (sscanf(pValue, "%lf", &value)!=1) continue;
 			config.count_factor = min(max(value,0.1),2.5);
+            config.factor = config.count_factor * MFACTOR;
 		}
 	}
 	fclose(cfg);
@@ -155,12 +167,42 @@ KEXPORT BOOL WINAPI Override_QueryPerformanceFrequency(LARGE_INTEGER *lpPerforma
     if (fabs(_speeder_config.count_factor-1.0)>FLOAT_ZERO)
     {
         LOG(&k_speed, "Changing frequency");
-        metric.HighPart /= _speeder_config.count_factor;
-        metric.LowPart /= _speeder_config.count_factor;
+        metric.QuadPart /= _speeder_config.count_factor;
     }
     LOG(&k_speed, 
             "(new) hi=%08x, lo=%08x", metric.HighPart, metric.LowPart);
     *lpPerformanceFrequency = metric;
+    return result;
+}
+
+KEXPORT BOOL WINAPI Override_QueryPerformanceCounter(LARGE_INTEGER *lpPerformanceCounter)
+{
+    LARGE_INTEGER metric;
+    LARGE_INTEGER v;
+    BOOL result = QueryPerformanceCounter(&metric);
+    //LOG(&k_speed, "(old) %lld", metric.QuadPart);
+    if (_speeder_config.factor > 0) {
+        v.QuadPart = metric.QuadPart / MFACTOR;
+        if (metric.QuadPart - v.QuadPart * MFACTOR >= HMFACTOR) {
+            v.QuadPart++;
+        }
+        metric.QuadPart = v.QuadPart * _speeder_config.factor;
+    }
+    //LOG(&k_speed, "(new) %lld", metric.QuadPart);
+    *lpPerformanceCounter = metric;
+    return result;
+}
+
+KEXPORT DWORD WINAPI Override_GetTickCount(void)
+{
+    DWORD result = GetTickCount();
+    LOG(&k_speed, "(old) %08x", result);
+    if (fabs(_speeder_config.count_factor-1.0)>FLOAT_ZERO)
+    {
+        LOG(&k_speed, "Changing tick-count");
+        result *= _speeder_config.count_factor;
+    }
+    LOG(&k_speed, "(new) %08x", result);
     return result;
 }
 
