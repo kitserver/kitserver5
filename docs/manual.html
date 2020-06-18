@@ -1,7 +1,7 @@
 <html>
 <head>
     <!-- meta -->
-    <title>KitServer 5.5 Manual</title>
+    <title>KitServer 5.6 Manual</title>
     <style>
         img { display:block;margin:10px 0 10px 0;border:1px solid #000; }
         div.note { background-color:#ffc;color:#800;padding:5px; }
@@ -41,11 +41,11 @@
 <div class="hist">
 Version history: <a href="history.txt">history.txt</a><br />
 </div>
-<h2>Kitserver 5.5 Manual</h2>
+<h2>Kitserver 5.6 Manual</h2>
 <div>
-April 22, 2018<br />
+June 18, 2020<br />
 Module Versions: 
-<a href="#kitserver">Kserv 5.5.9</a>,
+<a href="#kitserver">Kserv 5.6.1</a>,
 <a href="#ballserver">BallServer: 5.5.9</a>,
 <a href="#faceserver">Faceserver: 5.5.3</a>,
 <a href="#stadiumserver">Stadium Server: 5.5.6</a>,
@@ -478,7 +478,14 @@ white with index 255 for complete opaque. If no alpha file is found, all pixels 
 <div class="note">For now only 256 color images can be used as alpha files, but no real black-white
 images. Not the color is important, only the index.</div>
 </p>
-
+<p>New in 5.6.1 is an option to enforce the usage of "-alpha" files for images of all formats: even for
+32bit RGBA and 8bit indexed with pallette. By default, this option is disabled (set to 0), meaning original
+behaviour of using alpha information form "-alpha" files only for 24 bit images.
+To enable for all, add this line to your <b>kserv.cfg</b>
+<pre>
+alwaysUseAlphaMask = 1
+</pre>
+</p>
 
 <h4>Masks</h4>
 <img src="mask.png" />
