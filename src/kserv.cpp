@@ -3056,24 +3056,29 @@ DWORD CalculateNewKitsSize(RECT* rect)
 	return rect->right*rect->bottom*4;
 };
 
-void Convert8To32Bit(BITMAPINFO* dest,BITMAPINFO* src)
+void Convert8To32Bit(BITMAPINFO* dest,BITMAPINFO* src,BYTE* alpha)
 {
 	DWORD* destpix=(DWORD*)((DWORD)dest+sizeof(BITMAPINFOHEADER));
 	BITMAPINFOHEADER* srcbih=(BITMAPINFOHEADER*)src;
 	BYTE *srcpix=(BYTE*)((DWORD)src+sizeof(BITMAPINFOHEADER)+0x400);
-	
+	BYTE *a=alpha;
+
 	RGBQUAD* srcpal=(RGBQUAD*)&(src->bmiColors);
 	RGBQUAD* srccol;
-	
+
 	for (int x=0;x<(srcbih->biWidth);x++)
 	for (int y=0;y<(srcbih->biHeight);y++) {
 		srccol=&(srcpal[*srcpix]);
 		*destpix=srccol->rgbBlue + 
-            0x100 * srccol->rgbGreen + 
-            0x10000 * srccol->rgbRed + 
-            0x1000000 * srccol->rgbReserved;
+			0x100 * srccol->rgbGreen +
+			0x10000 * srccol->rgbRed;
+		if (alpha!=NULL)
+			*destpix += (*a)*0x1000000; // external alpha
+		else
+			*destpix += 0x1000000 * srccol->rgbReserved;
 		srcpix++;
 		destpix++;
+        a++;
 	};
 	(dest->bmiHeader).biBitCount=32;
 	//DumpData((BYTE*)dest,srcbih->biWidth*srcbih->biHeight*4+sizeof(BITMAPINFOHEADER));
@@ -3108,32 +3113,74 @@ void Convert24To32Bit(BITMAPINFO* dest,BITMAPINFO* src,BYTE* alpha)
 	return;
 };
 
+void Convert32To32Bit(BITMAPINFO* dest,BITMAPINFO* src,BYTE* alpha)
+{
+	DWORD srccol=0;
+	DWORD *destpix=(DWORD*)((DWORD)dest+sizeof(BITMAPINFOHEADER));
+	BITMAPINFOHEADER* srcbih=(BITMAPINFOHEADER*)src;
+	BYTE *srcpix=(BYTE*)((DWORD)src+sizeof(BITMAPINFOHEADER));
+	BYTE *a=alpha;
+
+	for (int x=0;x<(srcbih->biWidth);x++)
+	for (int y=0;y<(srcbih->biHeight);y++) {
+		srccol=*srcpix;
+		srcpix++;
+		srccol+=(*srcpix)*0x100;
+		srcpix++;
+		srccol+=(*srcpix)*0x10000;
+		srcpix++;
+		if (alpha!=NULL)
+			srccol+=(*a)*0x1000000; // external alpha
+		else
+			srccol+=(*srcpix)*0x1000000;
+		srcpix++;
+		*destpix=srccol;
+		a++;
+		destpix++;
+	};
+
+	(dest->bmiHeader).biBitCount=32;
+	return;
+}
+
 void CopyImageData(BYTE** dest,BITMAPINFO* src,BITMAPINFO* alphaTex)
 {
 	BITMAPINFOHEADER* bih=(BITMAPINFOHEADER*)src;
 	DWORD pixelsSize=bih->biWidth * bih->biHeight * 4;
 	
 	*dest=(BYTE*)HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,pixelsSize+sizeof(BITMAPINFOHEADER));
+
+	BYTE* alpha=NULL;
+	if (alphaTex!=NULL) {
+		alpha=(BYTE*)alphaTex+((BITMAPINFOHEADER*)alphaTex)->biSize+0x400;
+	}
 	
 	if (bih->biBitCount==32) {
-		//Copy header
-		memcpy(*dest,(BYTE*)src,sizeof(BITMAPINFOHEADER));
-		
-		//The three DWORD are not copied
-		if (bih->biCompression==BI_BITFIELDS)
-			memcpy(*dest+sizeof(BITMAPINFOHEADER),(BYTE*)src+sizeof(BITMAPINFOHEADER)+
-						3*sizeof(DWORD),pixelsSize);
-		else
-			memcpy(*dest+sizeof(BITMAPINFOHEADER),(BYTE*)src+sizeof(BITMAPINFOHEADER),pixelsSize);
-		
+		if (g_config.alwaysUseAlphaMask && alpha!=NULL) {
+			Convert32To32Bit((BITMAPINFO*)*dest,src,alpha);
+		}
+		else {
+			//Copy header
+			memcpy(*dest,(BYTE*)src,sizeof(BITMAPINFOHEADER));
+
+			//The three DWORD are not copied
+			if (bih->biCompression==BI_BITFIELDS)
+				memcpy(*dest+sizeof(BITMAPINFOHEADER),(BYTE*)src+sizeof(BITMAPINFOHEADER)+
+					3*sizeof(DWORD),pixelsSize);
+			else
+				memcpy(*dest+sizeof(BITMAPINFOHEADER),(BYTE*)src+sizeof(BITMAPINFOHEADER),pixelsSize);
+		}
 		Log(&k_mydll,"32 bit image copied.");
-	} else if (bih->biBitCount==24) {
-		BYTE* alpha=NULL;
-		if (alphaTex!=NULL)
-			alpha=(BYTE*)alphaTex+((BITMAPINFOHEADER*)alphaTex)->biSize+0x400;
+	}
+	else if (bih->biBitCount==24) {
 		Convert24To32Bit((BITMAPINFO*)*dest,src,alpha);
-	} else
-		Convert8To32Bit((BITMAPINFO*)*dest,src);
+	}
+	else {
+		if (!g_config.alwaysUseAlphaMask) {
+			alpha = NULL;
+		}
+		Convert8To32Bit((BITMAPINFO*)*dest,src,alpha);
+	}
 
 	BITMAPINFOHEADER* destbih=(BITMAPINFOHEADER*)*dest;
 	destbih->biSize=sizeof(BITMAPINFOHEADER);
