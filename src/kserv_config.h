@@ -6,7 +6,7 @@
 #define BUFLEN 4096
 
 #define MODID 100
-#define NAMELONG "KitServer 5.5.9"
+#define NAMELONG "KitServer 5.6.1"
 #define NAMESHORT "KSERV"
 #define CONFIG_FILE "kserv.cfg"
 
@@ -18,6 +18,7 @@
 #define DEFAULT_SHOW_KIT_INFO true
 #define DEFAULT_DISABLE_OVERLAYS false
 #define DEFAULT_ENFORCE_RADAR_COLORS true
+#define DEFAULT_ALWAYS_USE_ALPHA_MASK false
 
 typedef struct _KSERV_CONFIG_STRUCT {
     BYTE   narrowBackModels[256];
@@ -28,6 +29,7 @@ typedef struct _KSERV_CONFIG_STRUCT {
 	bool   ShowKitInfo;
     bool   disableOverlays;
     bool   enforceRadarColors;
+    bool   alwaysUseAlphaMask;
 } KSERV_CONFIG;
 
 BOOL ReadConfig(KSERV_CONFIG* config, char* cfgFile);
