@@ -1057,7 +1057,7 @@ CUSTOMVERTEX g_2Dkit_socks_left_outline[][10] = {
         {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000}, //1
         {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
     },
-    // wideback with logo
+    // pes6 - with logo
     {
         {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
         {50.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //2
@@ -1111,7 +1111,7 @@ CUSTOMVERTEX g_2Dkit_socks_right_outline[][10] = {
         {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000}, //1
         {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
     },
-    // wideback with logo
+    // pes6 - with logo
     {
         {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
         {50.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //2
