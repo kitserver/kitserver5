@@ -43,9 +43,9 @@ Version history: <a href="history.txt">history.txt</a><br />
 </div>
 <h2>Kitserver 5.6 Manual</h2>
 <div>
-June 18, 2020<br />
+Auguest 25, 2020<br />
 Module Versions: 
-<a href="#kitserver">Kserv 5.6.1</a>,
+<a href="#kitserver">Kserv 5.6.2</a>,
 <a href="#ballserver">BallServer: 5.5.9</a>,
 <a href="#faceserver">Faceserver: 5.5.3</a>,
 <a href="#stadiumserver">Stadium Server: 5.5.6</a>,
@@ -485,6 +485,20 @@ To enable for all, add this line to your <b>kserv.cfg</b>
 <pre>
 alwaysUseAlphaMask = 1
 </pre>
+</p>
+<p>New in 5.6.2 is a possibility to correctly render mini-kits for PES6 models and kit textures.
+If you installed a PES6 model or several of them, add the model numbers to these new mini-kit
+options in <b>kserv.cfg</b> (choosing the proper of the two lists, of course):
+<pre>
+mini-kits.pes6 = [28, 65]
+mini-kits.pes6-with-logo = []
+</pre>
+</p>
+<p>
+For correct mixing of multple PES6-mapped kits, make sure to set "mask" option in config.txt to either
+"pes6_nobadge.png" or "pes6_badge.png". Those masks are included now in GDB/uni/masks folder. Note, that
+mixing a PES6-uv-mapped kit with PES5 (wideback or narrowback) kit will not produce good results, because
+only one texture, with one UV map can be used for rendering of the kit during gameplay.
 </p>
 
 <h4>Masks</h4>

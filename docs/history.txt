@@ -2,6 +2,14 @@ Kitserver 5 HISTORY notes
 =========================
 
 
+2020-08-25
+----------
+v5.6.2
+- kserv: added support for mini-kit rendering of PES6 kit models
+- kserv: support for square textures (such as standard 512x512 pes6 kits, 1024x1024, etc.)
+    (before this version, trying to use such textures would crash the game)
+
+
 2020-06-18
 ----------
 v5.6.1
