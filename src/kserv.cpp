@@ -2228,10 +2228,10 @@ int GetTemplateTypeForModel(BYTE model)
     if (g_config.narrowBackModels[model]) {
         return 1;
     }
-    if (g_config.pes6Models[model]) {
+    if (g_config.pes6WithLogoModels[model]) {
         return 2;
     }
-    if (g_config.pes6WithLogoModels[model]) {
+    if (g_config.pes6Models[model]) {
         return 3;
     }
     return 0;
