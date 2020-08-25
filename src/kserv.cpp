@@ -48,6 +48,14 @@ Shared by all processes variables
 **************************************/
 #pragma data_seg(".HKT")
 KSERV_CONFIG g_config = {
+	DEFAULT_VKEY_HOMEKIT,
+	DEFAULT_VKEY_AWAYKIT,
+	DEFAULT_VKEY_GKHOMEKIT,
+	DEFAULT_VKEY_GKAWAYKIT,
+	DEFAULT_SHOW_KIT_INFO,
+    DEFAULT_DISABLE_OVERLAYS,
+    DEFAULT_ENFORCE_RADAR_COLORS,
+    DEFAULT_ALWAYS_USE_ALPHA_MASK,
     {
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -66,13 +74,42 @@ KSERV_CONFIG g_config = {
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     },
-	DEFAULT_VKEY_HOMEKIT,
-	DEFAULT_VKEY_AWAYKIT,
-	DEFAULT_VKEY_GKHOMEKIT,
-	DEFAULT_VKEY_GKAWAYKIT,
-	DEFAULT_SHOW_KIT_INFO,
-    DEFAULT_DISABLE_OVERLAYS,
-    DEFAULT_ENFORCE_RADAR_COLORS,
+    {
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    },
+    {
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    },
 };
 #pragma data_seg()
 #pragma comment(linker, "/section:.HKT,rws")
@@ -393,6 +430,49 @@ struct CUSTOMVERTEX2 {
 };
 
 // SHIRT
+IDirect3DVertexBuffer8* g_pVB_home_shirt_left[4];
+IDirect3DVertexBuffer8* g_pVB_home_sleeve_left[4];
+IDirect3DVertexBuffer8* g_pVB_home_shirt_right[4];
+IDirect3DVertexBuffer8* g_pVB_home_sleeve_right[4];
+IDirect3DVertexBuffer8* g_pVB_home_shirt_outline[4];
+IDirect3DVertexBuffer8* g_pVB_home_sleeve_left_outline[4];
+IDirect3DVertexBuffer8* g_pVB_home_sleeve_right_outline[4];
+// SHORTS
+IDirect3DVertexBuffer8* g_pVB_home_shorts[4];
+IDirect3DVertexBuffer8* g_pVB_home_shorts_2[4];
+IDirect3DVertexBuffer8* g_pVB_home_shorts_outline[4];
+IDirect3DVertexBuffer8* g_pVB_home_shorts_2_outline[4];
+// SOCKS
+IDirect3DVertexBuffer8* g_pVB_home_socks_shin_left[4];
+IDirect3DVertexBuffer8* g_pVB_home_socks_foot_left[4];
+IDirect3DVertexBuffer8* g_pVB_home_socks_left_outline[4];
+IDirect3DVertexBuffer8* g_pVB_home_socks_shin_right[4];
+IDirect3DVertexBuffer8* g_pVB_home_socks_foot_right[4];
+IDirect3DVertexBuffer8* g_pVB_home_socks_right_outline[4];
+
+// SHIRT
+IDirect3DVertexBuffer8* g_pVB_away_shirt_left[4];
+IDirect3DVertexBuffer8* g_pVB_away_sleeve_left[4];
+IDirect3DVertexBuffer8* g_pVB_away_shirt_right[4];
+IDirect3DVertexBuffer8* g_pVB_away_sleeve_right[4];
+IDirect3DVertexBuffer8* g_pVB_away_shirt_outline[4];
+IDirect3DVertexBuffer8* g_pVB_away_sleeve_left_outline[4];
+IDirect3DVertexBuffer8* g_pVB_away_sleeve_right_outline[4];
+// SHORTS
+IDirect3DVertexBuffer8* g_pVB_away_shorts[4];
+IDirect3DVertexBuffer8* g_pVB_away_shorts_2[4];
+IDirect3DVertexBuffer8* g_pVB_away_shorts_outline[4];
+IDirect3DVertexBuffer8* g_pVB_away_shorts_2_outline[4];
+// SOCKS
+IDirect3DVertexBuffer8* g_pVB_away_socks_shin_left[4];
+IDirect3DVertexBuffer8* g_pVB_away_socks_foot_left[4];
+IDirect3DVertexBuffer8* g_pVB_away_socks_left_outline[4];
+IDirect3DVertexBuffer8* g_pVB_away_socks_shin_right[4];
+IDirect3DVertexBuffer8* g_pVB_away_socks_foot_right[4];
+IDirect3DVertexBuffer8* g_pVB_away_socks_right_outline[4];
+
+/*********
+// SHIRT
 IDirect3DVertexBuffer8* g_pVB_home_shirt_left = NULL;
 IDirect3DVertexBuffer8* g_pVB_home_NB_shirt_left = NULL;
 IDirect3DVertexBuffer8* g_pVB_home_sleeve_left = NULL;
@@ -441,6 +521,7 @@ IDirect3DVertexBuffer8* g_pVB_away_socks_left_outline = NULL;
 IDirect3DVertexBuffer8* g_pVB_away_socks_shin_right = NULL;
 IDirect3DVertexBuffer8* g_pVB_away_socks_foot_right = NULL;
 IDirect3DVertexBuffer8* g_pVB_away_socks_right_outline = NULL;
+********/
 
 // GLOVES
 IDirect3DVertexBuffer8* g_pVB_gloves_left = NULL;
@@ -449,6 +530,662 @@ IDirect3DVertexBuffer8* g_pVB_gloves_right = NULL;
 static DWORD g_dwSavedStateBlock = 0L;
 static DWORD g_dwDrawOverlayStateBlock = 0L;
 
+// 2D-kit polygons
+
+#define X_2DKIT_LEFT 122
+//#define Y_2DKIT_LEFT 391
+//#define Y_2DKIT_LEFT_ONLINE 309
+#define Y_2DKIT_LEFT 325
+#define Y_2DKIT_LEFT_ONLINE 325
+#define SOCK_SHIFT 32
+#define AWAY_KIT_SHIFT 673
+
+///////////////// SHIRT ////////////////////////////////
+
+CUSTOMVERTEX2 g_2Dkit_shirt_left[][6] = {
+    // wideback
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 41.0f/512, 0.0f/256}, //1
+        {42.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 78.0f/512, 0.0f/256}, //2
+        {21.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 41.0f/512, 12.0f/256}, //3
+        {55.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 92.0f/512, 12.0f/256}, //4
+        {21.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 41.0f/512, 144.0f/256}, //4
+        {55.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 92.0f/512, 144.0f/256}, //5
+    },
+    // narrowback
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 41.0f/512, 0.0f/256}, //1
+        {42.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 100.0f/512, 0.0f/256}, //2
+        {21.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 41.0f/512, 12.0f/256}, //3
+        {55.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 115.0f/512, 12.0f/256}, //4
+        {21.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 41.0f/512, 144.0f/256}, //4
+        {55.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 115.0f/512, 144.0f/256}, //5
+    },
+    // pes6 - with logo
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 75.0f/512, 0.0f/256}, //1
+        {42.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 130.0f/512, 0.0f/256}, //2
+        {21.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 75.0f/512, 8.0f/256}, //3
+        {55.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 157.0f/512, 8.0f/256}, //4
+        {21.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 75.0f/512, 90.0f/256}, //4
+        {55.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 157.0f/512, 90.0f/256}, //5
+    },
+    // pes6 template
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 75.0f/512, 0.0f/256}, //1
+        {42.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 130.0f/512, 0.0f/256}, //2
+        {21.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 75.0f/512, 8.0f/256}, //3
+        {55.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 157.0f/512, 8.0f/256}, //4
+        {21.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 75.0f/512, 90.0f/256}, //4
+        {55.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 157.0f/512, 90.0f/256}, //5
+    },
+};
+
+CUSTOMVERTEX2 g_2Dkit_sleeve_left[][4] = {
+    // wideback
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 336.0f/512, 153.0f/256}, //1
+        {38.0f, 14.0f, 0.0f, 1.0f, 0xff4488ff, 397.0f/512, 153.0f/256}, //2
+        {-3.0f, 25.0f, 0.0f, 1.0f, 0xff4488ff, 336.0f/512, 82.0f/256}, //3
+        {16.0f, 43.0f, 0.0f, 1.0f, 0xff4488ff, 397.0f/512, 82.0f/256}, //4
+    },
+    // narrowback
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 349.0f/512, 159.0f/256}, //1
+        {38.0f, 14.0f, 0.0f, 1.0f, 0xff4488ff, 349.0f/512, 256.0f/256}, //2
+        {-3.0f, 25.0f, 0.0f, 1.0f, 0xff4488ff, 402.0f/512, 159.0f/256}, //3
+        {16.0f, 43.0f, 0.0f, 1.0f, 0xff4488ff, 402.0f/512, 256.0f/256}, //4
+    },
+    // pes6 with logo
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 75.0f/512, 200.0f/256}, //1
+        {38.0f, 14.0f, 0.0f, 1.0f, 0xff4488ff, 190.0f/512, 200.0f/256}, //2
+        {-3.0f, 25.0f, 0.0f, 1.0f, 0xff4488ff, 75.0f/512, 160.0f/256}, //3
+        {16.0f, 43.0f, 0.0f, 1.0f, 0xff4488ff, 190.0f/512, 160.0f/256}, //4
+    },
+    // pes6 template
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 75.0f/512, 200.0f/256}, //1
+        {38.0f, 14.0f, 0.0f, 1.0f, 0xff4488ff, 190.0f/512, 200.0f/256}, //2
+        {-3.0f, 25.0f, 0.0f, 1.0f, 0xff4488ff, 75.0f/512, 160.0f/256}, //3
+        {16.0f, 43.0f, 0.0f, 1.0f, 0xff4488ff, 190.0f/512, 160.0f/256}, //4
+    },
+};
+
+CUSTOMVERTEX2 g_2Dkit_shirt_right[][6] = {
+    // wideback
+    {
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 143.0f/512, 0.0f/256}, //1
+        {68.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 106.0f/512, 0.0f/256}, //2
+        {89.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 143.0f/512, 12.0f/256}, //3
+        {55.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 92.0f/512, 12.0f/256}, //4
+        {89.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 143.0f/512, 144.0f/256}, //4
+        {55.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 92.0f/512, 144.0f/256}, //5
+    },
+    // narrowback
+    {
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 192.0f/512, 0.0f/256}, //1
+        {68.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 128.0f/512, 0.0f/256}, //2
+        {89.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 192.0f/512, 12.0f/256}, //3
+        {55.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 115.0f/512, 12.0f/256}, //4
+        {89.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 192.0f/512, 144.0f/256}, //4
+        {55.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 115.0f/512, 144.0f/256}, //5
+    },
+    // pes6 with logo
+    {
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 240.0f/512, 0.0f/256}, //1
+        {68.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 185.0f/512, 0.0f/256}, //2
+        {89.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 240.0f/512, 8.0f/256}, //3
+        {55.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 157.0f/512, 8.0f/256}, //4
+        {89.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 240.0f/512, 90.0f/256}, //4
+        {55.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 157.0f/512, 90.0f/256}, //5
+    },
+    // pes6 template
+    {
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 240.0f/512, 0.0f/256}, //1
+        {68.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 185.0f/512, 0.0f/256}, //2
+        {89.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 240.0f/512, 8.0f/256}, //3
+        {55.0f, 8.0f, 0.0f, 1.0f, 0xff4488ff, 157.0f/512, 8.0f/256}, //4
+        {89.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 240.0f/512, 90.0f/256}, //4
+        {55.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 157.0f/512, 90.0f/256}, //5
+    },
+};
+
+CUSTOMVERTEX2 g_2Dkit_sleeve_right[][4] = {
+    // wideback
+    {
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 448.0f/512, 153.0f/256}, //1
+        {72.0f, 14.0f, 0.0f, 1.0f, 0xff4488ff, 512.0f/512, 153.0f/256}, //2
+        {113.0f, 25.0f, 0.0f, 1.0f, 0xff4488ff, 448.0f/512, 82.0f/256}, //3
+        {94.0f, 43.0f, 0.0f, 1.0f, 0xff4488ff, 512.0f/512, 82.0f/256}, //4
+    },
+    // narrowback
+    {
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 459.0f/512, 159.0f/256}, //1
+        {72.0f, 14.0f, 0.0f, 1.0f, 0xff4488ff, 459.0f/512, 256.0f/256}, //2
+        {113.0f, 25.0f, 0.0f, 1.0f, 0xff4488ff, 512.0f/512, 159.0f/256}, //3
+        {94.0f, 43.0f, 0.0f, 1.0f, 0xff4488ff, 512.0f/512, 256.0f/256}, //4
+    },
+    // pes6 with logo
+    {
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 268.0f/512, 200.0f/256}, //1
+        {72.0f, 14.0f, 0.0f, 1.0f, 0xff4488ff, 385.0f/512, 200.0f/256}, //2
+        {113.0f, 25.0f, 0.0f, 1.0f, 0xff4488ff, 268.0f/512, 160.0f/256}, //3
+        {94.0f, 43.0f, 0.0f, 1.0f, 0xff4488ff, 385.0f/512, 160.0f/256}, //4
+    },
+    // pes6 template
+    {
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 268.0f/512, 200.0f/256}, //1
+        {72.0f, 14.0f, 0.0f, 1.0f, 0xff4488ff, 385.0f/512, 200.0f/256}, //2
+        {113.0f, 25.0f, 0.0f, 1.0f, 0xff4488ff, 268.0f/512, 160.0f/256}, //3
+        {94.0f, 43.0f, 0.0f, 1.0f, 0xff4488ff, 385.0f/512, 160.0f/256}, //4
+    },
+};
+
+CUSTOMVERTEX g_2Dkit_shirt_outline[][8] = {
+    // wideback
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {42.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {55.0f, 8.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {68.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //5
+        {89.0f, 78.0f, 0.0f, 1.0f, 0xff000000}, //6
+        {21.0f, 78.0f, 0.0f, 1.0f, 0xff000000}, //7
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //8
+    },
+    // narrowback
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {42.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {55.0f, 8.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {68.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //5
+        {89.0f, 78.0f, 0.0f, 1.0f, 0xff000000}, //6
+        {21.0f, 78.0f, 0.0f, 1.0f, 0xff000000}, //7
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //8
+    },
+    // pes6 with logo
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {42.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {55.0f, 8.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {68.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //5
+        {89.0f, 78.0f, 0.0f, 1.0f, 0xff000000}, //6
+        {21.0f, 78.0f, 0.0f, 1.0f, 0xff000000}, //7
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //8
+    },
+    // pes6 template
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {42.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {55.0f, 8.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {68.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //5
+        {89.0f, 78.0f, 0.0f, 1.0f, 0xff000000}, //6
+        {21.0f, 78.0f, 0.0f, 1.0f, 0xff000000}, //7
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //8
+    },
+};
+
+CUSTOMVERTEX g_2Dkit_sleeve_left_outline[][5] = {
+    // wideback
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {38.0f, 14.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {16.0f, 43.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {-3.0f, 25.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // narrowback
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {38.0f, 14.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {16.0f, 43.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {-3.0f, 25.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // pes6 with logo
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {38.0f, 14.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {16.0f, 43.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {-3.0f, 25.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // pes6 template
+    {
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {38.0f, 14.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {16.0f, 43.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {-3.0f, 25.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {21.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+};
+
+CUSTOMVERTEX g_2Dkit_sleeve_right_outline[][5] = {
+    // wideback
+    {
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {72.0f, 14.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {94.0f, 43.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {113.0f, 25.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // narrowback
+    {
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {72.0f, 14.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {94.0f, 43.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {113.0f, 25.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // pes6 with logo
+    {
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {72.0f, 14.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {94.0f, 43.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {113.0f, 25.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // pes6 template
+    {
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {72.0f, 14.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {94.0f, 43.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {113.0f, 25.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {89.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+};
+
+///////////////// SHORTS //////////////////////////////////
+
+CUSTOMVERTEX2 g_2Dkit_shorts[][4] = {
+    // wideback
+    {
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 120.0f/512, 144.0f/256}, //1
+        {84.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 172.0f/512, 144.0f/256}, //2
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff4488ff, 120.0f/512, 256.0f/256}, //3
+        {84.0f, 142.0f, 0.0f, 1.0f, 0xff4488ff, 172.0f/512, 256.0f/256}, //4
+    },
+    // narrowback
+    {
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 120.0f/512, 144.0f/256}, //1
+        {84.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 172.0f/512, 144.0f/256}, //2
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff4488ff, 120.0f/512, 256.0f/256}, //3
+        {84.0f, 142.0f, 0.0f, 1.0f, 0xff4488ff, 172.0f/512, 256.0f/256}, //4
+    },
+    // pes6 with logo
+    {
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 224.0f/512, 90.0f/256}, //1
+        {84.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 332.0f/512, 90.0f/256}, //2
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff4488ff, 224.0f/512, 160.0f/256}, //3
+        {84.0f, 142.0f, 0.0f, 1.0f, 0xff4488ff, 332.0f/512, 160.0f/256}, //4
+    },
+    // pes6 template
+    {
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 224.0f/512, 90.0f/256}, //1
+        {84.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 332.0f/512, 90.0f/256}, //2
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff4488ff, 224.0f/512, 160.0f/256}, //3
+        {84.0f, 142.0f, 0.0f, 1.0f, 0xff4488ff, 332.0f/512, 160.0f/256}, //4
+    },
+};
+CUSTOMVERTEX2 g_2Dkit_shorts_2[][4] = {
+    // wideback
+    {
+        {27.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 33.0f/512, 144.0f/256}, //1
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 70.0f/512, 144.0f/256}, //2
+        {20.0f, 140.0f, 0.0f, 1.0f, 0xff4488ff, 33.0f/512, 256.0f/256}, //3
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff4488ff, 87.0f/512, 256.0f/256}, //4
+    },
+    // narrowback
+    {
+        {27.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 33.0f/512, 144.0f/256}, //1
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 70.0f/512, 144.0f/256}, //2
+        {20.0f, 140.0f, 0.0f, 1.0f, 0xff4488ff, 33.0f/512, 256.0f/256}, //3
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff4488ff, 87.0f/512, 256.0f/256}, //4
+    },
+    // pes6 with logo
+    {
+        {27.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 68.0f/512, 90.0f/256}, //1
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 116.0f/512, 90.0f/256}, //2
+        {20.0f, 140.0f, 0.0f, 1.0f, 0xff4488ff, 68.0f/512, 160.0f/256}, //3
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff4488ff, 157.0f/512, 160.0f/256}, //4
+    },
+    // pes6 template
+    {
+        {27.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 68.0f/512, 90.0f/256}, //1
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff4488ff, 116.0f/512, 90.0f/256}, //2
+        {20.0f, 140.0f, 0.0f, 1.0f, 0xff4488ff, 68.0f/512, 160.0f/256}, //3
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff4488ff, 157.0f/512, 160.0f/256}, //4
+    },
+};
+CUSTOMVERTEX g_2Dkit_shorts_outline[][5] = {
+    // wideback
+    {
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {84.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {84.0f, 142.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // narrowback
+    {
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {84.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {84.0f, 142.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // pes6 with logo
+    {
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {84.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {84.0f, 142.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // pes6 template
+    {
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {84.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {84.0f, 142.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+};
+CUSTOMVERTEX g_2Dkit_shorts_2_outline[][5] = {
+    // wideback
+    {
+        {27.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {20.0f, 140.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {27.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // narrowback
+    {
+        {27.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {20.0f, 140.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {27.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // pes6 with logo
+    {
+        {27.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {20.0f, 140.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {27.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // pes6 template
+    {
+        {27.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {40.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {40.0f, 142.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {20.0f, 140.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {27.0f, 84.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+};
+
+///////////////// SOCKS //////////////////////////////////
+
+CUSTOMVERTEX2 g_2Dkit_socks_shin_left[][4] = {
+    // wideback
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 395.0f/512, 0.0f/256}, //1
+        {51.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 433.0f/512, 0.0f/256}, //2
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 395.0f/512, 66.0f/256}, //3
+        {51.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 433.0f/512, 61.0f/256}, //4
+    },
+    // narrowback
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 395.0f/512, 0.0f/256}, //1
+        {51.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 433.0f/512, 0.0f/256}, //2
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 395.0f/512, 66.0f/256}, //3
+        {51.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 433.0f/512, 61.0f/256}, //4
+    },
+    // pes6 with logo
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 454.0f/512, 215.0f/256}, //1
+        {51.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 454.0f/512, 239.0f/256}, //2
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 402.0f/512, 215.0f/256}, //3
+        {51.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 410.0f/512, 239.0f/256}, //4
+    },
+    // pes6 template
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 512.0f/512, 215.0f/256}, //1
+        {51.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 512.0f/512, 239.0f/256}, //2
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 412.0f/512, 215.0f/256}, //3
+        {51.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 420.0f/512, 239.0f/256}, //4
+    },
+};
+CUSTOMVERTEX2 g_2Dkit_socks_foot_left[][7] = {
+    // wideback
+    {
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 395.0f/512, 66.0f/256}, //1
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 433.0f/512, 61.0f/256}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 435.0f/512, 61.0f/256}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000, 435.0f/512, 65.0f/256}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 380.0f/512, 75.0f/256}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 375.0f/512, 75.0f/256}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000, 370.0f/512, 70.0f/256}, //7
+    },
+    // narrowback
+    {
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 395.0f/512, 66.0f/256}, //1
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 433.0f/512, 61.0f/256}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 435.0f/512, 61.0f/256}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000, 435.0f/512, 65.0f/256}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 380.0f/512, 75.0f/256}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 375.0f/512, 75.0f/256}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000, 370.0f/512, 70.0f/256}, //7
+    },
+    // pes6 with logo
+    {
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 402.0f/512, 215.0f/256}, //1
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 410.0f/512, 239.0f/256}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 410.0f/512, 241.0f/256}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000, 403.0f/512, 241.0f/256}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 392.0f/512, 219.0f/256}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 392.0f/512, 215.0f/256}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000, 400.0f/512, 209.0f/256}, //7
+    },
+    // pes6 template
+    {
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 412.0f/512, 215.0f/256}, //1
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 420.0f/512, 239.0f/256}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 420.0f/512, 241.0f/256}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000, 413.0f/512, 241.0f/256}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 402.0f/512, 219.0f/256}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 402.0f/512, 215.0f/256}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000, 410.0f/512, 209.0f/256}, //7
+    },
+};
+CUSTOMVERTEX2 g_2Dkit_socks_shin_right[][4] = {
+    // wideback
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 395.0f/512, 0.0f/256}, //1
+        {51.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 433.0f/512, 0.0f/256}, //2
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 395.0f/512, 66.0f/256}, //3
+        {51.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 433.0f/512, 61.0f/256}, //4
+    },
+    // narrowback
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 395.0f/512, 0.0f/256}, //1
+        {51.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 433.0f/512, 0.0f/256}, //2
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 395.0f/512, 66.0f/256}, //3
+        {51.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 433.0f/512, 61.0f/256}, //4
+    },
+    // pes6 with logo
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 454.0f/512, 215.0f/256}, //1
+        {51.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 454.0f/512, 239.0f/256}, //2
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 402.0f/512, 215.0f/256}, //3
+        {51.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 410.0f/512, 239.0f/256}, //4
+    },
+    // pes6 template
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 512.0f/512, 215.0f/256}, //1
+        {51.0f, 156.0f, 0.0f, 1.0f, 0xff000000, 512.0f/512, 239.0f/256}, //2
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 402.0f/512, 215.0f/256}, //3
+        {51.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 420.0f/512, 239.0f/256}, //4
+    },
+};
+CUSTOMVERTEX2 g_2Dkit_socks_foot_right[][7] = {
+    // wideback
+    {
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 395.0f/512, 66.0f/256}, //1
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 433.0f/512, 61.0f/256}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 435.0f/512, 61.0f/256}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000, 435.0f/512, 65.0f/256}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 380.0f/512, 75.0f/256}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 375.0f/512, 75.0f/256}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000, 370.0f/512, 70.0f/256}, //7
+    },
+    // narrowback
+    {
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 395.0f/512, 66.0f/256}, //1
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 433.0f/512, 61.0f/256}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 435.0f/512, 61.0f/256}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000, 435.0f/512, 65.0f/256}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 380.0f/512, 75.0f/256}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 375.0f/512, 75.0f/256}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000, 370.0f/512, 70.0f/256}, //7
+    },
+    // pes6 with logo
+    {
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 402.0f/512, 215.0f/256}, //1
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 410.0f/512, 239.0f/256}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 410.0f/512, 241.0f/256}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000, 403.0f/512, 241.0f/256}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 392.0f/512, 219.0f/256}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 392.0f/512, 215.0f/256}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000, 400.0f/512, 209.0f/256}, //7
+    },
+    // pes6 template
+    {
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000, 412.0f/512, 215.0f/256}, //1
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 420.0f/512, 239.0f/256}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000, 420.0f/512, 241.0f/256}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000, 413.0f/512, 241.0f/256}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 402.0f/512, 219.0f/256}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000, 402.0f/512, 215.0f/256}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000, 410.0f/512, 209.0f/256}, //7
+    },
+};
+CUSTOMVERTEX g_2Dkit_socks_left_outline[][10] = {
+    // wideback
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {50.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000}, //7
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // narrowback
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {50.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000}, //7
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // wideback with logo
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {50.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000}, //7
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // pes6 template
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {50.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000}, //7
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+};
+CUSTOMVERTEX g_2Dkit_socks_right_outline[][10] = {
+    // wideback
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {50.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000}, //7
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // narrowback
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {50.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000}, //7
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // wideback with logo
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {50.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000}, //7
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+    // pes6 template
+    {
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {50.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {50.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //2
+        {52.0f, 201.0f, 0.0f, 1.0f, 0xff000000}, //3
+        {52.0f, 208.0f, 0.0f, 1.0f, 0xff000000}, //4
+        {33.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //5
+        {12.0f, 225.0f, 0.0f, 1.0f, 0xff000000}, //6
+        {8.0f, 221.0f, 0.0f, 1.0f, 0xff000000}, //7
+        {26.0f, 206.0f, 0.0f, 1.0f, 0xff000000}, //1
+        {26.0f, 156.0f, 0.0f, 1.0f, 0xff000000}, //1
+    },
+};
+
+/***********************
 // 2D-kit polygons
 
 #define X_2DKIT_LEFT 122
@@ -785,6 +1522,7 @@ CUSTOMVERTEX2 g_narrow_back_shirt_right[] = {
 	{89.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 192.0f/512, 144.0f/256}, //4
 	{55.0f, 78.0f, 0.0f, 1.0f, 0xff4488ff, 115.0f/512, 144.0f/256}, //5
 };
+***********************/
 
 // GLOVES
 
@@ -1039,7 +1777,197 @@ void NarrowBackCorrection(CUSTOMVERTEX2* dest, CUSTOMVERTEX2* src, int n)
     }
 }
 
+HRESULT MakeVertexBuffer(IDirect3DDevice8* dev, CUSTOMVERTEX* dta,
+        size_t dtaSize, float x, IDirect3DVertexBuffer8** ppVB)
+{
+    VOID* pVertices;
+    if (FAILED(dev->CreateVertexBuffer(dtaSize*2, D3DUSAGE_WRITEONLY,
+                    D3DFVF_CUSTOMVERTEX, D3DPOOL_MANAGED, ppVB)))
+    {
+        Log(&k_mydll,"CreateVertexBuffer() failed.");
+        return E_FAIL;
+    }
+    Log(&k_mydll,"CreateVertexBuffer() done.");
+
+    if (FAILED((*ppVB)->Lock(0, dtaSize*2, (BYTE**)&pVertices, 0)))
+    {
+        Log(&k_mydll,"(*ppVB)->Lock() failed.");
+        return E_FAIL;
+    }
+    memcpy(pVertices, dta, dtaSize);
+    memcpy((BYTE*)pVertices + dtaSize, dta, dtaSize);
+    SetPosition((CUSTOMVERTEX*)pVertices, dta, dtaSize/sizeof(CUSTOMVERTEX), x, Y_2DKIT_LEFT);
+    SetPosition((CUSTOMVERTEX*)pVertices + dtaSize/sizeof(CUSTOMVERTEX), dta, dtaSize/sizeof(CUSTOMVERTEX), x, Y_2DKIT_LEFT_ONLINE);
+    g_pVB_gloves_left->Unlock();
+    return S_OK;
+}
+
+HRESULT MakeVertexBuffer2(IDirect3DDevice8* dev, CUSTOMVERTEX2* dta, size_t dtaSize,
+        float x, IDirect3DVertexBuffer8** ppVB)
+{
+    VOID* pVertices;
+    if (FAILED(dev->CreateVertexBuffer(dtaSize*2, D3DUSAGE_WRITEONLY,
+                    D3DFVF_CUSTOMVERTEX2, D3DPOOL_MANAGED, ppVB)))
+    {
+        Log(&k_mydll,"CreateVertexBuffer() failed.");
+        return E_FAIL;
+    }
+    Log(&k_mydll,"CreateVertexBuffer() done.");
+
+    if (FAILED((*ppVB)->Lock(0, dtaSize*2, (BYTE**)&pVertices, 0)))
+    {
+        Log(&k_mydll,"(*ppVB)->Lock() failed.");
+        return E_FAIL;
+    }
+    memcpy(pVertices, dta, dtaSize);
+    memcpy((BYTE*)pVertices + dtaSize, dta, dtaSize);
+    SetPosition((CUSTOMVERTEX2*)pVertices, dta, dtaSize/sizeof(CUSTOMVERTEX2), x, Y_2DKIT_LEFT);
+    SetPosition((CUSTOMVERTEX2*)pVertices + dtaSize/sizeof(CUSTOMVERTEX2), dta, dtaSize/sizeof(CUSTOMVERTEX2), x, Y_2DKIT_LEFT_ONLINE);
+    g_pVB_gloves_left->Unlock();
+    return S_OK;
+}
+
 /* creates vertex buffers */
+HRESULT InitVB(IDirect3DDevice8* dev)
+{
+    // create vertex buffers
+
+    // gloves-left
+    if (FAILED(MakeVertexBuffer2(dev,
+                g_gloves_left,sizeof(g_gloves_left),
+                481, &g_pVB_gloves_left)))
+    {
+        Log(&k_mydll, "MakeVertexBuffer2 failed for gloves");
+        return E_FAIL;
+    }
+
+    int i;
+
+    ///// HOME /////////////////////////////////
+
+    for (i=0; i<4; i++) {
+        if (FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_shirt_left[i],sizeof(g_2Dkit_shirt_left[i]),
+                        X_2DKIT_LEFT, &g_pVB_home_shirt_left[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_shirt_right[i],sizeof(g_2Dkit_shirt_right[i]),
+                        X_2DKIT_LEFT, &g_pVB_home_shirt_right[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_sleeve_left[i],sizeof(g_2Dkit_sleeve_left[i]),
+                        X_2DKIT_LEFT, &g_pVB_home_sleeve_left[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_sleeve_right[i],sizeof(g_2Dkit_sleeve_right[i]),
+                        X_2DKIT_LEFT, &g_pVB_home_sleeve_right[i]))
+            || FAILED(MakeVertexBuffer(dev,
+                        g_2Dkit_shirt_outline[i],sizeof(g_2Dkit_shirt_outline[i]),
+                        X_2DKIT_LEFT, &g_pVB_home_shirt_outline[i]))
+            || FAILED(MakeVertexBuffer(dev,
+                        g_2Dkit_sleeve_left_outline[i],sizeof(g_2Dkit_sleeve_left_outline[i]),
+                        X_2DKIT_LEFT, &g_pVB_home_sleeve_left_outline[i]))
+            || FAILED(MakeVertexBuffer(dev,
+                        g_2Dkit_sleeve_right_outline[i],sizeof(g_2Dkit_sleeve_right_outline[i]),
+                        X_2DKIT_LEFT, &g_pVB_home_sleeve_right_outline[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_shorts[i],sizeof(g_2Dkit_shorts[i]),
+                        X_2DKIT_LEFT, &g_pVB_home_shorts[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_shorts_2[i],sizeof(g_2Dkit_shorts_2[i]),
+                        X_2DKIT_LEFT, &g_pVB_home_shorts_2[i]))
+            || FAILED(MakeVertexBuffer(dev,
+                        g_2Dkit_shorts_outline[i],sizeof(g_2Dkit_shorts_outline[i]),
+                        X_2DKIT_LEFT, &g_pVB_home_shorts_outline[i]))
+            || FAILED(MakeVertexBuffer(dev,
+                        g_2Dkit_shorts_2_outline[i],sizeof(g_2Dkit_shorts_2_outline[i]),
+                        X_2DKIT_LEFT, &g_pVB_home_shorts_2_outline[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_socks_shin_left[i],sizeof(g_2Dkit_socks_shin_left[i]),
+                        X_2DKIT_LEFT, &g_pVB_home_socks_shin_left[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_socks_shin_right[i],sizeof(g_2Dkit_socks_shin_right[i]),
+                        X_2DKIT_LEFT + SOCK_SHIFT, &g_pVB_home_socks_shin_right[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_socks_foot_left[i],sizeof(g_2Dkit_socks_foot_left[i]),
+                        X_2DKIT_LEFT, &g_pVB_home_socks_foot_left[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_socks_foot_right[i],sizeof(g_2Dkit_socks_foot_right[i]),
+                        X_2DKIT_LEFT + SOCK_SHIFT, &g_pVB_home_socks_foot_right[i]))
+            || FAILED(MakeVertexBuffer(dev,
+                        g_2Dkit_socks_left_outline[i],sizeof(g_2Dkit_socks_left_outline[i]),
+                        X_2DKIT_LEFT, &g_pVB_home_socks_left_outline[i]))
+            || FAILED(MakeVertexBuffer(dev,
+                        g_2Dkit_socks_right_outline[i],sizeof(g_2Dkit_socks_right_outline[i]),
+                        X_2DKIT_LEFT + SOCK_SHIFT, &g_pVB_home_socks_right_outline[i]))
+           ) {
+            Log(&k_mydll,"CreateVertexBuffer() for HOME failed.");
+            return E_FAIL;
+        }
+    }
+
+    ///// AWAY /////////////////////////////////
+
+    for (i=0; i<4; i++) {
+        if (FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_shirt_left[i],sizeof(g_2Dkit_shirt_left[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT, &g_pVB_away_shirt_left[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_shirt_right[i],sizeof(g_2Dkit_shirt_right[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT, &g_pVB_away_shirt_right[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_sleeve_left[i],sizeof(g_2Dkit_sleeve_left[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT, &g_pVB_away_sleeve_left[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_sleeve_right[i],sizeof(g_2Dkit_sleeve_right[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT, &g_pVB_away_sleeve_right[i]))
+            || FAILED(MakeVertexBuffer(dev,
+                        g_2Dkit_shirt_outline[i],sizeof(g_2Dkit_shirt_outline[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT, &g_pVB_away_shirt_outline[i]))
+            || FAILED(MakeVertexBuffer(dev,
+                        g_2Dkit_sleeve_left_outline[i],sizeof(g_2Dkit_sleeve_left_outline[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT, &g_pVB_away_sleeve_left_outline[i]))
+            || FAILED(MakeVertexBuffer(dev,
+                        g_2Dkit_sleeve_right_outline[i],sizeof(g_2Dkit_sleeve_right_outline[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT, &g_pVB_away_sleeve_right_outline[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_shorts[i],sizeof(g_2Dkit_shorts[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT, &g_pVB_away_shorts[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_shorts_2[i],sizeof(g_2Dkit_shorts_2[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT, &g_pVB_away_shorts_2[i]))
+            || FAILED(MakeVertexBuffer(dev,
+                        g_2Dkit_shorts_outline[i],sizeof(g_2Dkit_shorts_outline[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT, &g_pVB_away_shorts_outline[i]))
+            || FAILED(MakeVertexBuffer(dev,
+                        g_2Dkit_shorts_2_outline[i],sizeof(g_2Dkit_shorts_2_outline[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT, &g_pVB_away_shorts_2_outline[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_socks_shin_left[i],sizeof(g_2Dkit_socks_shin_left[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT, &g_pVB_away_socks_shin_left[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_socks_shin_right[i],sizeof(g_2Dkit_socks_shin_right[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT + SOCK_SHIFT, &g_pVB_away_socks_shin_right[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_socks_foot_left[i],sizeof(g_2Dkit_socks_foot_left[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT, &g_pVB_away_socks_foot_left[i]))
+            || FAILED(MakeVertexBuffer2(dev,
+                        g_2Dkit_socks_foot_right[i],sizeof(g_2Dkit_socks_foot_right[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT + SOCK_SHIFT, &g_pVB_away_socks_foot_right[i]))
+            || FAILED(MakeVertexBuffer(dev,
+                        g_2Dkit_socks_left_outline[i],sizeof(g_2Dkit_socks_left_outline[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT, &g_pVB_away_socks_left_outline[i]))
+            || FAILED(MakeVertexBuffer(dev,
+                        g_2Dkit_socks_right_outline[i],sizeof(g_2Dkit_socks_right_outline[i]),
+                        X_2DKIT_LEFT + AWAY_KIT_SHIFT + SOCK_SHIFT, &g_pVB_away_socks_right_outline[i]))
+           ) {
+            Log(&k_mydll,"CreateVertexBuffer() for AWAY failed.");
+            return E_FAIL;
+        }
+    }
+
+    return S_OK;
+}
+
+/* creates vertex buffers */
+/*************
 HRESULT InitVB(IDirect3DDevice8* dev)
 {
 	VOID* pVertices;
@@ -1822,6 +2750,7 @@ HRESULT InitVB(IDirect3DDevice8* dev)
 
 	return S_OK;
 }
+****************/
 
 //-----------------------------------------------------------------------------
 // Name: RestoreDeviceObjects()
@@ -1899,6 +2828,76 @@ void DeleteStateBlocks(IDirect3DDevice8* dev)
 //-----------------------------------------------------------------------------
 HRESULT InvalidateDeviceObjects(IDirect3DDevice8* dev)
 {
+    TRACE(&k_mydll,"InvalidateDeviceObjects called.");
+    if (dev == NULL)
+    {
+        TRACE(&k_mydll,"InvalidateDeviceObjects: nothing to invalidate.");
+        return S_OK;
+    }
+
+    int i;
+
+    // home
+    for (i=0; i<4; i++) {
+        SafeRelease( &g_pVB_home_shirt_left[i] );
+        SafeRelease( &g_pVB_home_sleeve_left[i] );
+        SafeRelease( &g_pVB_home_shirt_right[i] );
+        SafeRelease( &g_pVB_home_sleeve_right[i] );
+        SafeRelease( &g_pVB_home_shirt_outline[i] );
+        SafeRelease( &g_pVB_home_sleeve_left_outline[i] );
+        SafeRelease( &g_pVB_home_sleeve_right_outline[i] );
+        SafeRelease( &g_pVB_home_shorts[i] );
+        SafeRelease( &g_pVB_home_shorts_2[i] );
+        SafeRelease( &g_pVB_home_shorts_outline[i] );
+        SafeRelease( &g_pVB_home_shorts_2_outline[i] );
+        SafeRelease( &g_pVB_home_socks_shin_left[i] );
+        SafeRelease( &g_pVB_home_socks_foot_left[i] );
+        SafeRelease( &g_pVB_home_socks_left_outline[i] );
+        SafeRelease( &g_pVB_home_socks_shin_right[i] );
+        SafeRelease( &g_pVB_home_socks_foot_right[i] );
+        SafeRelease( &g_pVB_home_socks_right_outline[i] );
+    }
+
+    // away
+    for (i=0; i<4; i++) {
+        SafeRelease( &g_pVB_away_shirt_left[i] );
+        SafeRelease( &g_pVB_away_sleeve_left[i] );
+        SafeRelease( &g_pVB_away_shirt_right[i] );
+        SafeRelease( &g_pVB_away_sleeve_right[i] );
+        SafeRelease( &g_pVB_away_shirt_outline[i] );
+        SafeRelease( &g_pVB_away_sleeve_left_outline[i] );
+        SafeRelease( &g_pVB_away_sleeve_right_outline[i] );
+        SafeRelease( &g_pVB_away_shorts[i] );
+        SafeRelease( &g_pVB_away_shorts_2[i] );
+        SafeRelease( &g_pVB_away_shorts_outline[i] );
+        SafeRelease( &g_pVB_away_shorts_2_outline[i] );
+        SafeRelease( &g_pVB_away_socks_shin_left[i] );
+        SafeRelease( &g_pVB_away_socks_foot_left[i] );
+        SafeRelease( &g_pVB_away_socks_left_outline[i] );
+        SafeRelease( &g_pVB_away_socks_shin_right[i] );
+        SafeRelease( &g_pVB_away_socks_foot_right[i] );
+        SafeRelease( &g_pVB_away_socks_right_outline[i] );
+    }
+
+    // gloves indicator
+    SafeRelease( &g_pVB_gloves_left );
+
+    Log(&k_mydll,"InvalidateDeviceObjects: SafeRelease(s) done.");
+
+    DeleteStateBlocks(dev);
+    Log(&k_mydll,"InvalidateDeviceObjects: DeleteStateBlock(s) done.");
+
+    //if (g_font) g_font->InvalidateDeviceObjects();
+    return S_OK;
+}
+
+/******************
+//-----------------------------------------------------------------------------
+// Name: InvalidateDeviceObjects()
+// Desc: Destroys all device-dependent objects
+//-----------------------------------------------------------------------------
+HRESULT InvalidateDeviceObjects(IDirect3DDevice8* dev)
+{
 	TRACE(&k_mydll,"InvalidateDeviceObjects called.");
 	if (dev == NULL)
 	{
@@ -1962,6 +2961,7 @@ HRESULT InvalidateDeviceObjects(IDirect3DDevice8* dev)
 
     return S_OK;
 }
+******************/
 
 //-----------------------------------------------------------------------------
 // Name: DeleteDeviceObjects()
@@ -2466,6 +3466,140 @@ BOOL IsNarrowBack(int which )
     return FALSE;
 }
 
+int GetTemplateTypeForModel(BYTE model)
+{
+    if (g_config.narrowBackModels[model]) {
+        return 1;
+    }
+    if (g_config.pes6Models[model]) {
+        return 2;
+    }
+    if (g_config.pes6WithLogoModels[model]) {
+        return 3;
+    }
+    return 0;
+}
+
+int GetTemplateType(int which)
+{
+    string currKey;
+    Kit* kit = NULL;
+    WORD teamId = GetTeamId(which);
+    if (teamId != 0xffff) {
+        gdbFindKitsForTeam(gdb, teamId);
+        KitCollection* col = MAP_FIND(gdb->uni,teamId);
+        if (!col) return FALSE;
+        switch (which) {
+            case HOME:
+                currKey = GET_HOME_SHIRT_KEY(typ);
+                if (currKey[0]=='g') kit = MAP_FIND(col->goalkeepers,currKey);
+                else kit = MAP_FIND(col->players,currKey);
+                break;
+            case AWAY:
+                currKey = GET_AWAY_SHIRT_KEY(typ);
+                if (currKey[0]=='g') kit = MAP_FIND(col->goalkeepers,currKey);
+                else kit = MAP_FIND(col->players,currKey);
+                break;
+        }
+        // check the model
+        if (kit && (kit->attDefined & MODEL)) {
+            return GetTemplateTypeForModel(kit->model);
+        }
+    }
+    return 0;
+}
+
+void RenderHomeShirt(IDirect3DDevice8* dev, int tt, BYTE onlineFlag)
+{
+    if (g_home_shirt_tex) {
+        IDirect3DVertexBuffer8* home_sleeve_left = g_pVB_home_sleeve_left[tt];
+        IDirect3DVertexBuffer8* home_sleeve_right = g_pVB_home_sleeve_right[tt];
+        IDirect3DVertexBuffer8* home_shirt_left = g_pVB_home_shirt_left[tt];
+        IDirect3DVertexBuffer8* home_shirt_right = g_pVB_home_shirt_right[tt];
+
+        // shirt texture
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX2 );
+        // shirt
+        dev->SetTexture(0, g_home_shirt_tex);
+        // left sleeve
+        dev->SetStreamSource( 0, home_sleeve_left, sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 4*onlineFlag, 2);
+        // right sleeve
+        dev->SetStreamSource( 0, home_sleeve_right, sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 4*onlineFlag, 2);
+
+        // sleeve outlines
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX );
+        dev->SetTexture(0, NULL);
+        dev->SetStreamSource( 0, g_pVB_home_sleeve_left_outline[tt], sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_LINESTRIP, 5*onlineFlag, 4);
+        dev->SetStreamSource( 0, g_pVB_home_sleeve_right_outline[tt], sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_LINESTRIP, 5*onlineFlag, 4);
+
+        // shirt texture
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX2 );
+        // shirt-left
+        dev->SetTexture(0, g_home_shirt_tex);
+        dev->SetStreamSource( 0, home_shirt_left, sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 6*onlineFlag, 4);
+        // shirt-right
+        dev->SetStreamSource( 0, home_shirt_right, sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 6*onlineFlag, 4);
+
+        // shirt outline
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX );
+        dev->SetTexture(0, NULL);
+        dev->SetStreamSource( 0, g_pVB_home_shirt_outline[tt], sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_LINESTRIP, 8*onlineFlag, 7);
+    }
+}
+
+void RenderAwayShirt(IDirect3DDevice8* dev, int tt, BYTE onlineFlag)
+{
+    if (g_away_shirt_tex) {
+        IDirect3DVertexBuffer8* away_sleeve_left = g_pVB_away_sleeve_left[tt];
+        IDirect3DVertexBuffer8* away_sleeve_right = g_pVB_away_sleeve_right[tt];
+        IDirect3DVertexBuffer8* away_shirt_left = g_pVB_away_shirt_left[tt];
+        IDirect3DVertexBuffer8* away_shirt_right = g_pVB_away_shirt_right[tt];
+
+        // shirt texture
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX2 );
+        // shirt
+        dev->SetTexture(0, g_away_shirt_tex);
+        // left sleeve
+        dev->SetStreamSource( 0, away_sleeve_left, sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 4*onlineFlag, 2);
+        // right sleeve
+        dev->SetStreamSource( 0, away_sleeve_right, sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 4*onlineFlag, 2);
+
+        // sleeve outlines
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX );
+        dev->SetTexture(0, NULL);
+        dev->SetStreamSource( 0, g_pVB_away_sleeve_left_outline[tt], sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_LINESTRIP, 5*onlineFlag, 4);
+        dev->SetStreamSource( 0, g_pVB_away_sleeve_right_outline[tt], sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_LINESTRIP, 5*onlineFlag, 4);
+
+        // shirt texture
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX2 );
+        // shirt-left
+        dev->SetTexture(0, g_away_shirt_tex);
+        dev->SetStreamSource( 0, away_shirt_left, sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 6*onlineFlag, 4);
+        // shirt-right
+        dev->SetStreamSource( 0, away_shirt_right, sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 6*onlineFlag, 4);
+
+        // shirt outline
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX );
+        dev->SetTexture(0, NULL);
+        dev->SetStreamSource( 0, g_pVB_away_shirt_outline[tt], sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_LINESTRIP, 8*onlineFlag, 7);
+    }
+}
+
+/*******************
 void RenderHomeShirt(IDirect3DDevice8* dev)
 {
     if (g_home_shirt_tex) {
@@ -2557,7 +3691,156 @@ void RenderAwayShirt(IDirect3DDevice8* dev)
         dev->DrawPrimitive( D3DPT_LINESTRIP, 0, 7);
     }
 }
+*******************/
 
+void Draw2Dkits(IDirect3DDevice8* dev)
+{
+    if (g_needsRestore)
+    {
+        if (FAILED(RestoreDeviceObjects(dev)))
+        {
+            Log(&k_mydll,"Draw2Dkits: RestoreDeviceObjects() failed.");
+            return;
+        }
+        Log(&k_mydll,"Draw2Dkits: RestoreDeviceObjects() done.");
+        g_needsRestore = FALSE;
+    }
+
+    // load textures from GDB (if needed)
+    Load2Dkits();
+
+    BYTE onlineFlag = 0; //1 - *(BYTE*)dta[OFFLINE_FLAG];
+
+    // render
+    dev->BeginScene();
+
+    // setup renderstate
+    dev->CaptureStateBlock( g_dwSavedStateBlock );
+    dev->ApplyStateBlock( g_dwDrawOverlayStateBlock );
+
+    ////////// HOME 2DKIT /////////////////////////////
+
+    dev->SetRenderState( D3DRS_ALPHABLENDENABLE, FALSE );
+
+    int tt = GetTemplateType(HOME);
+    RenderHomeShirt(dev, tt, onlineFlag);
+
+    if (g_home_shorts_tex) {
+        // shorts
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX2 );
+        dev->SetTexture(0, g_home_shorts_tex);
+        dev->SetStreamSource( 0, g_pVB_home_shorts[tt], sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 4*onlineFlag, 2);
+        dev->SetStreamSource( 0, g_pVB_home_shorts_2[tt], sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 4*onlineFlag, 2);
+
+        // outline
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX );
+        dev->SetTexture(0, NULL);
+        dev->SetStreamSource( 0, g_pVB_home_shorts_outline[tt], sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_LINESTRIP, 5*onlineFlag, 4);
+        dev->SetStreamSource( 0, g_pVB_home_shorts_2_outline[tt], sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_LINESTRIP, 5*onlineFlag, 4);
+    }
+
+    if (g_home_socks_tex) {
+        // socks
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX2 );
+        dev->SetTexture(0, g_home_socks_tex);
+        dev->SetStreamSource( 0, g_pVB_home_socks_shin_left[tt], sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 4*onlineFlag, 2);
+        dev->SetStreamSource( 0, g_pVB_home_socks_foot_left[tt], sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLEFAN, 7*onlineFlag, 5);
+        dev->SetStreamSource( 0, g_pVB_home_socks_shin_right[tt], sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 4*onlineFlag, 2);
+        dev->SetStreamSource( 0, g_pVB_home_socks_foot_right[tt], sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLEFAN, 7*onlineFlag, 5);
+
+        // outline
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX );
+        dev->SetTexture(0, NULL);
+        dev->SetStreamSource( 0, g_pVB_home_socks_left_outline[tt], sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_LINESTRIP, 10*onlineFlag, 9);
+        dev->SetStreamSource( 0, g_pVB_home_socks_right_outline[tt], sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_LINESTRIP, 10*onlineFlag, 9);
+    }
+
+    ////////// AWAY 2DKIT /////////////////////////////
+
+    tt = GetTemplateType(AWAY);
+    RenderAwayShirt(dev, tt, onlineFlag);
+
+    if (g_away_shorts_tex) {
+        // shorts
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX2 );
+        dev->SetTexture(0, g_away_shorts_tex);
+        dev->SetStreamSource( 0, g_pVB_away_shorts[tt], sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 4*onlineFlag, 2);
+        dev->SetStreamSource( 0, g_pVB_away_shorts_2[tt], sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 4*onlineFlag, 2);
+
+        // outline
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX );
+        dev->SetTexture(0, NULL);
+        dev->SetStreamSource( 0, g_pVB_away_shorts_outline[tt], sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_LINESTRIP, 5*onlineFlag, 4);
+        dev->SetStreamSource( 0, g_pVB_away_shorts_2_outline[tt], sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_LINESTRIP, 5*onlineFlag, 4);
+    }
+
+    if (g_away_socks_tex) {
+        // socks
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX2 );
+        dev->SetTexture(0, g_away_socks_tex);
+        dev->SetStreamSource( 0, g_pVB_away_socks_shin_left[tt], sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 4*onlineFlag, 2);
+        dev->SetStreamSource( 0, g_pVB_away_socks_foot_left[tt], sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLEFAN, 7*onlineFlag, 5);
+        dev->SetStreamSource( 0, g_pVB_away_socks_shin_right[tt], sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 4*onlineFlag, 2);
+        dev->SetStreamSource( 0, g_pVB_away_socks_foot_right[tt], sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLEFAN, 7*onlineFlag, 5);
+
+        // outline
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX );
+        dev->SetTexture(0, NULL);
+        dev->SetStreamSource( 0, g_pVB_away_socks_left_outline[tt], sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_LINESTRIP, 10*onlineFlag, 9);
+        dev->SetStreamSource( 0, g_pVB_away_socks_right_outline[tt], sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_LINESTRIP, 10*onlineFlag, 9);
+    }
+
+    // gloves indicators
+    if (typ == GK_TYPE) {
+        if (!g_gloves_left_tex) {
+            char tmp[512];
+            sprintf(tmp,"%sigloves.png",GetPESInfo()->mydir);
+            if (FAILED(D3DXCreateTextureFromFileEx(dev, tmp,
+                        0, 0, 1, 0, D3DFMT_UNKNOWN, D3DPOOL_MANAGED,
+                        D3DX_FILTER_NONE, D3DX_FILTER_NONE,
+                        0xffffffff, NULL, NULL, &g_gloves_left_tex))) {
+                Log(&k_mydll,"FAILED to load image for gloves indicator.");
+            }
+        }
+        if (g_gloves_left_tex) {
+            // Set diffuse blending for alpha set in vertices.
+            dev->SetRenderState( D3DRS_ALPHABLENDENABLE,   TRUE );
+
+            // left
+            dev->SetVertexShader( D3DFVF_CUSTOMVERTEX2 );
+            dev->SetTexture(0, g_gloves_left_tex);
+            dev->SetStreamSource( 0, g_pVB_gloves_left, sizeof(CUSTOMVERTEX2));
+            dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 4*onlineFlag, 2);
+        }
+    }
+
+    // restore the modified renderstates
+    dev->ApplyStateBlock( g_dwSavedStateBlock );
+
+    dev->EndScene();
+}
+
+/******************
 void Draw2Dkits(IDirect3DDevice8* dev)
 {
 	if (g_needsRestore) 
@@ -2699,6 +3982,7 @@ void Draw2Dkits(IDirect3DDevice8* dev)
 
 	dev->EndScene();
 }
+******************/
 
 void BeginDrawKitInfo()
 {

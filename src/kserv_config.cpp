@@ -16,6 +16,8 @@ BOOL ReadConfig(KSERV_CONFIG* config, char* cfgFile)
 	if (config == NULL) return false;
 
     ZeroMemory(config->narrowBackModels, sizeof(config->narrowBackModels));
+    ZeroMemory(config->pes6Models, sizeof(config->pes6Models));
+    ZeroMemory(config->pes6WithLogoModels, sizeof(config->pes6WithLogoModels));
 
 	FILE* cfg = fopen(cfgFile, "rt");
 	if (cfg == NULL) return false;
@@ -72,6 +74,48 @@ BOOL ReadConfig(KSERV_CONFIG* config, char* cfgFile)
             while (p && sscanf(p,"%d",&num)==1) {
                 if (num>=0 && num<sizeof(config->narrowBackModels)) {
                     config->narrowBackModels[num] = 1;
+                }
+                p = strstr(p,",");
+                if (p) p++;
+            }
+        }
+        else if (lstrcmp(name, "mini-kits.pes6")==0)
+        {
+			char* startBracket = strstr(pValue, "[");
+			if (startBracket == NULL) continue;
+			char* endBracket = strstr(startBracket + 1, "]");
+			if (endBracket == NULL) continue;
+
+            endBracket[0]='\0';
+			LogWithString(&k_mydll,"ReadConfig: mini-kits.pes6 = [%s]", startBracket+1);
+
+            // read the numbers, separated by comma
+            int num = -1;
+            char* p = startBracket+1;
+            while (p && sscanf(p,"%d",&num)==1) {
+                if (num>=0 && num<sizeof(config->pes6Models)) {
+                    config->pes6Models[num] = 1;
+                }
+                p = strstr(p,",");
+                if (p) p++;
+            }
+        }
+        else if (lstrcmp(name, "mini-kits.pes6-with-logo")==0)
+        {
+			char* startBracket = strstr(pValue, "[");
+			if (startBracket == NULL) continue;
+			char* endBracket = strstr(startBracket + 1, "]");
+			if (endBracket == NULL) continue;
+
+            endBracket[0]='\0';
+			LogWithString(&k_mydll,"ReadConfig: mini-kits.pes6-with-logo = [%s]", startBracket+1);
+
+            // read the numbers, separated by comma
+            int num = -1;
+            char* p = startBracket+1;
+            while (p && sscanf(p,"%d",&num)==1) {
+                if (num>=0 && num<sizeof(config->pes6WithLogoModels)) {
+                    config->pes6WithLogoModels[num] = 1;
                 }
                 p = strstr(p,",");
                 if (p) p++;
