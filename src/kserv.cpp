@@ -189,10 +189,16 @@ vector<DWORD> splitTextures;
 #define MAX_SMALL_WIDTH 0xFFFF
 #define MAX_MEDIUM_WIDTH 0xFFFF
 #define MAX_LARGE_WIDTH 0xFFFF
+#define MAX_SMALL_HEIGHT 0xFFFF
+#define MAX_MEDIUM_HEIGHT 0xFFFF
+#define MAX_LARGE_HEIGHT 0xFFFF
 
 #define MIN_SMALL_WIDTH 128
 #define MIN_MEDIUM_WIDTH 256
 #define MIN_LARGE_WIDTH 512
+#define MIN_SMALL_HEIGHT 64
+#define MIN_MEDIUM_HEIGHT 128
+#define MIN_LARGE_HEIGHT 256
 
 RECT smallRect = {0, 0, 256, 128};
 RECT mediumRect = {0, 0, 512, 256};
@@ -4785,10 +4791,26 @@ NEWKIT* CreateNewKits(NEWKITFILES files)
 		//too big, go on
 		lastValidFactor=i;
 	};
-	largeRect.bottom=largeRect.right/2;
-	
+	lastValidFactor=1;
+	for (i=1;i<1024;i++) {
+		if (largeRect.bottom % i != 0) continue;
+		//if too small, use the last size
+		if ((largeRect.bottom / i) < MIN_LARGE_HEIGHT) {
+			if (i>0)
+				largeRect.bottom=largeRect.bottom / lastValidFactor;
+			break;
+		};
+		//size is OK, break
+		if ((largeRect.bottom / i) < MAX_LARGE_HEIGHT) {
+			largeRect.bottom=largeRect.bottom/i;
+			break;
+		};
+		//too big, go on
+		lastValidFactor=i;
+	};
 	
 	//the medium texture is at maximum half the large size
+	lastValidFactor=1;
 	mediumRect.right=largeRect.right;
 	for (i=2;i<1024;i++) {
 		if (mediumRect.right % i != 0) continue;
@@ -4806,10 +4828,27 @@ NEWKIT* CreateNewKits(NEWKITFILES files)
 		//too big, go on
 		lastValidFactor=i;
 	};
-	mediumRect.bottom=mediumRect.right/2;
-	
+	lastValidFactor=1;
+	mediumRect.bottom=largeRect.bottom;
+	for (i=2;i<1024;i++) {
+		if (mediumRect.bottom % i != 0) continue;
+		//if too small, use the last size
+		if ((mediumRect.bottom / i) < MIN_MEDIUM_HEIGHT) {
+			if (i>0)
+				mediumRect.bottom=mediumRect.bottom / lastValidFactor;
+			break;
+		};
+		//size is OK, break
+		if ((mediumRect.bottom / i) < MAX_MEDIUM_HEIGHT) {
+			mediumRect.bottom=mediumRect.bottom/i;
+			break;
+		};
+		//too big, go on
+		lastValidFactor=i;
+	};
 	
 	//the small texture is at maximum half the medium size
+	lastValidFactor=1;
 	smallRect.right=mediumRect.right;
 	for (i=2;i<1024;i++) {
 		if (smallRect.right % i != 0) continue;
@@ -4827,8 +4866,24 @@ NEWKIT* CreateNewKits(NEWKITFILES files)
 		//too big, go on
 		lastValidFactor=i;
 	};
-	smallRect.bottom=smallRect.right/2;
-	
+	lastValidFactor=1;
+	smallRect.bottom=mediumRect.bottom;
+	for (i=2;i<1024;i++) {
+		if (smallRect.bottom % i != 0) continue;
+		//if too small, use the last size
+		if ((smallRect.bottom / i) < MIN_SMALL_HEIGHT) {
+			if (i>0)
+				smallRect.bottom=smallRect.bottom / lastValidFactor;
+			break;
+		};
+		//size is OK, break
+		if ((smallRect.bottom / i) < MAX_SMALL_HEIGHT) {
+			smallRect.bottom=smallRect.bottom/i;
+			break;
+		};
+		//too big, go on
+		lastValidFactor=i;
+	};
 
 	LOG(&k_mydll,"CreateNewKits: Large texture is sized %dx%d.",
 				largeRect.right,largeRect.bottom);
