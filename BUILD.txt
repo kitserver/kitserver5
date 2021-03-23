@@ -5,11 +5,9 @@ The Makefile (in the src folder) is intended to be used by Microsoft NMAKE
 tool, which comes with Visual C++ 6. You will need the following 3rd-party
 software to build this program:
 
-- DirectX 9 SDK (or DirectX 8 SDK) 
+- DirectX 8.1 SDK
 (Modify the Makefile so that it points to correct location
-of the SDK on your disk. Default is \DXSDK9)
-
-- STLPort 4.6.2 (or later)
+of the SDK on your disk. Default is \DXSDK)
 
 You'll need to copy "setenv.cmd.sample" file into "setenv.cmd" and
 modify the paths there so that they point correctly to your c++ compiler

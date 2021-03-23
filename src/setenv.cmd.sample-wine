@@ -5,9 +5,8 @@ rem -- when built with newer compilers. --------------------------------
 
 echo Setting kitserver compile environment
 @call "c:\vs60ee\VC98\bin\vcvars32.bat"
-set DXSDK=c:\dxsdk81
-set STLPORT=c:\stlport-4.6.2
-set INCLUDE=%INCLUDE%%STLPORT%\stlport;%DXSDK%\include
-set LIB=%LIB%%STLPORT%\lib;%DXSDK%\lib
+set DXSDK=c:\dxsdk
+set INCLUDE=%INCLUDE%%DXSDK%\include
+set LIB=%LIB%%DXSDK%\lib
 echo Environment set
 
