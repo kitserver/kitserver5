@@ -1413,7 +1413,11 @@ HRESULT MakeVertexBuffer(IDirect3DDevice8* dev, CUSTOMVERTEX* dta,
     memcpy((BYTE*)pVertices + dtaSize, dta, dtaSize);
     SetPosition((CUSTOMVERTEX*)pVertices, dta, dtaSize/sizeof(CUSTOMVERTEX), x, Y_2DKIT_LEFT);
     SetPosition((CUSTOMVERTEX*)pVertices + dtaSize/sizeof(CUSTOMVERTEX), dta, dtaSize/sizeof(CUSTOMVERTEX), x, Y_2DKIT_LEFT_ONLINE);
-    g_pVB_gloves_left->Unlock();
+    if (FAILED((*ppVB)->Unlock()))
+    {
+        Log(&k_mydll,"(*ppVB)->Unlock() failed.");
+        return E_FAIL;
+    }
     return S_OK;
 }
 
@@ -1438,7 +1442,11 @@ HRESULT MakeVertexBuffer2(IDirect3DDevice8* dev, CUSTOMVERTEX2* dta, size_t dtaS
     memcpy((BYTE*)pVertices + dtaSize, dta, dtaSize);
     SetPosition((CUSTOMVERTEX2*)pVertices, dta, dtaSize/sizeof(CUSTOMVERTEX2), x, Y_2DKIT_LEFT);
     SetPosition((CUSTOMVERTEX2*)pVertices + dtaSize/sizeof(CUSTOMVERTEX2), dta, dtaSize/sizeof(CUSTOMVERTEX2), x, Y_2DKIT_LEFT_ONLINE);
-    g_pVB_gloves_left->Unlock();
+    if (FAILED((*ppVB)->Unlock()))
+    {
+        Log(&k_mydll,"(*ppVB)->Unlock() failed.");
+        return E_FAIL;
+    }
     return S_OK;
 }
 
