@@ -1547,9 +1547,9 @@ void kloadGetBackBufferInfo(IDirect3DDevice8* d3dDevice)
 
 		kloadInvalidateDeviceObjects(d3dDevice);
 		kloadDeleteDeviceObjects(d3dDevice);
-		g_font12=new CD3DFont( L"Arial",12*stretchY,D3DFONT_BOLD);
-		g_font16=new CD3DFont( L"Arial",16*stretchY,D3DFONT_BOLD);
-		g_font20=new CD3DFont( L"Arial",20*stretchY,D3DFONT_BOLD);
+		g_font12=new CD3DFont( L"Arial",12*g_config.fontSizeFactor*stretchY,D3DFONT_BOLD);
+		g_font16=new CD3DFont( L"Arial",16*g_config.fontSizeFactor*stretchY,D3DFONT_BOLD);
+		g_font20=new CD3DFont( L"Arial",20*g_config.fontSizeFactor*stretchY,D3DFONT_BOLD);
 		kloadRestoreDeviceObjects(d3dDevice);
 		Log(&k_kload,"kloadGetBackBufferInfo: got new back buffer format and info.");
 		g_bGotFormat = true;
