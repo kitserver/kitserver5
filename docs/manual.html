@@ -43,14 +43,14 @@ Version history: <a href="history.txt">history.txt</a><br />
 </div>
 <h2>Kitserver 5.6 Manual</h2>
 <div>
-August 25, 2020<br />
+May 4, 2021<br />
 Module Versions: 
-<a href="#kitserver">Kserv 5.6.2</a>,
+<a href="#kitserver">Kserv 5.6.3</a>,
 <a href="#ballserver">BallServer: 5.5.9</a>,
 <a href="#faceserver">Faceserver: 5.5.3</a>,
 <a href="#stadiumserver">Stadium Server: 5.5.6</a>,
 <a href="#lodmixer">LOD Mixer: 5.5.0</a>,
-<a href="#bootserver">Bootserver 5.5.9</a>,
+<a href="#bootserver">Bootserver 5.6.0</a>,
 <a href="#afs2fs">AFS2FS 5.0.1</a>,
 <a href="#network">Network 5.5.4.0</a>,
 <a href="#speeder">Speeder 5.0.0</a>
@@ -1096,6 +1096,21 @@ random-boots.enabled = 1
 </pre>
 </p>
 
+<h3>7.3. HD support (partial)</h3>
+
+<p>
+Starting with Bootserver 5.6.0, thanks to the work by <b>Ciais</b>, high-definition (HD) images
+for boot textures are supported too. Basically, you can feed the game any PNG image of the
+correct proportions: standard size 170x256 pixels, and going higher: 340x512, 680x1024, etc.
+Note that the final texture size will still be 256 pixels in height, but Bootserver will do the
+resampling automatically, so you can interchangeably use boots from PES6 and PES5 easily.
+</p>
+
+<p>
+Example: new Neymar boots in HD resolution by <b>muga</b>
+<img src="neymar-hd-boots.png" />
+</p>
+
 <!-- ### AFS2FS ### -->
 
 <h2 id="afs2fs">AFS2FS Module (afs2fs.dll)</h2>
@@ -1485,9 +1500,9 @@ Right away, you will notice how crappy the game looks ;-)
 <h2>Credits</h2>
 
 <p>
-Programming: <b>juce</b>, <b>Robbie</b><br />
+Programming: <b>juce</b>, <b>Robbie</b>, <b>Ciais</b><br />
 Game reversing and analysis: <b>juce</b>, <b>Robbie</b>, <b>Kingsley813</b><br />
-Testing: <b>biker_jim_uk, ntalex, Gwidon, nt89, galagan, Vladis LOVE</b> and many others
+Testing: <b>biker_jim_uk, ntalex, Gwidon, nt89, galagan, Vladis LOVE, Ciais</b> and many others
 from Evo-Web and PesWe forums<br />
 Stadium Server GDB organization and "home team stadium" idea: <b>Gwidon</b><br />
 Information about stadiums in AFS: <b>nt89</b><br />
@@ -1496,6 +1511,8 @@ Balls: <b>DAMned</b>.<br />
 Ball models: <b>Ariel, Gwidon</b>.<br />
 Face: <b>Chris79</b>.<br />
 HD Face: <b>anffs</b>.<br />
+Bootserver HD work: <b>Ciais</b><br />
+Neymar Jr HD Boot: <b>muga</b><br />
 "Saturn Ramenskoye" stadium: <b>Asiat</b><br />
 "Santiago Bernabeu" stadium: <b>Gwidon</b><br /></p>
 <p>

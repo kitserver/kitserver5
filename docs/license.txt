@@ -1,4 +1,4 @@
-Copyright (c) 2003-2018, Juce, Robbie
+Copyright (c) 2003-2021, Juce, Robbie, and contributors
 
 All rights reserved.
 

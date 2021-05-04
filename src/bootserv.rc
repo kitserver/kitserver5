@@ -19,7 +19,7 @@ BEGIN
 		BEGIN
 			VALUE "FileDescription", "Bootserver 5 Module\0"
 			VALUE "FileVersion", "5.6.0\0"
-			VALUE "LegalCopyright", "Copyright © 2005-2021 Juce\0"
+			VALUE "LegalCopyright", "Copyright © 2005-2021 Juce, Ciais\0"
 			VALUE "Comments", "Add-on component for WE9LE: \
 assignment of boots for each player.\0"
 		END

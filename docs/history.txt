@@ -2,6 +2,13 @@ Kitserver 5 HISTORY notes
 =========================
 
 
+2021-05-04
+----------
+v5.6.3
+- bootserver: support for HD boot images in GDB. Thanks, Ciais!
+- kserv: fix for mini-kits issues introduced in 5.6.2
+
+
 2020-08-25
 ----------
 v5.6.2
