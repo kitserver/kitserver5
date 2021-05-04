@@ -7,6 +7,7 @@ Kitserver 5 HISTORY notes
 v5.6.3
 - bootserver: support for HD boot images in GDB. Thanks, Ciais!
 - kserv: fix for mini-kits issues introduced in 5.6.2
+- kload: new option "font-size.factor" in kload.cfg
 
 
 2020-08-25
