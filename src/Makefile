@@ -40,6 +40,8 @@ setup: setup.exe
 
 imageutil.obj: imageutil.cpp imageutil.h
 detect.obj: detect.cpp detect.h
+d3dfont.obj: d3dfont.cpp d3dfont.h
+hook.obj: hook.cpp hook.h
 
 kload.lib: kload.obj detect.obj d3dfont.obj imageutil.obj log.obj kload_config.obj hook.obj  hooklib.obj dxutil.obj afsreplace.obj apihijack.obj
 kload.dll: kload.lib kload.res

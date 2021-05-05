@@ -255,7 +255,6 @@ double stretchX=1;
 double stretchY=1;
 DWORD g_frame_tex_count=0;
 IDirect3DBaseTexture8* g_lastTexture=NULL;
-BOOL g_needsRestore = TRUE;
 bool g_fontInitialized = false;
 CD3DFont* g_font12 = NULL;
 CD3DFont* g_font16 = NULL;
@@ -339,6 +338,8 @@ CALLLINE l_UniSplit={0,NULL};
 CALLLINE l_AfterReadFile={0,NULL};
 CALLLINE l_D3D_UnlockRect={0,NULL};
 CALLLINE l_CreateOption={0,NULL};
+
+void kloadDestroyFonts();
 
 void HookDirect3DCreate8()
 {
@@ -691,11 +692,8 @@ void UnhookKeyb()
 		Log(&k_kload,"Keyboard hook uninstalled.");
 		g_hKeyboardHook = NULL;
 	};
-	
-	SAFE_DELETE( g_font12 );
-	SAFE_DELETE( g_font16 );
-	SAFE_DELETE( g_font20 );
-	
+
+	kloadDestroyFonts();
 	TRACE(&k_kload,"g_font SAFE_DELETED.");
 	return;
 };
@@ -1483,47 +1481,35 @@ KEXPORT void SetActiveDevice(IDirect3DDevice8* n_device)
 	return;
 };
 
-void kloadRestoreDeviceObjects(IDirect3DDevice8* dev)
+void kloadMakeFonts(IDirect3DDevice8* dev)
 {
-	if (!g_fontInitialized) 
-	{
-		g_font12->InitDeviceObjects(dev);
-		g_font16->InitDeviceObjects(dev);
-		g_font20->InitDeviceObjects(dev);
-		g_fontInitialized = true;
-	}
+	DWORD sz12 = 12*g_config.fontSizeFactor*stretchY;
+	DWORD sz16 = 16*g_config.fontSizeFactor*stretchY;
+	DWORD sz20 = 20*g_config.fontSizeFactor*stretchY;
+
+	g_font12 = new CD3DFont(L"Arial", sz12, D3DFONT_BOLD);
+	g_font12->InitDeviceObjects(dev);
 	g_font12->RestoreDeviceObjects();
+	LogWithTwoNumbers(&k_kload,"Font created: g_font12=%08x (sz:%d)", (DWORD)g_font12, sz12);
+
+	g_font16 = new CD3DFont(L"Arial", sz16, D3DFONT_BOLD);
+	g_font16->InitDeviceObjects(dev);
 	g_font16->RestoreDeviceObjects();
+	LogWithTwoNumbers(&k_kload,"Font created: g_font16=%08x (sz:%d)", (DWORD)g_font16, sz16);
+
+	g_font20 = new CD3DFont(L"Arial", sz20, D3DFONT_BOLD);
+	g_font20->InitDeviceObjects(dev);
 	g_font20->RestoreDeviceObjects();
-	g_needsRestore = FALSE;
-	return;
-};
+	LogWithTwoNumbers(&k_kload,"Font created: g_font20=%08x (sz:%d)", (DWORD)g_font20, sz20);
+}
 
-void kloadInvalidateDeviceObjects(IDirect3DDevice8* dev)
+void kloadDestroyFonts()
 {
-	TRACE(&k_kload,"kloadInvalidateDeviceObjects called.");
-	if (dev == NULL)
-	{
-		TRACE(&k_kload,"kloadInvalidateDeviceObjects: nothing to invalidate.");
-		return;
-	}
-
-    if (g_font12) g_font12->InvalidateDeviceObjects();
-    if (g_font16) g_font16->InvalidateDeviceObjects();
-    if (g_font20) g_font20->InvalidateDeviceObjects();
-    
-    return;
-};
-
-void kloadDeleteDeviceObjects(IDirect3DDevice8* dev)
-{
-	if (g_font12) g_font12->DeleteDeviceObjects();
-	if (g_font16) g_font16->DeleteDeviceObjects();
-	if (g_font20) g_font20->DeleteDeviceObjects();
-	g_fontInitialized = false;
-
-    return;
-};
+	SAFE_DELETE(g_font12);
+	SAFE_DELETE(g_font16);
+	SAFE_DELETE(g_font20);
+	Log(&k_kload, "Fonts destroyed");
+}
 
 void kloadGetBackBufferInfo(IDirect3DDevice8* d3dDevice)
 {
@@ -1545,12 +1531,6 @@ void kloadGetBackBufferInfo(IDirect3DDevice8* d3dDevice)
 		g_pesinfo.stretchX=stretchX;
 		g_pesinfo.stretchY=stretchY;
 
-		kloadInvalidateDeviceObjects(d3dDevice);
-		kloadDeleteDeviceObjects(d3dDevice);
-		g_font12=new CD3DFont( L"Arial",12*g_config.fontSizeFactor*stretchY,D3DFONT_BOLD);
-		g_font16=new CD3DFont( L"Arial",16*g_config.fontSizeFactor*stretchY,D3DFONT_BOLD);
-		g_font20=new CD3DFont( L"Arial",20*g_config.fontSizeFactor*stretchY,D3DFONT_BOLD);
-		kloadRestoreDeviceObjects(d3dDevice);
 		Log(&k_kload,"kloadGetBackBufferInfo: got new back buffer format and info.");
 		g_bGotFormat = true;
 		
@@ -1756,14 +1736,13 @@ HRESULT STDMETHODCALLTYPE NewPresent(IDirect3DDevice8* self, CONST RECT* src, CO
 	// determine backbuffer's format and dimensions, if not done yet.
 	if (!g_bGotFormat) {
 		kloadGetBackBufferInfo(self);
-	};
-
-	if (g_needsRestore || !g_fontInitialized) 
-	{
-		kloadRestoreDeviceObjects(self);
-		Log(&k_kload,"NewPresent: RestoreDeviceObjects() done.");
 	}
-	
+
+	if (!g_fontInitialized) {
+		kloadMakeFonts(self);
+		g_fontInitialized = true;
+	}
+
 	for (i=0;i<(l_D3D_Present.num);i++)
 	if (l_D3D_Present.addr[i]!=0) {
 		//LogWithNumber(&k_kload,"NewPresent: calling function %x",l_D3D_Present.addr[i]);
@@ -1784,18 +1763,20 @@ HRESULT STDMETHODCALLTYPE NewPresent(IDirect3DDevice8* self, CONST RECT* src, CO
 };
 
 /* New Reset function */
-HRESULT STDMETHODCALLTYPE NewReset(IDirect3DDevice8* self, LPVOID params)
+HRESULT STDMETHODCALLTYPE NewReset(IDirect3DDevice8* self, D3DPRESENT_PARAMETERS *params)
 {
 	LogWithNumber(&k_kload,"NewReset: CALLED. caller = %08x", (DWORD)(*(&self-4)));
-	
+	LogWithNumber(&k_kload,"NewReset: BackBufferWidth=%d", params->BackBufferWidth);
+	LogWithNumber(&k_kload,"NewReset: BackBufferHeight=%d", params->BackBufferHeight);
+	LogWithNumber(&k_kload,"NewReset: Windowed=%d", params->Windowed);
+
 	Log(&k_kload,"NewReset: cleaning-up.");
 
-	kloadInvalidateDeviceObjects(self);
-	kloadDeleteDeviceObjects(self);
+	Log(&k_kload,"NewReset: destroying fonts");
+	kloadDestroyFonts();
 
 	g_bGotFormat = false;
-    g_needsRestore = TRUE;
-    
+
 	PFNRESETPROC NextCall=NULL;
 	for (int i=0;i<(l_D3D_Reset.num);i++)
 	if (l_D3D_Reset.addr[i]!=0) {
@@ -1806,6 +1787,10 @@ HRESULT STDMETHODCALLTYPE NewReset(IDirect3DDevice8* self, LPVOID params)
 
 	// CALL ORIGINAL FUNCTION
 	HRESULT res = g_orgReset(self, params);
+
+	stretchX=params->BackBufferWidth/1024.0;
+	stretchY=params->BackBufferHeight/768.0;
+	kloadMakeFonts(self);
 
 	TRACE(&k_kload,"NewReset: Reset() is done. About to return.");
 	return res;
