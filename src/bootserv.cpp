@@ -148,7 +148,7 @@ void bootInit(IDirect3D8* self, UINT Adapter,
 void DumpTexture(IDirect3DTexture8* const ptexture);
 void ReplaceTextureLevel(IDirect3DTexture8* srcTexture, IDirect3DTexture8* repTexture, UINT level);
 void ReplaceBootTexture(IDirect3DTexture8* srcTexture, IDirect3DTexture8* repTexture, UINT width);
-void ReplaceBootTexture2(IDirect3DTexture8* srcTexture, IDirect3DTexture8* repTexture, UINT height);
+void ReplaceBootTexture2(IDirect3DTexture8* destTexture, IDirect3DTexture8* srcTexture, UINT destHeight, UINT srcHeight);
 KEXPORT void bootUnlockRect(IDirect3DTexture8* self,UINT Level);
 KEXPORT DWORD bootCopyPlayerData(DWORD p0, DWORD p1, DWORD p2);
 void readConfig();
@@ -474,7 +474,7 @@ IDirect3DTexture8* getBootTexture(WORD playerId, bool big, D3DSURFACE_DESC* pDes
                             D3DFMT_A8R8G8B8, D3DPOOL_MANAGED,
                             D3DX_FILTER_LINEAR, D3DX_FILTER_LINEAR,
                             0, NULL, NULL, &temp))) {
-                    UINT Height = h;
+                    UINT Height = (big)? 256:32;
                     UINT Width = Height*2;
 
                     // create canvas
@@ -487,7 +487,7 @@ IDirect3DTexture8* getBootTexture(WORD playerId, bool big, D3DSURFACE_DESC* pDes
                                         D3DX_FILTER_NONE, D3DX_FILTER_NONE,
                                         0, NULL, NULL, &bootTexture))) {
                         // copy the temp texture to canvas 3 times
-                        ReplaceBootTexture2(bootTexture, temp, Height);
+                        ReplaceBootTexture2(bootTexture, temp, Height, h);
                     }
                     // release the temp texture, as we don't need it anymore
                     temp->Release();
@@ -495,10 +495,10 @@ IDirect3DTexture8* getBootTexture(WORD playerId, bool big, D3DSURFACE_DESC* pDes
                     // store in the map
                     if (big) {
                         it->second._big = bootTexture;
-                        LOG(&k_boot, "getBootTexture: loaded big (%dx%d) texture for player %d", w, h, playerId);
+                        LOG(&k_boot, "getBootTexture: loaded big (%dx%d) texture for player %d: %s", w, h, playerId, filename);
                     } else {
                         it->second._small = bootTexture;
-                        LOG(&k_boot, "getBootTexture: loaded small (%dx%d) texture for player %d", w, h, playerId);
+                        LOG(&k_boot, "getBootTexture: loaded small (%dx%d) texture for player %d: %s", w, h, playerId, filename);
                     }
 
                 } else {
@@ -539,50 +539,60 @@ IDirect3DTexture8* getBootTexture(WORD playerId, bool big, D3DSURFACE_DESC* pDes
                 pack._textureFile = *vit;
             }
 
+            D3DXIMAGE_INFO ii;
             IDirect3DTexture8* temp;
             char filename[BUFLEN];
             sprintf(filename,"%sGDB\\boots\\%s", GetPESInfo()->gdbDir, pack._textureFile.c_str());
-            if (SUCCEEDED(D3DXCreateTextureFromFileEx(
-                            GetActiveDevice(), filename,
-                            0, 0, 1, 0,
+            if (SUCCEEDED(D3DXGetImageInfoFromFile(filename, &ii))) {
+                UINT w, h;
+                SetDimensions(&ii, w, h);
+                w = (big)? w : w/4;
+                h = (big)? h : h/4;
+                if (SUCCEEDED(D3DXCreateTextureFromFileEx(GetActiveDevice(), filename,
+                            w, h, 1, 0,
                             D3DFMT_A8R8G8B8, D3DPOOL_MANAGED,
-                            D3DX_FILTER_NONE, D3DX_FILTER_NONE,
+                            D3DX_FILTER_LINEAR, D3DX_FILTER_LINEAR,
                             0, NULL, NULL, &temp))) {
-                // create canvas
-                char canvasFilename[512];
-                sprintf(canvasFilename, "%s\\bcanvas.png", GetPESInfo()->mydir);
-                D3DSURFACE_DESC desc;
-                temp->GetLevelDesc(0, &desc);
-                UINT Height = (big)? desc.Height : desc.Height/4;
-                UINT Width = Height*2;
-                if (SUCCEEDED(D3DXCreateTextureFromFileEx(
-                                GetActiveDevice(), canvasFilename,
-                                Width, Height, 1, 0,
-                                D3DFMT_A8R8G8B8, D3DPOOL_MANAGED,
-                                D3DX_FILTER_NONE, D3DX_FILTER_NONE,
-                                0, NULL, NULL, &bootTexture))) {
-                    // copy the temp texture to canvas 3 times
-                    ReplaceBootTexture2(bootTexture, temp, Height);
-                }
-                // release the temp texture, as we don't need it anymore
-                temp->Release();
+                    UINT Height = (big)? 256:32;
+                    UINT Width = Height*2;
 
-                if (big) {
-                    pack._big = bootTexture;
-                    pack._bigLoaded = true;
-                    LogWithNumberAndString(&k_boot,
-                            "getBootTexture: loaded random big texture for player %d: %s",
-                            playerId, (char*)pack._textureFile.c_str());
+                    // create canvas
+                    char canvasFilename[512];
+                        sprintf(canvasFilename, "%s\\bcanvas.png", GetPESInfo()->mydir);
+                        if (SUCCEEDED(D3DXCreateTextureFromFileEx(
+                                        GetActiveDevice(), canvasFilename,
+                                        Width, Height, 1, 0,
+                                        D3DFMT_A8R8G8B8, D3DPOOL_MANAGED,
+                                        D3DX_FILTER_NONE, D3DX_FILTER_NONE,
+                                        0, NULL, NULL, &bootTexture))) {
+                        // copy the temp texture to canvas 3 times
+                        ReplaceBootTexture2(bootTexture, temp, Height, h);
+                    }
+                    // release the temp texture, as we don't need it anymore
+                    temp->Release();
+
+                    // store in the map
+                    if (big) {
+                        pack._big = bootTexture;
+                        LOG(&k_boot, "getBootTexture: loaded random big (%dx%d) texture for player %d: %s", w, h, playerId, filename);
+                    } else {
+                        pack._small = bootTexture;
+                        LOG(&k_boot, "getBootTexture: loaded random small (%dx%d) texture for player %d: %s", w, h, playerId, filename);
+                    }
+
                 } else {
-                    pack._small = bootTexture;
-                    pack._smallLoaded = true;
-                    LogWithNumberAndString(&k_boot,
-                            "getBootTexture: loaded random small texture for player %d: %s",
-                            playerId, (char*)pack._textureFile.c_str());
+                    LogWithString(&k_boot, "D3DXCreateTextureFromFileEx FAILED for %s", filename);
                 }
+            }
+            else {
+                LogWithString(&k_boot, "D3DXGetImageInfoFromFile FAILED for %s", filename);
+            }
 
+            // update loaded flags, so that we only load each texture once
+            if (big) {
+                pack._bigLoaded = true;
             } else {
-                LogWithString(&k_boot, "D3DXCreateTextureFromFileEx FAILED for %s", filename);
+                pack._smallLoaded = true;
             }
         }
     }
@@ -712,18 +722,18 @@ KEXPORT void bootUnlockRect(IDirect3DTexture8* self, UINT Level)
     }
 }
 
-void ReplaceTextureLevel(IDirect3DTexture8* srcTexture, IDirect3DTexture8* repTexture, UINT level)
+void ReplaceTextureLevel(IDirect3DTexture8* destTexture, IDirect3DTexture8* srcTexture, UINT level)
 {
     IDirect3DSurface8* src = NULL;
     IDirect3DSurface8* dest = NULL;
 
-    if (SUCCEEDED(srcTexture->GetSurfaceLevel(level, &dest))) {
-        if (SUCCEEDED(repTexture->GetSurfaceLevel(level, &src))) {
+    if (SUCCEEDED(destTexture->GetSurfaceLevel(level, &dest))) {
+        if (SUCCEEDED(srcTexture->GetSurfaceLevel(level, &src))) {
             //DumpTexture(srcTexture);
             if (SUCCEEDED(D3DXLoadSurfaceFromSurface(
                             dest, NULL, NULL,
                             src, NULL, NULL,
-                            D3DX_DEFAULT, 0))) {
+                            D3DX_FILTER_NONE, 0))) {
                 //LogWithNumber(&k_boot,"ReplaceTextureLevel: replacing level %d COMPLETE", level);
 
             } else {
@@ -769,27 +779,28 @@ void ReplaceBootTexture(IDirect3DTexture8* srcTexture, IDirect3DTexture8* repTex
     }
 }
 
-void ReplaceBootTexture2(IDirect3DTexture8* srcTexture, IDirect3DTexture8* repTexture, UINT height)
+void ReplaceBootTexture2(IDirect3DTexture8* destTexture, IDirect3DTexture8* srcTexture, UINT destHeight, UINT srcHeight)
 {
     IDirect3DSurface8* src = NULL;
     IDirect3DSurface8* dest = NULL;
 
     float ratio = 170/256.0;
-    UINT width = height*ratio;
+    UINT srcWidth = srcHeight*ratio;
+    UINT destWidth = destHeight*ratio;
 
-    RECT srcRect = {0,0,width,height};
-    RECT destRect = {0,0,width,height};
+    RECT srcRect = {0,0,srcWidth,srcHeight};
+    RECT destRect = {0,0,destWidth,destHeight};
 
-    if (SUCCEEDED(srcTexture->GetSurfaceLevel(0, &dest))) {
-        if (SUCCEEDED(repTexture->GetSurfaceLevel(0, &src))) {
+    if (SUCCEEDED(destTexture->GetSurfaceLevel(0, &dest))) {
+        if (SUCCEEDED(srcTexture->GetSurfaceLevel(0, &src))) {
             // need 3 copies of the boot texture
             for (int i=0; i<3; i++) {
-                destRect.left = i*width;
-                destRect.right = (i+1)*width;
+                destRect.left = i*destWidth;
+                destRect.right = (i+1)*destWidth;
                 if (SUCCEEDED(D3DXLoadSurfaceFromSurface(
                                 dest, NULL, &destRect,
                                 src, NULL, &srcRect,
-                                D3DX_DEFAULT, 0))) {
+                                D3DX_FILTER_LINEAR, 0))) {
                 } else {
                 }
             }
