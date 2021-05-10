@@ -443,7 +443,7 @@ static void SetDimensions(D3DXIMAGE_INFO *ii, UINT &w, UINT &h) {
     }
 }
 
-IDirect3DTexture8* getBootTexture(WORD playerId, bool big, D3DSURFACE_DESC* pDesc, UINT levels)
+IDirect3DTexture8* getBootTexture(WORD playerId, bool big, UINT levels)
 {
     IDirect3DTexture8* bootTexture = NULL;
     map<WORD,TexturePack>::iterator it = g_bootTexturePacks.find(playerId);
@@ -709,8 +709,12 @@ KEXPORT void bootUnlockRect(IDirect3DTexture8* self, UINT Level)
             //DumpTexture(self);
             //LogWithNumber(&k_boot, "bootUnlockRect: playerId = %d", playerId);
 
+            // load both lod levels, while we are at it
+            IDirect3DTexture8* bigTex = getBootTexture(playerId, true, levels);
+            IDirect3DTexture8* smallTex = getBootTexture(playerId, false, levels);
+
             bool isBig = desc.Width==512;
-            IDirect3DTexture8* bootTexture = getBootTexture(playerId, isBig, &desc, levels);
+            IDirect3DTexture8* bootTexture = (isBig)? bigTex : smallTex;
             if (bootTexture) {
                 // replace the texture
                 ReplaceTextureLevel(self, bootTexture, 0);
