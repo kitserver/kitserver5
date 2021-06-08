@@ -3553,8 +3553,8 @@ void AlterModelsLogic()
     if (VirtualProtect(bptr, 0x20, newProtection, &protection)) {
         BYTE** p = (BYTE**)(bptr + 1);
         *p = g_models_buffer;
-        p = (BYTE**)(bptr + 0x10);
-        *p = g_models_buffer;
+        p = (BYTE**)(bptr + 0x0f);
+        *p = g_models_buffer + 0x100;
     }
     else {
         LogWithNumber(&k_mydll,"problem: VirtualProtect failed for %p", (DWORD)bptr);
@@ -3606,7 +3606,7 @@ void AlterModelsLogic()
         BYTE* b = bptr + 0x13;
         *b = 0x24;
         b = bptr + 0x2c;
-        memcpy(&b,
+        memcpy(b,
             "\xbf\x04\x00\x00\x00"
             "\xbd\x08\x00\x00\x00"
             "\xeb\x07"
@@ -6535,6 +6535,7 @@ void JuceGetClubTeamInfoML1(DWORD id,DWORD result)
  */
 void JuceGetClubTeamInfoML2(DWORD id,DWORD result)
 {
+    static int flag = 0;
 	//TRACE2(&k_mydll,"JuceGetClubTeamInfoML2: CALLED for id = %003d.", id);
 
 	if (id >= 64 && id < 255 && TeamDirExists(id)) {
@@ -6591,6 +6592,14 @@ void JuceGetClubTeamInfoML2(DWORD id,DWORD result)
             SetShortsInfo(gbShorts, &kitPackInfo->gkAway, editable);
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
+            if (flag == 1 && ga != NULL) {
+                SetKitModel(&kitPackInfo->plHome, ga->model);
+            }
+            if (flag == 1 && gb != NULL) {
+                SetKitModel(&kitPackInfo->plAway, gb->model);
+            }
+            flag = (flag + 1) % 2;
+
             SetShortsInfo(paShorts, &kitPackInfo->plHome, editable);
             SetShortsInfo(pbShorts, &kitPackInfo->plAway, editable);
             StoreRadarColors();
