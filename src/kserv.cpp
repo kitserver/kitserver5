@@ -310,13 +310,14 @@ void StoreRadarColors();
 DWORD* g_AFS_id = NULL;
 MEMITEMINFO* g_AFS_memItemInfo = NULL;
 
-#define CODELEN 9
+#define CODELEN 11
 
 // code array names
 enum {
 	C_NAVIGATELEFT,C_NAVIGATERIGHT,
 	C_SPLITDONE_CS1, C_SPLITDONE_CS2, C_SPLITDONE_CS3, C_SPLITDONE2_CS1, C_SPLITDONE2_CS2,
 	C_GETSPLITADDR_CS, C_SETRADARCOLORS,
+    C_MODELS1, C_MODELS2,
 };
 
 // Code addresses.
@@ -325,21 +326,25 @@ DWORD codeArray[][CODELEN] = {
     { 0,0,
     0,0,0,0,0,
     0, 0,
+    0, 0,
     },
     // PES5
     { 0x51ba51, 0x51ba71,
     0x84ca01,0x84ca41,0x84cbef,0x84c5ad,0x84c6bd,
     0x8d5605, 0x516dc7,
+    0x8507e0, 0x850800,
     },
     // WE9
     { 0x51bed1, 0x51bef1,
 	0x84ceb1,0x84cef1,0x84d09f,0x84ca5d,0x84cb6d,
 	0x8d5b65, 0x517247,
+    0, 0,
     },
     // WE9:LE
     { 0x5169d1, 0x5169f1,
 	0x874161,0x8741a1,0x87434f,0x873d0d,0x873e1d,
 	0x8d4d95, 0x511d57,
+    0, 0,
     },
 };
 
@@ -3522,6 +3527,121 @@ void UnloadNewKits(DWORD Index)
 	return;
 };
 
+void AlterModelsLogic()
+{
+    /** PES 5 addresses:
+
+    008507E0 | BE 104E0001              | mov esi,pes5.1004E10                    |
+    008507E5 | E8 36FFFFFF              | call pes5.850720                        |
+    008507EA | 83C6 20                  | add esi,20                              |
+    008507ED | 81FE 904E0001            | cmp esi,pes5.1004E90                    |
+    008507F3 | 7C F0                    | jl pes5.8507E5                          |
+    -->
+    008507E0 | BE 7081EE03              | mov esi,3EE8170                         | 1
+    008507E5 | E8 36FFFFFF              | call pes5.850720                        |
+    008507EA | 83C6 20                  | add esi,20                              |
+    008507ED | 81FE 7082EE03            | cmp esi,3EE8270                         | 2
+    008507F3 | 7C F0                    | jl pes5.8507E5                          |
+    **/
+    if (!code[C_MODELS1]) {
+        return;
+    }
+
+    DWORD protection;
+    DWORD newProtection = PAGE_EXECUTE_READWRITE;
+    BYTE *bptr = (BYTE*)code[C_MODELS1];
+    if (VirtualProtect(bptr, 0x20, newProtection, &protection)) {
+        BYTE** p = (BYTE**)(bptr + 1);
+        *p = g_models_buffer;
+        p = (BYTE**)(bptr + 0x10);
+        *p = g_models_buffer;
+    }
+    else {
+        LogWithNumber(&k_mydll,"problem: VirtualProtect failed for %p", (DWORD)bptr);
+        return;
+    }
+
+    /**
+    Function start: 00850800
+
+    0085080E | 895424 1C                | mov dword ptr ss:[esp+1C],edx           |
+    00850812 | 73 21                    | jae pes5.850835                         |
+    00850814 | A1 60F6DA00              | mov eax,dword ptr ds:[DAF660]           |
+    00850819 | 837CD0 04 01             | cmp dword ptr ds:[eax+edx*8+4],1        |
+    0085081E | 75 0C                    | jne pes5.85082C                         |
+    00850820 | BF 02000000              | mov edi,2                               |
+    00850825 | BD 03000000              | mov ebp,3                               |
+    0085082A | EB 13                    | jmp pes5.85083F                         |
+    0085082C | 33FF                     | xor edi,edi                             |
+    0085082E | BD 02000000              | mov ebp,2                               |
+    00850833 | EB 0A                    | jmp pes5.85083F                         |
+    00850835 | BF 03000000              | mov edi,3                               |
+    0085083A | BD 04000000              | mov ebp,4                               |
+    0085083F | 8BCF                     | mov ecx,edi                             |
+    00850841 | C1E1 05                  | shl ecx,5                               |
+    00850844 | 3BFD                     | cmp edi,ebp                             |
+    00850846 | 8DB1 104E0001            | lea esi,dword ptr ds:[ecx+1004E10]      |
+    -->
+    0085080E | 895424 1C                | mov dword ptr ss:[esp+1C],edx           |
+    00850812 | 73 24                    | jae pes5.850838                         | 1
+    00850814 | A1 60F6DA00              | mov eax,dword ptr ds:[DAF660]           |
+    00850819 | 837CD0 04 01             | cmp dword ptr ds:[eax+edx*8+4],1        |
+    0085081E | 75 0C                    | jne pes5.85082C                         |
+    00850820 | BF 02000000              | mov edi,2                               |
+    00850825 | BD 03000000              | mov ebp,3                               |
+    0085082A | EB 13                    | jmp pes5.85083F                         |
+    0085082C | BF 04000000              | mov edi,4                               | 2
+    00850831 | BD 08000000              | mov ebp,8                               | 3
+    00850836 | EB 07                    | jmp pes5.85083F                         | 4
+    00850838 | 33FF                     | xor edi,edi                             | 5
+    0085083A | BD 01000000              | mov ebp,1                               | 6
+    0085083F | 8BCF                     | mov ecx,edi                             |
+    00850841 | C1E1 05                  | shl ecx,5                               |
+    00850844 | 3BFD                     | cmp edi,ebp                             |
+    00850846 | 8DB1 7081EE03            | lea esi,dword ptr ds:[ecx+3EE8170]      | 7
+    **/
+
+    bptr = (BYTE*)code[C_MODELS2];
+    if (VirtualProtect(bptr, 0x100, newProtection, &protection)) {
+        BYTE* b = bptr + 0x13;
+        *b = 0x24;
+        b = bptr + 0x2c;
+        memcpy(&b,
+            "\xbf\x04\x00\x00\x00"
+            "\xbd\x08\x00\x00\x00"
+            "\xeb\x07"
+            "\x33\xff"
+            "\xbd\x01\x00\x00\x00",
+            0x13);
+        BYTE** p = (BYTE**)(bptr + 0x48);
+        *p = g_models_buffer;
+    }
+    else {
+        LogWithNumber(&k_mydll,"problem: VirtualProtect failed for %p", (DWORD)bptr);
+        return;
+    }
+
+    /**
+    ...
+
+    008508C3 | C1E6 05                  | shl esi,5                               |
+    008508C6 | 81C6 104E0001            | add esi,pes5.1004E10                    |
+    -->
+    008508C3 | C1E6 05                  | shl esi,5                               |
+    008508C6 | 81C6 7081EE03            | add esi,3EE8170                         | 1
+    **/
+
+    bptr = (BYTE*)code[C_MODELS2];
+    if (VirtualProtect(bptr, 0x100, newProtection, &protection)) {
+        BYTE** p = (BYTE**)(bptr + 0xc8);
+        *p = g_models_buffer;
+    }
+    else {
+        LogWithNumber(&k_mydll,"problem: VirtualProtect failed for %p", (DWORD)bptr);
+        return;
+    }
+}
+
 /************
  * This function initializes kitserver.
  ************/
@@ -3639,9 +3759,10 @@ void InitKserv()
 		MasterHookFunction(code[C_SPLITDONE2_CS2],1,JuceSplitDone2_2);
 		
 		MasterHookFunction(code[C_GETSPLITADDR_CS],1,JuceUniSplit);
+
+		AlterModelsLogic();
 		
-	return;
-	
+		return;
     }
     else
     {
