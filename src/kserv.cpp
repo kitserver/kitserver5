@@ -43,6 +43,8 @@
 
 KMOD k_mydll={MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG};
 
+BYTE *g_models_buffer;
+
 /**************************************
 Shared by all processes variables
 **************************************/
@@ -3675,11 +3677,15 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		
 		HookFunction(hk_D3D_CreateDevice,(DWORD)InitKserv);
 		HookFunction(hk_D3D_Reset,(DWORD)JuceReset);
+
+        g_models_buffer = (BYTE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 0x100);
+        LogWithNumber(&k_mydll,"g_models_buffer: %p", (DWORD)g_models_buffer);
 	}
 
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
 		Log(&k_mydll,"DLL detaching...");
+        HeapFree(GetProcessHeap(), 0, g_models_buffer);
 		
 		UnhookFunction(hk_ReadFile,(DWORD)JuceReadFile);
 
@@ -6201,6 +6207,11 @@ void SetKitInfo(Kit* kit, KITINFO* kitInfo, BOOL editable)
     */
 }
 
+void SetKitModel(KITINFO* kitInfo, BYTE model)
+{
+    kitInfo->model = model;
+}
+
 void SetShortsInfo(Kit* kit, KITINFO* kitInfo, BOOL editable)
 {
     // set shorts number position
@@ -6273,6 +6284,7 @@ void ResetKitPackInfo(KITPACKINFO* kitPackInfo, KITPACKINFO* saved)
  */
 void JuceGetClubTeamInfo(DWORD id,DWORD result)
 {
+    static int flag = 0;
 	//TRACE2(&k_mydll,"JuceGetClubTeamInfo: CALLED for id = %003d.", id);
 
 	if (id == 0xf2) {
@@ -6323,8 +6335,18 @@ void JuceGetClubTeamInfo(DWORD id,DWORD result)
             SetKitInfo(gb, &kitPackInfo->gkAway, editable);
             SetShortsInfo(gaShorts, &kitPackInfo->gkHome, editable);
             SetShortsInfo(gbShorts, &kitPackInfo->gkAway, editable);
+
+            LogWithThreeNumbers(&k_mydll, "setting kit info for team %d, flag=%d, result=%p", id, flag, result);
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
+            if (flag == 1 && ga != NULL) {
+                SetKitModel(&kitPackInfo->plHome, ga->model);
+            }
+            if (flag == 1 && gb != NULL) {
+                SetKitModel(&kitPackInfo->plAway, gb->model);
+            }
+            flag = (flag + 1) % 2;
+
             SetShortsInfo(paShorts, &kitPackInfo->plHome, editable);
             SetShortsInfo(pbShorts, &kitPackInfo->plAway, editable);
             StoreRadarColors();
