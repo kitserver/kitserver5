@@ -491,6 +491,10 @@ IDirect3DVertexBuffer8* g_pVB_gloves_right = NULL;
 static DWORD g_dwSavedStateBlock = 0L;
 static DWORD g_dwDrawOverlayStateBlock = 0L;
 
+static int flagClubs = 0;
+static int flagClubsML = 0;
+static int flagNational = 0;
+
 // 2D-kit polygons
 
 #define X_2DKIT_LEFT 122
@@ -3760,6 +3764,7 @@ void InitKserv()
 		
 		MasterHookFunction(code[C_GETSPLITADDR_CS],1,JuceUniSplit);
 
+        LogWithNumber(&k_mydll, "JuceGetClubTeamInfo = %p\n", (DWORD)JuceGetClubTeamInfo);
 		AlterModelsLogic();
 		
 		return;
@@ -6405,7 +6410,6 @@ void ResetKitPackInfo(KITPACKINFO* kitPackInfo, KITPACKINFO* saved)
  */
 void JuceGetClubTeamInfo(DWORD id,DWORD result)
 {
-    static int flag = 0;
 	//TRACE2(&k_mydll,"JuceGetClubTeamInfo: CALLED for id = %003d.", id);
 
 	if (id == 0xf2) {
@@ -6457,16 +6461,18 @@ void JuceGetClubTeamInfo(DWORD id,DWORD result)
             SetShortsInfo(gaShorts, &kitPackInfo->gkHome, editable);
             SetShortsInfo(gbShorts, &kitPackInfo->gkAway, editable);
 
-            LogWithThreeNumbers(&k_mydll, "setting kit info for team %d, flag=%d, result=%p", id, flag, result);
+            LogWithThreeNumbers(&k_mydll, "setting kit info for team %d, flag=%d, result=%p", id, flagClubs, result);
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
-            if (flag == 1 && ga != NULL) {
+            if (flagClubs == 1 && ga != NULL) {
                 SetKitModel(&kitPackInfo->plHome, ga->model);
+                //SetKitInfo(ga, &kitPackInfo->plHome, editable);
             }
-            if (flag == 1 && gb != NULL) {
+            if (flagClubs == 1 && gb != NULL) {
                 SetKitModel(&kitPackInfo->plAway, gb->model);
+                //SetKitInfo(gb, &kitPackInfo->plAway, editable);
             }
-            flag = (flag + 1) % 2;
+            flagClubs = (flagClubs + 1) % 2;
 
             SetShortsInfo(paShorts, &kitPackInfo->plHome, editable);
             SetShortsInfo(pbShorts, &kitPackInfo->plAway, editable);
@@ -6535,7 +6541,6 @@ void JuceGetClubTeamInfoML1(DWORD id,DWORD result)
  */
 void JuceGetClubTeamInfoML2(DWORD id,DWORD result)
 {
-    static int flag = 0;
 	//TRACE2(&k_mydll,"JuceGetClubTeamInfoML2: CALLED for id = %003d.", id);
 
 	if (id >= 64 && id < 255 && TeamDirExists(id)) {
@@ -6592,13 +6597,15 @@ void JuceGetClubTeamInfoML2(DWORD id,DWORD result)
             SetShortsInfo(gbShorts, &kitPackInfo->gkAway, editable);
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
-            if (flag == 1 && ga != NULL) {
+            if (flagClubsML == 1 && ga != NULL) {
                 SetKitModel(&kitPackInfo->plHome, ga->model);
+                //SetKitInfo(ga, &kitPackInfo->plHome, editable);
             }
-            if (flag == 1 && gb != NULL) {
+            if (flagClubsML == 1 && gb != NULL) {
                 SetKitModel(&kitPackInfo->plAway, gb->model);
+                //SetKitInfo(gb, &kitPackInfo->plAway, editable);
             }
-            flag = (flag + 1) % 2;
+            flagClubsML = (flagClubsML + 1) % 2;
 
             SetShortsInfo(paShorts, &kitPackInfo->plHome, editable);
             SetShortsInfo(pbShorts, &kitPackInfo->plAway, editable);
@@ -6660,6 +6667,16 @@ void JuceGetNationalTeamInfo(DWORD id,DWORD result)
             SetShortsInfo(gbShorts, &kitPackInfo->gkAway, editable);
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
+            if (flagNational == 1 && ga != NULL) {
+                SetKitModel(&kitPackInfo->plHome, ga->model);
+                //SetKitInfo(ga, &kitPackInfo->plHome, editable);
+            }
+            if (flagNational == 1 && gb != NULL) {
+                SetKitModel(&kitPackInfo->plAway, gb->model);
+                //SetKitInfo(gb, &kitPackInfo->plAway, editable);
+            }
+            flagNational = (flagNational + 1) % 2;
+
             SetShortsInfo(paShorts, &kitPackInfo->plHome, editable);
             SetShortsInfo(pbShorts, &kitPackInfo->plAway, editable);
             StoreRadarColors();
@@ -6692,6 +6709,10 @@ void JuceGetNationalTeamInfoExitEdit(DWORD id,DWORD result)
 void JuceSet2Dkits()
 {
     g_display2Dkits = TRUE;
+
+    flagClubs = 0;
+    flagClubsML = 0;
+    flagNational = 0;
 
     // initialize home iterators
     WORD teamId = GetTeamId(HOME);
