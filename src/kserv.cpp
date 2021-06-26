@@ -44,6 +44,8 @@
 KMOD k_mydll={MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG};
 
 BYTE *g_models_buffer;
+BYTE _edit_mode_flag(0);
+BYTE _edit_page_id(0);
 
 /**************************************
 Shared by all processes variables
@@ -1334,11 +1336,35 @@ PALETTEENTRY g_away_socks_pal[0x100];
 // FUNCTIONS /////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
-bool isEditMode()
+BYTE GetEditModeFlag()
 {
-    return *(BYTE*)data[EDITMODE_FLAG] == 1;
+    return *(BYTE*)data[EDITMODE_FLAG];
 }
 
+BYTE GetEditPageId()
+{
+    return *(BYTE*)(data[EDITMODE_FLAG] + 4);
+}
+
+void CheckForFlagsReset()
+{
+    BYTE curr_edit_mode_flag = GetEditModeFlag();
+    BYTE curr_edit_page_id = GetEditPageId();
+
+    if ((curr_edit_mode_flag != _edit_mode_flag) || (curr_edit_page_id != _edit_page_id)) {
+        _edit_mode_flag = curr_edit_mode_flag;
+        _edit_page_id = curr_edit_page_id;
+
+        if (curr_edit_mode_flag == 1 && curr_edit_page_id == 7) {
+            Log(&k_mydll, "Resetting model flags for Edit Mode\n");
+            flagClubs = flagClubsML = flagNational = 1;
+        }
+        if (curr_edit_mode_flag == 1 && curr_edit_page_id == 0x11) {
+            Log(&k_mydll, "Resetting model flags for Edit Mode\n");
+            flagClubs = flagClubsML = flagNational = 1;
+        }
+    }
+}
 
 // Calls IUnknown::Release() on an instance
 /*
@@ -6475,12 +6501,14 @@ void JuceGetClubTeamInfo(DWORD id,DWORD result)
             LogWithThreeNumbers(&k_mydll, "setting kit info for team %d, flag=%d, result=%p", id, flagClubs, result);
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
-            int f = isEditMode() ? 0 : 1;
-            if (flagClubs == f && ga != NULL) {
+
+            CheckForFlagsReset();
+
+            if (flagClubs == 1 && ga != NULL) {
                 SetKitModel(&kitPackInfo->plHome, ga->model);
                 //SetKitInfo(ga, &kitPackInfo->plHome, editable);
             }
-            if (flagClubs == f && gb != NULL) {
+            if (flagClubs == 1 && gb != NULL) {
                 SetKitModel(&kitPackInfo->plAway, gb->model);
                 //SetKitInfo(gb, &kitPackInfo->plAway, editable);
             }
@@ -6609,12 +6637,14 @@ void JuceGetClubTeamInfoML2(DWORD id,DWORD result)
             SetShortsInfo(gbShorts, &kitPackInfo->gkAway, editable);
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
-            int f = isEditMode() ? 0 : 1;
-            if (flagClubsML == f && ga != NULL) {
+
+            CheckForFlagsReset();
+
+            if (flagClubsML == 1 && ga != NULL) {
                 SetKitModel(&kitPackInfo->plHome, ga->model);
                 //SetKitInfo(ga, &kitPackInfo->plHome, editable);
             }
-            if (flagClubsML == f && gb != NULL) {
+            if (flagClubsML == 1 && gb != NULL) {
                 SetKitModel(&kitPackInfo->plAway, gb->model);
                 //SetKitInfo(gb, &kitPackInfo->plAway, editable);
             }
@@ -6680,12 +6710,14 @@ void JuceGetNationalTeamInfo(DWORD id,DWORD result)
             SetShortsInfo(gbShorts, &kitPackInfo->gkAway, editable);
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
-            int f = isEditMode() ? 0 : 1;
-            if (flagNational == f && ga != NULL) {
+
+            CheckForFlagsReset();
+
+            if (flagNational == 1 && ga != NULL) {
                 SetKitModel(&kitPackInfo->plHome, ga->model);
                 //SetKitInfo(ga, &kitPackInfo->plHome, editable);
             }
-            if (flagNational == f && gb != NULL) {
+            if (flagNational == 1 && gb != NULL) {
                 SetKitModel(&kitPackInfo->plAway, gb->model);
                 //SetKitInfo(gb, &kitPackInfo->plAway, editable);
             }
