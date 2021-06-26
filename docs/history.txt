@@ -2,6 +2,17 @@ Kitserver 5 HISTORY notes
 =========================
 
 
+2021-06-27
+----------
+v5.7.0
+- kserv: supporting different models for player/goalkeeper kits
+  on the same team. (This removes the internal limitation that
+  the game had, where PL and GK had to use the same model, or
+  otherwise the kits would be distorted on the goalkeeper)
+  Again, thanks to Ciais, who advocated for this feature :-)
+- bootserver: optimizations for HD boot support
+
+
 2021-05-04
 ----------
 v5.6.3
