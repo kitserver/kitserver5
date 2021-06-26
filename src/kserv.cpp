@@ -344,12 +344,12 @@ DWORD codeArray[][CODELEN] = {
     { 0x5169d1, 0x5169f1,
 	0x874161,0x8741a1,0x87434f,0x873d0d,0x873e1d,
 	0x8d4d95, 0x511d57,
-    0, 0,
+    0x877f40, 0x877f60,
     },
 };
 
 
-#define DATALEN 18
+#define DATALEN 19
 
 // data array names
 enum {
@@ -360,6 +360,7 @@ enum {
 	ML_HOME_AREA, ML_AWAY_AREA,
 	SINGLEPLAYER, KITSELECTSIDE, PLAYERSIDE,	
     RADARCOLOR_HOME, RADARCOLOR_AWAY,
+    EDITMODE_FLAG,
 };
 
 // Data addresses.
@@ -371,6 +372,7 @@ DWORD dataArray[][DATALEN] = {
       0, 0, 0, 0,
       0,0,0,
       0, 0,
+      0,
     },
     // PES5
     { 0x3be0f40, 0x3b7f2c6, 0,
@@ -379,6 +381,7 @@ DWORD dataArray[][DATALEN] = {
       0x38b77dc, 0x38b77e0, 0x38b77a4, 0x38b77a8,
       0x3be10a0, 0xfdeefc, 0xc0e4d0,
       0x3be1c6c, 0x3be1c70,
+      0x38f97f8,
     },
     // WE9
     { 0x3be0f60, 0x3b7f2e6, 0,
@@ -387,6 +390,7 @@ DWORD dataArray[][DATALEN] = {
       0x38b77dc, 0x38b77e0, 0x38b77a4, 0x38b77a8,
       0x3be10c0, 0xfdef04, 0xc0e4d0,
       0x3be1c8c, 0x3be1c90,
+      0x38f97f8,
     },
     // WE9:LE
     { 0x3b68a80, 0x3adb606, 0, 
@@ -395,6 +399,7 @@ DWORD dataArray[][DATALEN] = {
       0x37f20ec, 0x37f20f0, 0x37f20b4, 0x37f20b8,
       0x3b68be0, 0xf18e94, 0xb4d548,
       0x3b697ac, 0x3b697b0,
+      0x3834108,
     },
 };
 
@@ -1328,6 +1333,12 @@ PALETTEENTRY g_away_socks_pal[0x100];
 //////////////////////////////////////////////////////////////
 // FUNCTIONS /////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
+
+bool isEditMode()
+{
+    return *(BYTE*)data[EDITMODE_FLAG] == 1;
+}
+
 
 // Calls IUnknown::Release() on an instance
 /*
@@ -3598,7 +3609,7 @@ void AlterModelsLogic()
     00850831 | BD 08000000              | mov ebp,8                               | 3
     00850836 | EB 07                    | jmp pes5.85083F                         | 4
     00850838 | 33FF                     | xor edi,edi                             | 5
-    0085083A | BD 01000000              | mov ebp,1                               | 6
+    0085083A | BD 01000000              | mov ebp,2                               | 6
     0085083F | 8BCF                     | mov ecx,edi                             |
     00850841 | C1E1 05                  | shl ecx,5                               |
     00850844 | 3BFD                     | cmp edi,ebp                             |
@@ -3615,7 +3626,7 @@ void AlterModelsLogic()
             "\xbd\x08\x00\x00\x00"
             "\xeb\x07"
             "\x33\xff"
-            "\xbd\x01\x00\x00\x00",
+            "\xbd\x02\x00\x00\x00",
             0x13);
         BYTE** p = (BYTE**)(bptr + 0x48);
         *p = g_models_buffer;
@@ -6464,11 +6475,12 @@ void JuceGetClubTeamInfo(DWORD id,DWORD result)
             LogWithThreeNumbers(&k_mydll, "setting kit info for team %d, flag=%d, result=%p", id, flagClubs, result);
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
-            if (flagClubs == 1 && ga != NULL) {
+            int f = isEditMode() ? 0 : 1;
+            if (flagClubs == f && ga != NULL) {
                 SetKitModel(&kitPackInfo->plHome, ga->model);
                 //SetKitInfo(ga, &kitPackInfo->plHome, editable);
             }
-            if (flagClubs == 1 && gb != NULL) {
+            if (flagClubs == f && gb != NULL) {
                 SetKitModel(&kitPackInfo->plAway, gb->model);
                 //SetKitInfo(gb, &kitPackInfo->plAway, editable);
             }
@@ -6597,11 +6609,12 @@ void JuceGetClubTeamInfoML2(DWORD id,DWORD result)
             SetShortsInfo(gbShorts, &kitPackInfo->gkAway, editable);
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
-            if (flagClubsML == 1 && ga != NULL) {
+            int f = isEditMode() ? 0 : 1;
+            if (flagClubsML == f && ga != NULL) {
                 SetKitModel(&kitPackInfo->plHome, ga->model);
                 //SetKitInfo(ga, &kitPackInfo->plHome, editable);
             }
-            if (flagClubsML == 1 && gb != NULL) {
+            if (flagClubsML == f && gb != NULL) {
                 SetKitModel(&kitPackInfo->plAway, gb->model);
                 //SetKitInfo(gb, &kitPackInfo->plAway, editable);
             }
@@ -6667,11 +6680,12 @@ void JuceGetNationalTeamInfo(DWORD id,DWORD result)
             SetShortsInfo(gbShorts, &kitPackInfo->gkAway, editable);
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
-            if (flagNational == 1 && ga != NULL) {
+            int f = isEditMode() ? 0 : 1;
+            if (flagNational == f && ga != NULL) {
                 SetKitModel(&kitPackInfo->plHome, ga->model);
                 //SetKitInfo(ga, &kitPackInfo->plHome, editable);
             }
-            if (flagNational == 1 && gb != NULL) {
+            if (flagNational == f && gb != NULL) {
                 SetKitModel(&kitPackInfo->plAway, gb->model);
                 //SetKitInfo(gb, &kitPackInfo->plAway, editable);
             }
