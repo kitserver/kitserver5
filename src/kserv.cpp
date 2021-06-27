@@ -351,7 +351,7 @@ DWORD codeArray[][CODELEN] = {
 };
 
 
-#define DATALEN 19
+#define DATALEN 21
 
 // data array names
 enum {
@@ -362,7 +362,7 @@ enum {
 	ML_HOME_AREA, ML_AWAY_AREA,
 	SINGLEPLAYER, KITSELECTSIDE, PLAYERSIDE,	
     RADARCOLOR_HOME, RADARCOLOR_AWAY,
-    EDITMODE_FLAG,
+    EDITMODE_FLAG, EDITPLAYER_ID, EDITTEAM_KIT_ID,
 };
 
 // Data addresses.
@@ -374,7 +374,7 @@ DWORD dataArray[][DATALEN] = {
       0, 0, 0, 0,
       0,0,0,
       0, 0,
-      0,
+      0, 0, 0,
     },
     // PES5
     { 0x3be0f40, 0x3b7f2c6, 0,
@@ -383,7 +383,7 @@ DWORD dataArray[][DATALEN] = {
       0x38b77dc, 0x38b77e0, 0x38b77a4, 0x38b77a8,
       0x3be10a0, 0xfdeefc, 0xc0e4d0,
       0x3be1c6c, 0x3be1c70,
-      0x38f97f8,
+      0x38f97f8, 0x3937218, 0x38f951e,
     },
     // WE9
     { 0x3be0f60, 0x3b7f2e6, 0,
@@ -392,7 +392,7 @@ DWORD dataArray[][DATALEN] = {
       0x38b77dc, 0x38b77e0, 0x38b77a4, 0x38b77a8,
       0x3be10c0, 0xfdef04, 0xc0e4d0,
       0x3be1c8c, 0x3be1c90,
-      0x38f97f8,
+      0x38f97f8, 0x3937218, 0x38f951e,
     },
     // WE9:LE
     { 0x3b68a80, 0x3adb606, 0, 
@@ -401,7 +401,7 @@ DWORD dataArray[][DATALEN] = {
       0x37f20ec, 0x37f20f0, 0x37f20b4, 0x37f20b8,
       0x3b68be0, 0xf18e94, 0xb4d548,
       0x3b697ac, 0x3b697b0,
-      0x3834108,
+      0x3834108, 0x388c070, 0x3833e2e,
     },
 };
 
@@ -1339,31 +1339,6 @@ PALETTEENTRY g_away_socks_pal[0x100];
 BYTE GetEditModeFlag()
 {
     return *(BYTE*)data[EDITMODE_FLAG];
-}
-
-BYTE GetEditPageId()
-{
-    return *(BYTE*)(data[EDITMODE_FLAG] + 4);
-}
-
-void CheckForFlagsReset()
-{
-    BYTE curr_edit_mode_flag = GetEditModeFlag();
-    BYTE curr_edit_page_id = GetEditPageId();
-
-    if ((curr_edit_mode_flag != _edit_mode_flag) || (curr_edit_page_id != _edit_page_id)) {
-        _edit_mode_flag = curr_edit_mode_flag;
-        _edit_page_id = curr_edit_page_id;
-
-        if (curr_edit_mode_flag == 1 && curr_edit_page_id == 7) {
-            Log(&k_mydll, "Resetting model flags for Edit Mode\n");
-            flagClubs = flagClubsML = flagNational = 1;
-        }
-        if (curr_edit_mode_flag == 1 && curr_edit_page_id == 0x11) {
-            Log(&k_mydll, "Resetting model flags for Edit Mode\n");
-            flagClubs = flagClubsML = flagNational = 1;
-        }
-    }
 }
 
 // Calls IUnknown::Release() on an instance
@@ -6498,21 +6473,36 @@ void JuceGetClubTeamInfo(DWORD id,DWORD result)
             SetShortsInfo(gaShorts, &kitPackInfo->gkHome, editable);
             SetShortsInfo(gbShorts, &kitPackInfo->gkAway, editable);
 
-            LogWithThreeNumbers(&k_mydll, "setting kit info for team %d, flag=%d, result=%p", id, flagClubs, result);
+            //LogWithThreeNumbers(&k_mydll, "setting kit info for team %d, flag=%d, result=%p", id, flagClubs, result);
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
 
-            CheckForFlagsReset();
-
-            if (flagClubs == 1 && ga != NULL) {
-                SetKitModel(&kitPackInfo->plHome, ga->model);
-                //SetKitInfo(ga, &kitPackInfo->plHome, editable);
+            if (GetEditModeFlag() == 0) {
+                if (flagClubs == 1 && ga != NULL) {
+                    SetKitModel(&kitPackInfo->plHome, ga->model);
+                }
+                if (flagClubs == 1 && gb != NULL) {
+                    SetKitModel(&kitPackInfo->plAway, gb->model);
+                }
+                flagClubs = (flagClubs + 1) % 2;
             }
-            if (flagClubs == 1 && gb != NULL) {
-                SetKitModel(&kitPackInfo->plAway, gb->model);
-                //SetKitInfo(gb, &kitPackInfo->plAway, editable);
+            else if (data[EDITTEAM_KIT_ID]) {
+                // Edit mode
+                if (*(WORD*)data[EDITPLAYER_ID] != 0) {
+                    BYTE pos = *(BYTE*)(data[EDITPLAYER_ID] - 0x47);
+                    if ((pos & 0xf0) == 0) {
+                        // GK
+                        SetKitModel(&kitPackInfo->plHome, ga->model);
+                        SetKitModel(&kitPackInfo->plAway, gb->model);
+                    }
+                }
+                BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
+                if (kit_id == 2 || kit_id == 3) {
+                    // GK
+                    SetKitModel(&kitPackInfo->plHome, ga->model);
+                    SetKitModel(&kitPackInfo->plAway, gb->model);
+                }
             }
-            flagClubs = (flagClubs + 1) % 2;
 
             SetShortsInfo(paShorts, &kitPackInfo->plHome, editable);
             SetShortsInfo(pbShorts, &kitPackInfo->plAway, editable);
@@ -6638,17 +6628,32 @@ void JuceGetClubTeamInfoML2(DWORD id,DWORD result)
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
 
-            CheckForFlagsReset();
-
-            if (flagClubsML == 1 && ga != NULL) {
-                SetKitModel(&kitPackInfo->plHome, ga->model);
-                //SetKitInfo(ga, &kitPackInfo->plHome, editable);
+            if (GetEditModeFlag() == 0) {
+                if (flagClubsML == 1 && ga != NULL) {
+                    SetKitModel(&kitPackInfo->plHome, ga->model);
+                }
+                if (flagClubsML == 1 && gb != NULL) {
+                    SetKitModel(&kitPackInfo->plAway, gb->model);
+                }
+                flagClubsML = (flagClubsML + 1) % 2;
             }
-            if (flagClubsML == 1 && gb != NULL) {
-                SetKitModel(&kitPackInfo->plAway, gb->model);
-                //SetKitInfo(gb, &kitPackInfo->plAway, editable);
+            else if (data[EDITTEAM_KIT_ID]) {
+                // Edit mode
+                if (*(WORD*)data[EDITPLAYER_ID] != 0) {
+                    BYTE pos = *(BYTE*)(data[EDITPLAYER_ID] - 0x47);
+                    if ((pos & 0xf0) == 0) {
+                        // GK
+                        SetKitModel(&kitPackInfo->plHome, ga->model);
+                        SetKitModel(&kitPackInfo->plAway, gb->model);
+                    }
+                }
+                BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
+                if (kit_id == 2 || kit_id == 3) {
+                    // GK
+                    SetKitModel(&kitPackInfo->plHome, ga->model);
+                    SetKitModel(&kitPackInfo->plAway, gb->model);
+                }
             }
-            flagClubsML = (flagClubsML + 1) % 2;
 
             SetShortsInfo(paShorts, &kitPackInfo->plHome, editable);
             SetShortsInfo(pbShorts, &kitPackInfo->plAway, editable);
@@ -6711,17 +6716,32 @@ void JuceGetNationalTeamInfo(DWORD id,DWORD result)
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
 
-            CheckForFlagsReset();
-
-            if (flagNational == 1 && ga != NULL) {
-                SetKitModel(&kitPackInfo->plHome, ga->model);
-                //SetKitInfo(ga, &kitPackInfo->plHome, editable);
+            if (GetEditModeFlag() == 0) {
+                if (flagNational == 1 && ga != NULL) {
+                    SetKitModel(&kitPackInfo->plHome, ga->model);
+                }
+                if (flagNational == 1 && gb != NULL) {
+                    SetKitModel(&kitPackInfo->plAway, gb->model);
+                }
+                flagNational = (flagNational + 1) % 2;
             }
-            if (flagNational == 1 && gb != NULL) {
-                SetKitModel(&kitPackInfo->plAway, gb->model);
-                //SetKitInfo(gb, &kitPackInfo->plAway, editable);
+            else if (data[EDITTEAM_KIT_ID]) {
+                // Edit mode
+                if (*(WORD*)data[EDITPLAYER_ID] != 0) {
+                    BYTE pos = *(BYTE*)(data[EDITPLAYER_ID] - 0x47);
+                    if ((pos & 0xf0) == 0) {
+                        // GK
+                        SetKitModel(&kitPackInfo->plHome, ga->model);
+                        SetKitModel(&kitPackInfo->plAway, gb->model);
+                    }
+                }
+                BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
+                if (kit_id == 2 || kit_id == 3) {
+                    // GK
+                    SetKitModel(&kitPackInfo->plHome, ga->model);
+                    SetKitModel(&kitPackInfo->plAway, gb->model);
+                }
             }
-            flagNational = (flagNational + 1) % 2;
 
             SetShortsInfo(paShorts, &kitPackInfo->plHome, editable);
             SetShortsInfo(pbShorts, &kitPackInfo->plAway, editable);
