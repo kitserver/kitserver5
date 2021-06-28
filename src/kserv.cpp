@@ -498,9 +498,7 @@ IDirect3DVertexBuffer8* g_pVB_gloves_right = NULL;
 static DWORD g_dwSavedStateBlock = 0L;
 static DWORD g_dwDrawOverlayStateBlock = 0L;
 
-static int flagClubs = 0;
-static int flagClubsML = 0;
-static int flagNational = 0;
+static int flagKits = 0;
 
 // 2D-kit polygons
 
@@ -6473,18 +6471,18 @@ void JuceGetClubTeamInfo(DWORD id,DWORD result)
             SetShortsInfo(gaShorts, &kitPackInfo->gkHome, editable);
             SetShortsInfo(gbShorts, &kitPackInfo->gkAway, editable);
 
-            //LogWithThreeNumbers(&k_mydll, "setting kit info for team %d, flag=%d, result=%p", id, flagClubs, result);
+            //LogWithThreeNumbers(&k_mydll, "setting kit info for team %d, flag=%d, result=%p", id, flagKits, result);
             SetKitInfo(pa, &kitPackInfo->plHome, editable);
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
 
             if (GetEditModeFlag() == 0) {
-                if (flagClubs == 1 && ga != NULL) {
+                if (flagKits == 1 && ga != NULL) {
                     SetKitModel(&kitPackInfo->plHome, ga->model);
                 }
-                if (flagClubs == 1 && gb != NULL) {
+                if (flagKits == 1 && gb != NULL) {
                     SetKitModel(&kitPackInfo->plAway, gb->model);
                 }
-                flagClubs = (flagClubs + 1) % 2;
+                flagKits = (flagKits + 1) % 2;
             }
             else if (data[EDITTEAM_KIT_ID]) {
                 // Edit mode
@@ -6629,13 +6627,13 @@ void JuceGetClubTeamInfoML2(DWORD id,DWORD result)
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
 
             if (GetEditModeFlag() == 0) {
-                if (flagClubsML == 1 && ga != NULL) {
+                if (flagKits == 1 && ga != NULL) {
                     SetKitModel(&kitPackInfo->plHome, ga->model);
                 }
-                if (flagClubsML == 1 && gb != NULL) {
+                if (flagKits == 1 && gb != NULL) {
                     SetKitModel(&kitPackInfo->plAway, gb->model);
                 }
-                flagClubsML = (flagClubsML + 1) % 2;
+                flagKits = (flagKits + 1) % 2;
             }
             else if (data[EDITTEAM_KIT_ID]) {
                 // Edit mode
@@ -6717,13 +6715,13 @@ void JuceGetNationalTeamInfo(DWORD id,DWORD result)
             SetKitInfo(pb, &kitPackInfo->plAway, editable);
 
             if (GetEditModeFlag() == 0) {
-                if (flagNational == 1 && ga != NULL) {
+                if (flagKits == 1 && ga != NULL) {
                     SetKitModel(&kitPackInfo->plHome, ga->model);
                 }
-                if (flagNational == 1 && gb != NULL) {
+                if (flagKits == 1 && gb != NULL) {
                     SetKitModel(&kitPackInfo->plAway, gb->model);
                 }
-                flagNational = (flagNational + 1) % 2;
+                flagKits = (flagKits + 1) % 2;
             }
             else if (data[EDITTEAM_KIT_ID]) {
                 // Edit mode
@@ -6776,9 +6774,7 @@ void JuceSet2Dkits()
 {
     g_display2Dkits = TRUE;
 
-    flagClubs = 0;
-    flagClubsML = 0;
-    flagNational = 0;
+    flagKits = 0;
 
     // initialize home iterators
     WORD teamId = GetTeamId(HOME);
