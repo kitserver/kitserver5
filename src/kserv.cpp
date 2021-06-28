@@ -6492,15 +6492,15 @@ void JuceGetClubTeamInfo(DWORD id,DWORD result)
                     BYTE pos = *(BYTE*)(data[EDITPLAYER_ID] - 0x47);
                     if ((pos & 0xf0) == 0) {
                         // GK
-                        SetKitModel(&kitPackInfo->plHome, ga->model);
-                        SetKitModel(&kitPackInfo->plAway, gb->model);
+                        if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
+                        if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
                     }
                 }
                 BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
                 if (kit_id == 2 || kit_id == 3) {
                     // GK
-                    SetKitModel(&kitPackInfo->plHome, ga->model);
-                    SetKitModel(&kitPackInfo->plAway, gb->model);
+                    if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
+                    if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
                 }
             }
 
@@ -6643,15 +6643,15 @@ void JuceGetClubTeamInfoML2(DWORD id,DWORD result)
                     BYTE pos = *(BYTE*)(data[EDITPLAYER_ID] - 0x47);
                     if ((pos & 0xf0) == 0) {
                         // GK
-                        SetKitModel(&kitPackInfo->plHome, ga->model);
-                        SetKitModel(&kitPackInfo->plAway, gb->model);
+                        if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
+                        if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
                     }
                 }
                 BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
                 if (kit_id == 2 || kit_id == 3) {
                     // GK
-                    SetKitModel(&kitPackInfo->plHome, ga->model);
-                    SetKitModel(&kitPackInfo->plAway, gb->model);
+                    if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
+                    if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
                 }
             }
 
@@ -6731,15 +6731,15 @@ void JuceGetNationalTeamInfo(DWORD id,DWORD result)
                     BYTE pos = *(BYTE*)(data[EDITPLAYER_ID] - 0x47);
                     if ((pos & 0xf0) == 0) {
                         // GK
-                        SetKitModel(&kitPackInfo->plHome, ga->model);
-                        SetKitModel(&kitPackInfo->plAway, gb->model);
+                        if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
+                        if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
                     }
                 }
                 BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
                 if (kit_id == 2 || kit_id == 3) {
                     // GK
-                    SetKitModel(&kitPackInfo->plHome, ga->model);
-                    SetKitModel(&kitPackInfo->plAway, gb->model);
+                    if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
+                    if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
                 }
             }
 
