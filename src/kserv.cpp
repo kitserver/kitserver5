@@ -312,14 +312,14 @@ void StoreRadarColors();
 DWORD* g_AFS_id = NULL;
 MEMITEMINFO* g_AFS_memItemInfo = NULL;
 
-#define CODELEN 11
+#define CODELEN 12
 
 // code array names
 enum {
 	C_NAVIGATELEFT,C_NAVIGATERIGHT,
 	C_SPLITDONE_CS1, C_SPLITDONE_CS2, C_SPLITDONE_CS3, C_SPLITDONE2_CS1, C_SPLITDONE2_CS2,
 	C_GETSPLITADDR_CS, C_SETRADARCOLORS,
-    C_MODELS1, C_MODELS2,
+    C_MODELS1, C_MODELS2, C_MODELS3,
 };
 
 // Code addresses.
@@ -328,30 +328,30 @@ DWORD codeArray[][CODELEN] = {
     { 0,0,
     0,0,0,0,0,
     0, 0,
-    0, 0,
+    0, 0, 0,
     },
     // PES5
     { 0x51ba51, 0x51ba71,
     0x84ca01,0x84ca41,0x84cbef,0x84c5ad,0x84c6bd,
     0x8d5605, 0x516dc7,
-    0x8507e0, 0x850800,
+    0x8507e0, 0x850800, 0x85079c,
     },
     // WE9
     { 0x51bed1, 0x51bef1,
 	0x84ceb1,0x84cef1,0x84d09f,0x84ca5d,0x84cb6d,
 	0x8d5b65, 0x517247,
-	0x850c90, 0x850cb0,
+	0x850c90, 0x850cb0, 0x850c4c,
     },
     // WE9:LE
     { 0x5169d1, 0x5169f1,
 	0x874161,0x8741a1,0x87434f,0x873d0d,0x873e1d,
 	0x8d4d95, 0x511d57,
-    0x877f40, 0x877f60,
+    0x877f40, 0x877f60, 0x877efc,
     },
 };
 
 
-#define DATALEN 21
+#define DATALEN 22
 
 // data array names
 enum {
@@ -362,7 +362,7 @@ enum {
 	ML_HOME_AREA, ML_AWAY_AREA,
 	SINGLEPLAYER, KITSELECTSIDE, PLAYERSIDE,	
     RADARCOLOR_HOME, RADARCOLOR_AWAY,
-    EDITMODE_FLAG, EDITPLAYER_ID, EDITTEAM_KIT_ID,
+    EDITMODE_FLAG, EDITPLAYER_ID, EDITTEAM_KIT_ID, EDITPLAYER_NUMBER,
 };
 
 // Data addresses.
@@ -374,7 +374,7 @@ DWORD dataArray[][DATALEN] = {
       0, 0, 0, 0,
       0,0,0,
       0, 0,
-      0, 0, 0,
+      0, 0, 0, 0,
     },
     // PES5
     { 0x3be0f40, 0x3b7f2c6, 0,
@@ -383,7 +383,7 @@ DWORD dataArray[][DATALEN] = {
       0x38b77dc, 0x38b77e0, 0x38b77a4, 0x38b77a8,
       0x3be10a0, 0xfdeefc, 0xc0e4d0,
       0x3be1c6c, 0x3be1c70,
-      0x38f97f8, 0x3937218, 0x38f951e,
+      0x38f97f8, 0x3937218, 0x38f951e, 0x38f9918,
     },
     // WE9
     { 0x3be0f60, 0x3b7f2e6, 0,
@@ -392,7 +392,7 @@ DWORD dataArray[][DATALEN] = {
       0x38b77dc, 0x38b77e0, 0x38b77a4, 0x38b77a8,
       0x3be10c0, 0xfdef04, 0xc0e4d0,
       0x3be1c8c, 0x3be1c90,
-      0x38f97f8, 0x3937218, 0x38f951e,
+      0x38f97f8, 0x3937218, 0x38f951e, 0x38f9918,
     },
     // WE9:LE
     { 0x3b68a80, 0x3adb606, 0, 
@@ -401,7 +401,7 @@ DWORD dataArray[][DATALEN] = {
       0x37f20ec, 0x37f20f0, 0x37f20b4, 0x37f20b8,
       0x3b68be0, 0xf18e94, 0xb4d548,
       0x3b697ac, 0x3b697b0,
-      0x3834108, 0x388c070, 0x3833e2e,
+      0x3834108, 0x388c070, 0x3833e2e, 0x3834228,
     },
 };
 
@@ -3543,8 +3543,59 @@ void UnloadNewKits(DWORD Index)
 
 void AlterModelsLogic()
 {
-    /** PES 5 addresses:
+    /**
+    0085079C | 8B348D A030BE03          | mov esi,dword ptr ds:[ecx*4+3BE30A0]    |
+    008507A3 | 73 25                    | jae pes5.8507CA                         |
+    008507A5 | 85F6                     | test esi,esi                            |
+    008507A7 | 74 21                    | je pes5.8507CA                          |
+    008507A9 | C7048D A030BE03 00000000 | mov dword ptr ds:[ecx*4+3BE30A0],0      |
+    008507B4 | FE4E 02                  | dec byte ptr ds:[esi+2]                 |
+    008507B7 | 75 11                    | jne pes5.8507CA                         |
+    008507B9 | 8B4424 0C                | mov eax,dword ptr ss:[esp+C]            |
+    008507BD | 85C0                     | test eax,eax                            |
+    008507BF | 74 05                    | je pes5.8507C6                          |
+    008507C1 | E8 5AFFFFFF              | call pes5.850720                        |
+    008507C6 | C646 02 00               | mov byte ptr ds:[esi+2],0               |
+    008507CA | 5E                       | pop esi                                 |
+    008507CB | C3                       | ret                                     |
+    -->
+    0085079C | 8B348D A030BE03          | mov esi,dword ptr ds:[ecx*4+3BE30A0]    |
+    008507A3 | 73 27                    | jae pes5.8507CC                         | 1
+    008507A5 | 85F6                     | test esi,esi                            |
+    008507A7 | 74 23                    | je pes5.8507CC                          | 2
+    008507A9 | C7048D A030BE03 00000000 | mov dword ptr ds:[ecx*4+3BE30A0],0      |
+    008507B4 | FE4E 02                  | dec byte ptr ds:[esi+2]                 |
+    008507B7 | 75 13                    | jne pes5.8507CC                         | 3
+    008507B9 | 8B4424 0C                | mov eax,dword ptr ss:[esp+C]            |
+    008507BD | 85C0                     | test eax,eax                            |
+    008507BF | 74 05                    | je pes5.8507C6                          |
+    008507C1 | E8 5AFFFFFF              | call pes5.850720                        |
+    008507C6 | C706 00000000            | mov dword ptr ds:[esi],0                | 4
+    008507CC | 5E                       | pop esi                                 | 5
+    008507CD | C3                       | ret                                     | 6
+    */
+    if (!code[C_MODELS3]) {
+        return;
+    }
 
+    DWORD protection;
+    DWORD newProtection = PAGE_EXECUTE_READWRITE;
+    BYTE *bptr = (BYTE*)code[C_MODELS3];
+    if (VirtualProtect(bptr, 0x100, newProtection, &protection)) {
+        *(bptr + 0xa4 - 0x9c) = 0x27;
+        *(bptr + 0xa8 - 0x9c) = 0x23;
+        *(bptr + 0xb8 - 0x9c) = 0x13;
+        memcpy(bptr + 0xc6 - 0x9c,
+            "\xc7\x06\x00\x00\x00\x00"
+            "\x5e"
+            "\xc3", 8);
+    }
+    else {
+        LogWithNumber(&k_mydll,"problem: VirtualProtect failed for %p", (DWORD)bptr);
+        return;
+    }
+
+    /**
     008507E0 | BE 104E0001              | mov esi,pes5.1004E10                    |
     008507E5 | E8 36FFFFFF              | call pes5.850720                        |
     008507EA | 83C6 20                  | add esi,20                              |
@@ -3561,9 +3612,7 @@ void AlterModelsLogic()
         return;
     }
 
-    DWORD protection;
-    DWORD newProtection = PAGE_EXECUTE_READWRITE;
-    BYTE *bptr = (BYTE*)code[C_MODELS1];
+    bptr = (BYTE*)code[C_MODELS1];
     if (VirtualProtect(bptr, 0x20, newProtection, &protection)) {
         BYTE** p = (BYTE**)(bptr + 1);
         *p = g_models_buffer;
@@ -6486,19 +6535,24 @@ void JuceGetClubTeamInfo(DWORD id,DWORD result)
             }
             else if (data[EDITTEAM_KIT_ID]) {
                 // Edit mode
-                if (*(WORD*)data[EDITPLAYER_ID] != 0) {
+                WORD playerId = *(WORD*)data[EDITPLAYER_ID];
+                if (playerId != 0) {
                     BYTE pos = *(BYTE*)(data[EDITPLAYER_ID] - 0x47);
+                    //LogWithTwoNumbers(&k_mydll, "player id: %d, pos: 0x%02x\n", playerId, pos);
                     if ((pos & 0xf0) == 0) {
                         // GK
+                        //LogWithTwoNumbers(&k_mydll, "is GK. Rewriting models to (ga:%d, gb:%d)\n", ga->model, gb->model);
                         if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
                         if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
                     }
                 }
-                BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
-                if (kit_id == 2 || kit_id == 3) {
-                    // GK
-                    if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
-                    if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
+                if (*(BYTE*)data[EDITPLAYER_NUMBER] == 0) {
+                    BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
+                    if (kit_id == 2 || kit_id == 3) {
+                        // GK
+                        if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
+                        if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
+                    }
                 }
             }
 
@@ -6637,19 +6691,24 @@ void JuceGetClubTeamInfoML2(DWORD id,DWORD result)
             }
             else if (data[EDITTEAM_KIT_ID]) {
                 // Edit mode
-                if (*(WORD*)data[EDITPLAYER_ID] != 0) {
+                WORD playerId = *(WORD*)data[EDITPLAYER_ID];
+                if (playerId != 0) {
                     BYTE pos = *(BYTE*)(data[EDITPLAYER_ID] - 0x47);
+                    //LogWithTwoNumbers(&k_mydll, "player id: %d, pos: 0x%02x\n", playerId, pos);
                     if ((pos & 0xf0) == 0) {
                         // GK
+                        //LogWithTwoNumbers(&k_mydll, "is GK. Rewriting models to (ga:%d, gb:%d)\n", ga->model, gb->model);
                         if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
                         if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
                     }
                 }
-                BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
-                if (kit_id == 2 || kit_id == 3) {
-                    // GK
-                    if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
-                    if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
+                if (*(BYTE*)data[EDITPLAYER_NUMBER] == 0) {
+                    BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
+                    if (kit_id == 2 || kit_id == 3) {
+                        // GK
+                        if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
+                        if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
+                    }
                 }
             }
 
@@ -6725,19 +6784,24 @@ void JuceGetNationalTeamInfo(DWORD id,DWORD result)
             }
             else if (data[EDITTEAM_KIT_ID]) {
                 // Edit mode
-                if (*(WORD*)data[EDITPLAYER_ID] != 0) {
+                WORD playerId = *(WORD*)data[EDITPLAYER_ID];
+                if (playerId != 0) {
                     BYTE pos = *(BYTE*)(data[EDITPLAYER_ID] - 0x47);
+                    //LogWithTwoNumbers(&k_mydll, "player id: %d, pos: 0x%02x\n", playerId, pos);
                     if ((pos & 0xf0) == 0) {
                         // GK
+                        //LogWithTwoNumbers(&k_mydll, "is GK. Rewriting models to (ga:%d, gb:%d)\n", ga->model, gb->model);
                         if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
                         if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
                     }
                 }
-                BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
-                if (kit_id == 2 || kit_id == 3) {
-                    // GK
-                    if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
-                    if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
+                if (*(BYTE*)data[EDITPLAYER_NUMBER] == 0) {
+                    BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
+                    if (kit_id == 2 || kit_id == 3) {
+                        // GK
+                        if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
+                        if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
+                    }
                 }
             }
 
