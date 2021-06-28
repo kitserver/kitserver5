@@ -2,6 +2,14 @@ Kitserver 5 HISTORY notes
 =========================
 
 
+2021-06-28
+----------
+v5.7.1
+- kserv: fixes for the following issues, introduced in 5.7.0:
+    - possible "2nd-match-crash" (where first match works, but second may crash before starting)
+    - Edit mode correction for "Edit Player Number" page
+
+
 2021-06-27
 ----------
 v5.7.0
