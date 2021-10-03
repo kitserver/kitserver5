@@ -2,6 +2,7 @@
 
 #include <windows.h>
 #include <stdio.h>
+#include <stdint.h>
 #include "log.h"
 #include "manage.h"
 #include "hook.h"
@@ -338,6 +339,14 @@ CALLLINE l_UniSplit={0,NULL};
 CALLLINE l_AfterReadFile={0,NULL};
 CALLLINE l_D3D_UnlockRect={0,NULL};
 CALLLINE l_CreateOption={0,NULL};
+
+double _fps = 0.0;
+int _frame_count = 0;
+LARGE_INTEGER _last_counter;
+LARGE_INTEGER _freq;
+
+void DrawFPS();
+
 
 void kloadDestroyFonts();
 
@@ -1407,6 +1416,7 @@ HRESULT STDMETHODCALLTYPE NewCreateDevice(IDirect3D8* self, UINT Adapter,
             vtable[VTAB_CREATETEXTURE] = (DWORD)NewCreateTexture;
 			Log(&k_kload,"CreateTexture hooked.");
 		}
+		QueryPerformanceFrequency(&_freq);
     }
 
     // hook Present method
@@ -1757,7 +1767,10 @@ HRESULT STDMETHODCALLTYPE NewPresent(IDirect3DDevice8* self, CONST RECT* src, CO
 	//Print additional information (labels,...)
 	if (l_DrawKitSelectInfo.num>0)
 		DrawKitSelectInfo();
-	
+
+    if (g_config.drawFPS) {
+        DrawFPS();
+    }	
 	
 	// CALL ORIGINAL FUNCTION ///////////////////
 	HRESULT res = g_orgPresent(self, src, dest, hWnd, unused);
@@ -1846,6 +1859,25 @@ HRESULT STDMETHODCALLTYPE NewSetRenderState(IDirect3DDevice8* self,D3DRENDERSTAT
 
 	return res;
 };
+
+void DrawFPS()
+{
+    _frame_count = (_frame_count + 1) % 60;
+    if (_frame_count == 0) {
+        LARGE_INTEGER i;
+        QueryPerformanceCounter(&i);
+        int64_t elapsed = i.QuadPart - _last_counter.QuadPart;
+        _last_counter = i;
+
+        double elapsed_sec = (double)elapsed / _freq.QuadPart;
+        //LOG(&k_kload, "elapsed: %lld", elapsed);
+        //LOG(&k_kload, "elapsed_sec: %0.3f", elapsed_sec);
+        _fps = 60.0/elapsed_sec;
+    }
+    char tmp[16];
+    sprintf(tmp,"%0.1f", _fps);
+    KDrawText(10,10,0xd0ffc000,20,tmp);
+}
 
 void DrawKitSelectInfo()
 {

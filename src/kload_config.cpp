@@ -81,6 +81,12 @@ BOOL ReadConfig(KLOAD_CONFIG* config, char* cfgFile)
 
 			hasGdbDir = true;
 		}
+		else if (stricmp(name, "display.fps")==0)
+		{
+			if (sscanf(pValue, "%d", &value)!=1) continue;
+			LogWithNumber(&k_kload,"ReadConfig: display.fps = (%d)", value);
+			config->drawFPS = (value > 0);
+		}
        	else if (lstrcmp(name, "pes.dir")==0)
 		{
 			char* startQuote = strstr(pValue, "\"");
