@@ -405,8 +405,8 @@ DWORD MasterCallFirst(...)
 	__asm {
 		//push ebp
 	};
-	
-	for (int i=numArgs-1;i>=0;i--) {
+	int i;
+	for (i=numArgs-1;i>=0;i--) {
 		if (wasJump)
 			arg=*((DWORD*)oldEBP+3+i);
 		else
@@ -481,8 +481,8 @@ KEXPORT DWORD MasterCallNext(...)
 	__asm {
 		//push ebp
 	};
-	
-	for (int i=numArgs-1;i>=0;i--) {
+	int i;
+	for (i=numArgs-1;i>=0;i--) {
 		arg=*((DWORD*)oldEBP+2+i);
 		__asm mov eax, arg
 		__asm push eax

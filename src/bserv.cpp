@@ -112,7 +112,7 @@ HRESULT InvalidateDeviceObjects(IDirect3DDevice8* dev);
 HRESULT DeleteDeviceObjects(IDirect3DDevice8* dev);
 HRESULT RestoreDeviceObjects(IDirect3DDevice8* dev);
 void ReadBallModel();
-void ResizeLightingRect(LIGHTVERTEX* data, int n);
+void ResizeLightingRect(LIGHTVERTEX* dta, int n);
 BOOL ReadConfig(BSERV_CFG* config, char* cfgFile);
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
@@ -134,7 +134,7 @@ void BeginDrawBallLabel();
 void EndDrawBallLabel();
 void DrawBallLabel(IDirect3DDevice8* self);
 DWORD LoadPNGTexture(BITMAPINFO** tex, char* filename);
-static int read_file_to_mem(char *fn,unsigned char **ppfiledata, int *pfilesize);
+static int read_file_to_mem(char *fn,unsigned char **ppfiledta, int *pfilesize);
 void ApplyAlphaChunk(RGBQUAD* palette, BYTE* memblk, DWORD size);
 void FreePNGTexture(BITMAPINFO* bitmap);
 
@@ -222,7 +222,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		RegisterKModule(&k_bserv);
 		
 		memcpy(code, codeArray[GetPESInfo()->GameVersion], sizeof(code));
-		memcpy(data, dataArray[GetPESInfo()->GameVersion], sizeof(data));
+		memcpy(dta, dtaArray[GetPESInfo()->GameVersion], sizeof(dta));
 		
 		
 		
@@ -334,7 +334,7 @@ void InitBserv()
     DWORD HeapAddress=(DWORD)HeapAlloc(
             GetProcessHeap(),HEAP_ZERO_MEMORY,8);
     
-    for (int i=0;i<data[NUM_BALL_FILES];i++)
+    for (int i=0;i<dta[NUM_BALL_FILES];i++)
         SaveAFSAddr(TempHandle,i,&(AFSArray[i]),HeapAddress);
     
     HeapFree(GetProcessHeap(),HEAP_ZERO_MEMORY,(LPVOID)HeapAddress);
@@ -361,7 +361,7 @@ bool bservAfterReadFile(HANDLE hFile,
     if (fileId == 0xffffffff) 
         return false;
 
-	for (int i=0;i<data[NUM_BALL_FILES];i++) {
+	for (int i=0;i<dta[NUM_BALL_FILES];i++) {
 		if (AFSArray[i].Buffer==(DWORD)lpBuffer) AFSArray[i].Buffer=0;
 		if (AFSArray[i].AFSAddr==offset) {found=i;break;};
 	}
@@ -421,7 +421,7 @@ void bservUnpack(DWORD addr1, DWORD addr2, DWORD size1, DWORD zero, DWORD* size2
 
 	if (selectedBall<0) return;
 	
-	for (int i=0;i<data[NUM_BALL_FILES];i++) {
+	for (int i=0;i<dta[NUM_BALL_FILES];i++) {
 		if (AFSArray[i].Buffer==(addr1-0x20)) {found=i;break;};
 	};
 	
@@ -451,7 +451,7 @@ bool bservGetNumPages(DWORD afsId, DWORD fileId, DWORD orgNumPages, DWORD *numPa
     DWORD fileSize = 0;
     char tmp[BUFLEN];
 
-	if (selectedBall>=0 && afsId == 1 && fileId<data[NUM_BALL_FILES] && fileId%2==0) {
+	if (selectedBall>=0 && afsId == 1 && fileId<dta[NUM_BALL_FILES] && fileId%2==0) {
 		strcpy(tmp,GetPESInfo()->gdbDir);
 		strcat(tmp,"GDB\\balls\\mdl\\");
 		strcat(tmp,model);
@@ -487,7 +487,7 @@ DWORD bservGetFileFromAFS(DWORD afsId, DWORD fileId)
     
     char tmp[BUFLEN];
 
-	if (selectedBall>=0 && afsId == 1 && fileId<data[NUM_BALL_FILES] && fileId%2==0) {
+	if (selectedBall>=0 && afsId == 1 && fileId<dta[NUM_BALL_FILES] && fileId%2==0) {
 		strcpy(tmp,GetPESInfo()->gdbDir);
 		strcat(tmp,"GDB\\balls\\mdl\\");
 		strcat(tmp,model);
@@ -504,7 +504,7 @@ DWORD bservGetFileFromAFS(DWORD afsId, DWORD fileId)
             LogWithString(&k_bserv, "bservGetFileFromAFS: found GDB ball model file: %s", tmp);
 
             // find buffer size (in pages)
-            DWORD* g_pageLenTable = (DWORD*)data[AFS_PAGELEN_TABLE];
+            DWORD* g_pageLenTable = (DWORD*)dta[AFS_PAGELEN_TABLE];
             pPageLenTable = (DWORD*)(g_pageLenTable[afsId] + 0x11c);
             orgNumPages = pPageLenTable[fileId];
             LogWithTwoNumbers(&k_bserv,"bservGetFileFromAFS: had size: %08x pages (%08x bytes)", 
@@ -865,7 +865,7 @@ DWORD LoadPNGTexture(BITMAPINFO** tex, char* filename)
 };
 
 // Read a file into a memory block.
-static int read_file_to_mem(char *fn,unsigned char **ppfiledata, int *pfilesize)
+static int read_file_to_mem(char *fn,unsigned char **ppfiledta, int *pfilesize)
 {
 	HANDLE hfile;
 	DWORD fsize;
@@ -885,7 +885,7 @@ static int read_file_to_mem(char *fn,unsigned char **ppfiledata, int *pfilesize)
 		if(fbuf) {
 			if(ReadFile(hfile,(void*)fbuf,fsize,&bytesread,NULL)) {
 				if(bytesread==fsize) { 
-					(*ppfiledata)  = fbuf;
+					(*ppfiledta)  = fbuf;
 					(*pfilesize) = (int)fsize;
 					CloseHandle(hfile);
 					return 0;   // success
@@ -1325,13 +1325,13 @@ void ReadBallModel()
 	return;
 };
 
-void ResizeLightingRect(LIGHTVERTEX* data, int n)
+void ResizeLightingRect(LIGHTVERTEX* dta, int n)
 {
     static bool resized = false;
 	if (!resized) { 
         for (int i=0;i<n;i++) {
-            data[i].x=data[i].x*FACTOR;
-            data[i].y=data[i].y*FACTOR;
+            dta[i].x=dta[i].x*FACTOR;
+            dta[i].y=dta[i].y*FACTOR;
         }
         resized = true;
     }
@@ -1554,18 +1554,18 @@ DWORD SetBallName(char** names, DWORD numNames, DWORD p3, DWORD p4, DWORD p5, DW
 WORD GetTeamId(int which)
 {
     BYTE* mlData;
-    if (data[TEAM_IDS]==0) return 0xffff;
-    WORD id = ((WORD*)data[TEAM_IDS])[which];
+    if (dta[TEAM_IDS]==0) return 0xffff;
+    WORD id = ((WORD*)dta[TEAM_IDS])[which];
     if (id==0xf2 || id==0xf3) {
         switch (id) {
             case 0xf2:
                 // master league team (home)
-                mlData = *((BYTE**)data[ML_HOME_AREA]);
+                mlData = *((BYTE**)dta[ML_HOME_AREA]);
                 id = *((DWORD*)(mlData + 0x6c)) & 0xffff; // 3rd byte is a flag of "edited" kit
                 break;
             case 0xf3:
                 // master league team (away)
-                mlData = *((BYTE**)data[ML_AWAY_AREA]);
+                mlData = *((BYTE**)dta[ML_AWAY_AREA]);
                 id = *((DWORD*)(mlData + 0x6c)) & 0xffff; // 3rd byte is a flag of "edited" kit
                 break;
         }

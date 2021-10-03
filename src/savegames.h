@@ -50,7 +50,7 @@ enum {
 	CURR_MLFILE,
 };
 
-DWORD dataArray[][DATALEN] = {
+DWORD dtaArray[][DATALEN] = {
 	//PES5
 	{
 		0x3bd3ddc, 0xfd93e8, 0x3be24e0, 0xb0e170,
@@ -69,7 +69,7 @@ DWORD dataArray[][DATALEN] = {
 };
 
 DWORD code[CODELEN];
-DWORD data[DATALEN];
+DWORD dta[DATALEN];
 
 //reserve 10 instead of 1.3 MB as buffer for saved files (like replays)
 #define NEWRESERVEDFILEMEMORY 10000000

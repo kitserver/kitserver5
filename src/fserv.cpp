@@ -11,6 +11,8 @@
 
 KMOD k_fserv={MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG};
 
+bool dump_it = false;
+
 HINSTANCE hInst;
 bool Inited=false;
 bool savegameModPresent=false;
@@ -179,7 +181,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
     HRESULT res = D3D_OK;
 
     //LOG(&k_fserv, "CreateTexture (%dx%dx%d): %08x (src=%08x)",
-    //    width, height, levels, (DWORD)*ppTexture, src);
+    //    width, height, levels, (DWORD)ppTexture, src);
 
     // faces
     if (width == 64 && height == 128 && levels == 1) {
@@ -188,6 +190,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
             g_faceFilesBig.pop();
             LOG(&k_fserv, ">>> Looks like a big face texture (%dx%dx%d): src=%08x",
                 width, height, levels, src);
+			dump_it = true;
 
             string hdfilename = filename.substr(0,filename.size()-4);
             hdfilename += ".png";
@@ -241,6 +244,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
             g_faceFilesSmall.pop();
             LOG(&k_fserv, ">>> Looks like a small face texture (%dx%dx%d): src=%08x",
                 width, height, levels, src);
+			
 
             string hdfilename = filename.substr(0,filename.size()-4);
             hdfilename += ".png";
@@ -431,7 +435,7 @@ void fservUnlockRect(IDirect3DTexture8* self,UINT Level) {
         // replace with HD texture
         fservLoadTextureFromFile(self, it->second.c_str());
 
-        if (g_config->dump_textures) {
+        if (g_config->dump_textures && dump_it) {
             char buf[BUFLEN];
             string fname = it->second.substr(it->second.rfind("\\")+1);
             sprintf(buf,"%s\\%03d - face - %s.bmp", GetPESInfo()->mydir, count, fname.c_str());
@@ -461,6 +465,7 @@ void fservUnlockRect(IDirect3DTexture8* self,UINT Level) {
             else {
                 LOG(&k_fserv, "FAILED to save texture to: %s", buf);
             }
+			dump_it = true;
         }
 
         count++;
@@ -483,6 +488,7 @@ void fservUnlockRect(IDirect3DTexture8* self,UINT Level) {
             else {
                 LOG(&k_fserv, "FAILED to save texture to: %s", buf);
             }
+			dump_it = true;
         }
 
         count++;
@@ -503,6 +509,7 @@ void fservUnlockRect(IDirect3DTexture8* self,UINT Level) {
             else {
                 LOG(&k_fserv, "FAILED to save texture to: %s", buf);
             }
+			dump_it = true;
         }
 
         count++;
@@ -1126,7 +1133,7 @@ void fservFileFromAFS(DWORD infoBlock)
 		LogWithNumber(&k_fserv,"Copying data with size of %d bytes...",dataOfMemory->size);
 		FileBuffer=HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,dataOfMemory->size);
 		g_Buffers[(DWORD)FileBuffer]=FileBuffer;
-		memcpy(FileBuffer,dataOfMemory->data,dataOfMemory->size);
+		memcpy(FileBuffer,dataOfMemory->dta,dataOfMemory->size);
 				
 		ib->src=(DWORD)FileBuffer;
 		sgf->FreeBuffer(requestedData);

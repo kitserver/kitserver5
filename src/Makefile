@@ -2,10 +2,13 @@ CC=cl
 LINK=link
 RC=rc
 
-CFLAGS=/nologo /GX $(EXTRA_CFLAGS) /DUSE_HASHMAPS /D_WIN32
-LFLAGS=/NOLOGO /NODEFAULTLIB:libcmt.lib
+CFLAGS=/nologo /MT /EHsc /wd4731 /wd4477 /D_WINNT_WIN32=0x501 /DKS_JMP_SHIFT=4 $(EXTRA_CFLAGS) /DUSE_HASHMAPS /D_WIN32
+LFLAGS=/NOLOGO /NODEFAULTLIB:libci.lib /LIBPATH:soft\dxsdk81\lib
 LIBS=gdi32.lib user32.lib advapi32.lib
 LIBSDLL=pngdib.obj libpng.lib zdll.lib $(LIBS)
+
+INCLUDE=$(INCLUDE);soft\dxsdk81\include
+LIB=$(LIB);soft\dxsdk81\lib
 
 INCPNGDIB=soft\pngdib
 INCCURL=soft\curl\include
@@ -33,8 +36,11 @@ $(LPPNGDIB)\pngdib.obj:
 dlls: kload.dll kserv.dll bserv.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll network.dll speeder.dll #afs2fs.dll #kserv-shpal.dll
 apps: setup.exe lodcfg.exe filedec.exe diag.exe afsexport.exe afswalk.exe afstest.exe
 
-release:
-	$(MAKE) EXTRA_CFLAGS=/DMYDLL_RELEASE_BUILD
+!if "$(debug)"=="1"
+EXTRA_CFLAGS=/DDEBUG
+!else
+EXTRA_CFLAGS=/DMYDLL_RELEASE_BUILD
+!endif
 
 setup: setup.exe
 
