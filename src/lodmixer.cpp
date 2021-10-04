@@ -99,7 +99,34 @@ DWORD dtaArray[][DATALEN] = {
      0xdd1d04, 0xdd1d30},
 };
 
+// Thanks to Ciais and Kingsley for finding this address in their gameplay module
+
+#define CODELEN 1
+enum {
+	C_ONSETSUBS_CS,
+};
+
+DWORD codeArray[][CODELEN] = {
+	// PES5 DEMO 2
+	{
+		0, 
+	},
+	// PES5
+	{
+		0x3be0f53,
+	},
+	// WE9
+	{
+		0,
+	},
+	// WE9:LE
+	{
+		0x3b68a93,
+	},
+};
+
 DWORD dta[DATALEN];
+DWORD code[CODELEN];
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
 void InitLodmixer();
@@ -118,7 +145,7 @@ void lodCreateDevice(IDirect3D8* self, UINT Adapter,
     D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags,
     D3DPRESENT_PARAMETERS *p, IDirect3DDevice8** ppReturnedDeviceInterface);
 void correctAspectRatio(UINT width, UINT height);
-
+DWORD lodOnSetSubs();
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 {
@@ -164,8 +191,9 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 
 void InitLodmixer()
 {
+	Log(&k_lodmixer, "InitLodMixer called.");
 	memcpy(dta, dtaArray[GetPESInfo()->GameVersion], sizeof(dta));
-	
+	memcpy(code, codeArray[GetPESInfo()->GameVersion], sizeof(code));
 	// configure LOD-mixer data
 	InitLODMixerData();
 	
@@ -228,9 +256,28 @@ void InitLodmixer()
             addr[0] = 0x90; // nop
             addr[1] = 0x90; // nop
         }
-    }	
+    }
+	MasterHookFunction(code[C_ONSETSUBS_CS], 0, lodOnSetSubs);
 	return;
 };
+
+DWORD lodOnSetSubs()
+{
+	DWORD result = MasterCallNext();
+
+	// apply substitutions settings
+	ReadMenuData();
+	LCM* inmem = (LCM*)dta[TEAM_IDS];
+	DWORD protection = 0;
+	DWORD newProtection = PAGE_EXECUTE_READWRITE;
+	if (VirtualProtect(inmem, sizeof(LCM), newProtection, &protection)) {
+		if (g_lcm.numSubs != 0xff) {
+			inmem->numSubs = g_lcm.numSubs;
+			LogWithNumber(&k_lodmixer, "lodOnSetSubs: setting numSubs = %d", inmem->numSubs);
+		}
+	}
+	return result;
+}
 
 /**
  * Copies LOD-Mixer settings to proper place in memory.

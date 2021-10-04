@@ -19,6 +19,7 @@ HWND g_stadiumEffectsListControl;  // stadium effects (default,0/1)
 HWND g_homeCrowdListControl;       // home crowd attendance (default,0-3)
 HWND g_awayCrowdListControl;       // away crowd attendance (default,0-3)
 HWND g_crowdStanceListControl;      // crowd stance (default,1-3)
+HWND g_numberOfSubs;               // number of substitutions allowed
 
 HWND g_statusTextControl;          // displays status messages
 HWND g_saveButtonControl;        // save settings button
@@ -59,9 +60,10 @@ bool BuildControls(HWND parent)
 
 	// TOP SECTION
 
-	borW = WIN_WIDTH - spacer*3;
+	borW = WIN_WIDTH - spacer*4.5;
 	statW = 40;
-	boxW = borW - statW - spacer*3; boxH = 22; statH = 16;
+	boxW = borW - statW - spacer*3;
+	boxH = 22; statH = 16;
 	borH = spacer*3 + boxH*2;
 
 	statW = borW - spacer*4;
@@ -350,9 +352,36 @@ bool BuildControls(HWND parent)
     SendMessage(g_crowdStanceListControl, CB_ADDSTRING, (WPARAM)0, (LPARAM)"3 - Player");
     SendMessage(g_crowdStanceListControl, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
 
+    style = WS_CHILD | WS_VISIBLE;
+    x = spacer*2 + borW/2;
+    y += spacer*2 + statH;
+    label = CreateWindowEx(
+            xstyle, "Static", "Substitutions:", style,
+            x, y+4, RC_LABEL_WIDTH, statH, 
+            parent, NULL, NULL, NULL);
+    SendMessage(label, WM_SETFONT, (WPARAM)hObj, true);
+
+    x += RC_LABEL_WIDTH + spacer;
+    boxW = borW/2 - RC_LABEL_WIDTH - spacer*3;
+    style = WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL;
+
+	g_numberOfSubs = CreateWindowEx(
+			xstyle, "ComboBox", "", style | WS_TABSTOP,
+			x, y, boxW , boxH * 8,
+			parent, NULL, NULL, NULL);
+    SendMessage(g_numberOfSubs, WM_SETFONT, (WPARAM)hObj, true);
+    SendMessage(g_numberOfSubs, CB_ADDSTRING, (WPARAM)0, (LPARAM)"Default game logic");
+    SendMessage(g_numberOfSubs, CB_ADDSTRING, (WPARAM)0, (LPARAM)"0 (no subs)");
+    SendMessage(g_numberOfSubs, CB_ADDSTRING, (WPARAM)0, (LPARAM)"3");
+    SendMessage(g_numberOfSubs, CB_ADDSTRING, (WPARAM)0, (LPARAM)"4");
+    SendMessage(g_numberOfSubs, CB_ADDSTRING, (WPARAM)0, (LPARAM)"5");
+    SendMessage(g_numberOfSubs, CB_ADDSTRING, (WPARAM)0, (LPARAM)"6");
+    SendMessage(g_numberOfSubs, CB_ADDSTRING, (WPARAM)0, (LPARAM)"7");
+    SendMessage(g_numberOfSubs, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
+
 	style = WS_CHILD | WS_VISIBLE;
 
-    y += spacer*5 + butH + statH;
+    y += spacer*3 + butH;
 	x = borW - butW;
 
 	// BOTTOM sections: buttons
