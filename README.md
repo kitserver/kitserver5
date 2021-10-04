@@ -1,6 +1,6 @@
 # Introduction
 
-Kitserver 6 is a companion program for Pro Evolution Soccer 6 and Winning Eleven 2007.
+Kitserver 5 is a companion program for Pro Evolution Soccer 5, Winning Eleven 9, and Winning Eleven 9 LE.
 
 # How to build
 
