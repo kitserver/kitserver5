@@ -33,7 +33,7 @@ all_apps: apps
 $(LPPNGDIB)\pngdib.obj:
 	(cd soft\pngdib && nmake EXTRA_CFLAGS=$(EXTRA_CFLAGS))
 
-dlls: kload.dll kserv.dll bserv.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll network.dll speeder.dll #afs2fs.dll #kserv-shpal.dll
+dlls: kload.dll kserv.dll bserv.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll camerazoomer.dll network.dll speeder.dll #afs2fs.dll #kserv-shpal.dll
 apps: setup.exe lodcfg.exe #filedec.exe diag.exe afsexport.exe afswalk.exe afstest.exe
 
 !if "$(debug)"=="1"
@@ -140,6 +140,12 @@ clock.lib: clock.obj
 clock.dll: clock.lib clock.res
 	$(LINK) $(LFLAGS) /out:clock.dll /DLL clock.obj kload.lib d3dx8.lib clock.res $(LIBS)
 clock.obj: clock.cpp clock.h
+
+camerazoomer.lib: camerazoomer.obj
+camerazoomer.dll: camerazoomer.lib camerazoomer.res
+	$(LINK) $(LFLAGS) /out:camerazoomer.dll /DLL camerazoomer.obj kload.lib d3dx8.lib camerazoomer.res $(LIBS)
+camerazoomer.obj: camerazoomer.cpp camerazoomer.h
+
 
 network.lib: network.obj md5.obj
 network.dll: network.lib network.res
