@@ -120,7 +120,7 @@ BOOL ReadConfig(KLOAD_CONFIG* config, char* cfgFile)
 			float fval = 0.0f;
 			if (sscanf(pValue, "%f", &fval)!=1) continue;
 			if (fval >= 0.0f && fval <= 5.0f) {
-				LogWithNumber(&k_kload,"ReadConfig: font-size.factor = (%0.3f)", fval);
+				LogWithDouble(&k_kload,"ReadConfig: font-size.factor = (%0.3f)", (double)fval);
 				config->fontSizeFactor = fval;
 			}
 		}
