@@ -33,7 +33,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 
 		switch (GetPESInfo()->GameVersion) {
 			case gvPES5PC: //support for PES5 PC...
-            //case gvWE9LEPC: //... and WE9:LE PC
+            case gvWE9LEPC: //... and WE9:LE PC
 				break;
             default:
                 Log(&k_camera,"Your game version is currently not supported!");
@@ -80,16 +80,16 @@ void SetCameraData()
 				Log(&k_camera, "Problem changing camera zoom.");
 			}
 		break;
-		// Need to find the right address for we9lek
-		/*case gvWE9LEPC:
-				if (VirtualProtect((LPVOID)0xf66a48, sizeof(0xf66a48), newProtection, &protection)) {
-					*(BYTE*)0xf66a48 = camera_config.cameraZoom;
-					LogWithDouble(&k_camera, "Camera zoom set to (%g)", (double)camera_config.cameraZoom);
-				}
+		// Camera address for we9lek 0x8e5f42
+		case gvWE9LEPC:
+			if (VirtualProtect((LPVOID)0x8e5f42, sizeof(0x8e5f42), newProtection, &protection)) {
+				*(float*)0x8e5f42 =(float)camera_config.cameraZoom;
+				LogWithDouble(&k_camera, "Camera zoom set to (%g)", (double)*(float*)0x8e5f42);
+			}
 				else {
 					Log(&k_camera, "Problem changing camera zoom.");
 				}
-		break;*/
+		break;
 	}
 }
 
