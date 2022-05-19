@@ -181,14 +181,14 @@ static DWORD codeArray[][CODELEN] = {
      },
 };
 
-#define DATALEN 17
+#define DATALEN 19
 enum {
     NUM_FILES, NUM_STADS, STAD_FIRST, NOU_CAMP_SHIFT_ID, SHIFT, 
     ADBOARD_TEX_FIRST, NUM_ADBOARD_TEX, DELLA_ALPI_ADBOARDS,
     AFS_PAGELEN_TABLE,
     TEAM_IDS, ML_HOME_AREA, ML_AWAY_AREA, DELLA_ALPI,
     STADIUM_TEXT_TABLE, STADIUM_TEXT_LEN, RANDOM_STADIUM_FLAG,
-    ISVIEWSTADIUMMODE,
+    ISVIEWSTADIUMMODE, TUNNEL_FIRST, TOTAL_TUNNEL,
 };
 static DWORD dtaArray[][DATALEN] = {
 	// PES5 DEMO 2
@@ -197,7 +197,7 @@ static DWORD dtaArray[][DATALEN] = {
      0,
      0, 0, 0, 0,
      0, 0,
-     0,
+     0, 0, 0, 
      },
 	// PES5
 	{66, 35, 9090, 9694, 4, 
@@ -205,7 +205,7 @@ static DWORD dtaArray[][DATALEN] = {
      0x3bfff00,
      0x3be0f40, 0x38b77a4, 0x38b77a8, 10348,
      0x38b77bc, 61, 0x3b7ee28,
-     0x00fe0a70,
+     0x00fe0a70, 239, 5, 
      },
 	// WE9
 	{66, 35, 9090, 9694, 4, 
@@ -213,7 +213,7 @@ static DWORD dtaArray[][DATALEN] = {
      0x3bfff20,
      0x3be0f60, 0x38b77a4, 0x38b77a8, 10348,
      0x38b77bc, 61, 0x3b7ee48,
-     0x00fe0a78,
+     0x00fe0a78, 239, 5, 
      },
     // WE9:LE
 	{66, 35, 9099, 9703, 4, 
@@ -221,7 +221,7 @@ static DWORD dtaArray[][DATALEN] = {
      0x3adef40,
      0x3b68a80, 0x37f20b4, 0x37f20b8, 10357,
      0x37f20cc, 61, 0x3adb168,
-     0x00f1aa00,
+     0x00f1aa00, 245, 5, 
      },
 };
 
@@ -295,11 +295,13 @@ static char* FILE_NAMES[] = {
     "6_night_snow\\stad2_entrance.bin",
     "6_night_snow\\stad3_adboards.bin",
     "adboards_tex\\default.bin",
+    "tunnel\\tunnel.str",
 };
 
 #define STAD_MAIN(x) (x==8 || x==19 || x==30 || x==41 || x==52 || x==63)
 #define STAD_ADBOARDS(x) (x==10 || x==21 || x==32 || x==43 || x==54 || x==65)
 #define ADBOARDS 66
+#define TUNNEL 67
 
 // comparator for string pointers
 struct ltstr
@@ -365,6 +367,7 @@ int GetFileId(DWORD id);
 static void InitStadiumMaps();
 static WORD GetTeamId(int which);
 DWORD FindAdboardsFile(char* filename);
+DWORD FindTunnelFile(char* filename);
 DWORD FindStadiumFile(DWORD stadFileId, char* filename);
 
 void stadKeyboardProc(int code1, WPARAM wParam, LPARAM lParam);
@@ -741,6 +744,27 @@ void InitStadiumServer()
         g_AFS_offsetMap[info->afsItemInfo.dwOffset] = info;
     }
 
+    // read offsets for tunnels
+	for (i=0; i<dta[TOTAL_TUNNEL]; i++) {
+        DWORD id = dta[TUNNEL_FIRST] + i;
+        // store id in id-map
+        g_AFS_idMap[id] = true;
+
+        MEMITEMINFO* info = (MEMITEMINFO*)HeapAlloc(GetProcessHeap(), 
+                HEAP_ZERO_MEMORY, sizeof(MEMITEMINFO));
+        if (!info) {
+            Log(&k_stadium, "InitStadiumServer: problem allocating MEMITEMINFO");
+            continue;
+        }
+        info->id = id;
+        ReadItemInfoById(f, id, &info->afsItemInfo, 0);
+        TRACE2(&k_stadium, "info->id = %08x", info->id);
+        TRACE2(&k_stadium, "dwOffset = %08x", info->afsItemInfo.dwOffset);
+        TRACE2(&k_stadium, "dwSize = %08x", info->afsItemInfo.dwSize);
+        // store in offset map
+        g_AFS_offsetMap[info->afsItemInfo.dwOffset] = info;
+    }
+
     fclose(f);
 
     // initialize with info from "map.txt"
@@ -814,6 +838,56 @@ DWORD FindAdboardsFile(char* filename)
 
     //sprintf(filename,"%sGDB\\stadiums\\Santiago Bernabeu\\%s", 
     //        GetPESInfo()->gdbDir, FILE_NAMES[ADBOARDS]);
+
+    HANDLE hfile;
+    DWORD fsize = 0;
+    hfile = CreateFile(filename, GENERIC_READ,FILE_SHARE_READ,NULL,
+        OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+    if (hfile!=INVALID_HANDLE_VALUE) {
+        fsize = GetFileSize(hfile,NULL);
+        CloseHandle(hfile);
+    }
+
+    return fsize;
+}
+
+DWORD FindTunnelFile(char* filename)
+{
+	LCM* lcm=(LCM*)dta[TEAM_IDS];
+    // force full stadium reload next time
+    BYTE* randomStad = (BYTE*)dta[RANDOM_STADIUM_FLAG];
+    if ((*randomStad & 0x01) == 0) {
+        *randomStad = *randomStad | 0x01;
+        Log(&k_stadium, "Flag set for full stadium reload.");
+    }
+
+    if (isViewStadiumMode && viewGdbStadiums)
+    {
+        return 0; // don't use tunnel texture in "View Stadiums"
+    }
+    else if (g_gameChoice) 
+    {
+        return 0; //game choice stadium
+    }
+
+    if (g_homeTeamChoice) {
+        WORD teamId = GetTeamId(HOME);
+        LogWithNumber(&k_stadium, "FindTunnelFile: home team = %d", teamId);
+        std::string* folderString = MAP_FIND(g_HomeStadiumMap,teamId);
+        if (folderString != NULL) {
+            LogWithString(&k_stadium, "FindTunnelFile: has a home stadium: %s", 
+                    (char*)folderString->c_str());
+
+            sprintf(filename,"%sGDB\\stadiums\\%s\\%s", 
+                    GetPESInfo()->gdbDir, (char*)folderString->c_str(), FILE_NAMES[TUNNEL]);
+        }
+    } else {
+        sprintf(filename,"%sGDB\\stadiums\\%s\\%s", 
+                GetPESInfo()->gdbDir, g_stadiumMapIterator->first->c_str(), FILE_NAMES[TUNNEL]);
+    }
+
+    //sprintf(filename,"%sGDB\\stadiums\\Santiago Bernabeu\\%s", 
+    //        GetPESInfo()->gdbDir, FILE_NAMES[TUNNEL]);
 
     HANDLE hfile;
     DWORD fsize = 0;
@@ -931,11 +1005,17 @@ bool stadAfterReadFile(HANDLE hFile,
     char filename[512] = {0};
     DWORD fileSize = 0;
 
-    if (fileId < dta[STAD_FIRST]) {
-        // adboard textures
-        fileSize = FindAdboardsFile(filename);
+	if (fileId >= dta[TUNNEL_FIRST] && fileId < dta[TUNNEL_FIRST] + dta[TOTAL_TUNNEL]) {
+		// Tunnel
+		fileSize = FindTunnelFile(filename);
 
-    } else {
+	}else if (fileId < dta[STAD_FIRST]){
+		// adboard textures
+		fileSize = FindAdboardsFile(filename);
+
+	}
+
+	else {
         // stadium files
 
         // check if stadium file exists
@@ -1778,11 +1858,17 @@ bool stadReadNumPages(DWORD afsId, DWORD fileId,
     if (afsId == 1) { // 0_text.afs
         if (MAP_CONTAINS(g_AFS_idMap, fileId)) {
             LogWithTwoNumbers(&k_stadium,"stadReadNumPages: afsId=%d, fileId=%d", afsId, fileId);
-            if (fileId < dta[STAD_FIRST]) {
+            if (fileId >= dta[TUNNEL_FIRST] && fileId < dta[TUNNEL_FIRST] + dta[TOTAL_TUNNEL]) {
+				// Tunnel
+				fileSize = FindTunnelFile(filename);
+
+            }else if (fileId < dta[STAD_FIRST]){
                 // adboard textures
                 fileSize = FindAdboardsFile(filename);
 
-            } else {
+			}
+
+			else {
                 // stadium files
                 int stadId = GetStadId(fileId);
                 int stadFileId = GetFileId(fileId);
