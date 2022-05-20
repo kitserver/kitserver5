@@ -1,0 +1,5 @@
+"UCL Black","malupe_model.str","UCL\black"
+"UCL Blue Sky","malupe_model.str","UCL\blue sky"
+"UCL Green","malupe_model.str","UCL\green"
+"UCL Red","malupe_model.str","UCL\red"
+"UCL Yellow","malupe_model.str","UCL\yellow"
