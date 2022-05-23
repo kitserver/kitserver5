@@ -141,7 +141,6 @@ char folder[BUFLEN];
 bool autoRandomMode = false;
 static bool g_userChoice = true;
 static std::map<string,int> g_KitIdMap;
-//static bool g_newRefKit = false;
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
 bool readConfig(REFKSRV_CFG* config, char* cfgFile);
@@ -612,27 +611,27 @@ void refksrvShowMenu()
 	double stretchX=GetPESInfo()->stretchX;
 	double stretchY=GetPESInfo()->stretchY;
 	if (selectedKit<0) {
-		color = 0xffc0c0c0; // gray if stadium is game choice
+		color = 0xffc0c0c0; // gray if is game choice
     } 
 	if (autoRandomMode)
-		color = 0xffaad0ff; // light blue for randomly selected ball
+		color = 0xffaad0ff; // light blue for randomly selected kit
 
 	KGetTextExtent(display,16,&size);
 	KDrawText((g_bbWidth-size.cx)/2,g_bbHeight*0.75,color,16,display,true);
 
 
-	
     //draw Referee Kit preview
-    DrawPreview(g_device);
-	
+    if (refkCfg.previewEnabled) {
+		DrawPreview(g_device);
+    }
 	return;
+
 };
 
 
 void refksrvBeginUniSelect()
 {
-    //Log(&k_stadium, "stadBeginUniSelect");
-    
+   
     isSelectMode=true;
     dksiSetMenuTitle("Referee kit selection");
     
@@ -641,7 +640,6 @@ void refksrvBeginUniSelect()
     g_newPrev = true;
 
 
-    //HookFunction(hk_Input,(DWORD)stadKeyboardProc);
     return;
 }
 
@@ -902,7 +900,7 @@ void DrawPreview(IDirect3DDevice8* dev)
                         0, 0, 1, 0, D3DFMT_UNKNOWN, D3DPOOL_MANAGED,
                         D3DX_FILTER_NONE, D3DX_FILTER_NONE,
                         0, NULL, NULL, &g_preview_tex))) {
-                Log(&k_refksrv,"FAILED to load image for stadium preview.");
+                Log(&k_refksrv,"FAILED to load image for referee kits preview.");
             }
         }
         g_newPrev = false;
@@ -971,7 +969,7 @@ HRESULT InvalidateDeviceObjects(IDirect3DDevice8* dev)
 		return S_OK;
 	}
 
-    // stadium preview
+    // referee kits preview
 	SafeRelease( &g_pVB_preview );
 	SafeRelease( &g_pVB_preview_outline );
 	SafeRelease( &g_pVB_preview_outline2 );

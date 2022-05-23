@@ -1,7 +1,7 @@
 // refksrv.h
 
 #define MODID 120
-#define NAMELONG "Referee Kit Server 5.0.0"
+#define NAMELONG "Referee Kit Server 5.1.0"
 #define NAMESHORT "REFKSRV"
 
 #define DEFAULT_DEBUG 1
