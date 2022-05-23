@@ -73,12 +73,62 @@ static DWORD dta[DATALEN];
 static char* FILE_NAMES[] = {
     "ref_kit.str",
     "ref_kit_lo.str",
-    "preview.png",
 };
 
 #define REF_KIT_HQ 0
 #define REF_KIT_LO 1
-#define PREVIEW 2
+
+///// Graphics //////////////////
+
+struct CUSTOMVERTEX { 
+	FLOAT x,y,z,w;
+	DWORD color;
+};
+
+struct CUSTOMVERTEX2 { 
+	FLOAT x,y,z,w;
+	DWORD color;
+	FLOAT tu, tv;
+};
+
+
+CUSTOMVERTEX2 g_preview[] = {
+	{0.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 0.0f, 0.0f}, //1
+	{0.0f, 256.0f, 0.0f, 1.0f, 0xff4488ff, 0.0f, 1.0f}, //2
+	{136.0f, 0.0f, 0.0f, 1.0f, 0xff4488ff, 1.0f, 0.0f}, //3
+	{136.0f, 256.0f, 0.0f, 1.0f, 0xff4488ff, 1.0f, 1.0f}, //4
+};
+
+CUSTOMVERTEX g_preview_outline[] = {
+	{0.0f, 0.0f, 0.0f, 1.0f, 0xffffffff}, //1
+	{0.0f, 258.0f, 0.0f, 1.0f, 0xffffffff}, //2
+	{138.0f, 0.0f, 0.0f, 1.0f, 0xffffffff}, //3
+	{138.0f, 258.0f, 0.0f, 1.0f, 0xffffffff}, //4
+};
+
+CUSTOMVERTEX g_preview_outline2[] = {
+	{0.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //1
+	{0.0f, 260.0f, 0.0f, 1.0f, 0xff000000}, //2
+	{140.0f, 0.0f, 0.0f, 1.0f, 0xff000000}, //3
+	{140.0f, 260.0f, 0.0f, 1.0f, 0xff000000}, //4
+};
+
+// Image preview
+static IDirect3DVertexBuffer8* g_pVB_preview = NULL;
+static IDirect3DVertexBuffer8* g_pVB_preview_outline = NULL;
+static IDirect3DVertexBuffer8* g_pVB_preview_outline2 = NULL;
+
+static IDirect3DTexture8* g_preview_tex = NULL;
+static IDirect3DDevice8* g_device = NULL;
+
+////////////////////////////////
+
+#define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZRHW|D3DFVF_DIFFUSE)
+#define D3DFVF_CUSTOMVERTEX2 (D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_TEX1)
+
+
+//End of graphic related stuff
+/////////////////////
 
 int selectedKit=-1;
 DWORD numKits=0;
@@ -91,7 +141,7 @@ char folder[BUFLEN];
 bool autoRandomMode = false;
 static bool g_userChoice = true;
 static std::map<string,int> g_KitIdMap;
-static bool g_newRefKit = false;
+//static bool g_newRefKit = false;
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
 bool readConfig(REFKSRV_CFG* config, char* cfgFile);
@@ -107,6 +157,26 @@ void refksrvUniSelect();
 void refksrvShowMenu();
 void refksrvBeginUniSelect();
 void refksrvEndUniSelect();
+
+/////////// definition of graphic variables and functions
+static bool g_needsRestore = TRUE;
+static bool g_newPrev = false;
+static DWORD g_dwSavedStateBlock = 0L;
+static DWORD g_dwDrawOverlayStateBlock = 0L;
+
+void SafeRelease(LPVOID ppObj);
+void CustomGraphicReset(IDirect3DDevice8* self, LPVOID params);
+void CustomGraphicCreateDevice(IDirect3D8* self, UINT Adapter,
+    D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags,
+    D3DPRESENT_PARAMETERS *pPresentationParameters, 
+    IDirect3DDevice8** ppReturnedDeviceInterface);
+HRESULT InvalidateDeviceObjects(IDirect3DDevice8* dev);
+HRESULT DeleteDeviceObjects(IDirect3DDevice8* dev);
+HRESULT RestoreDeviceObjects(IDirect3DDevice8* dev);
+void DrawPreview(IDirect3DDevice8* dev);
+
+///////////
+
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved){
 	if (dwReason == DLL_PROCESS_ATTACH){
@@ -139,9 +209,11 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		HookFunction(hk_AfterReadFile,(DWORD)refksrvAfterReadFile);
 	    HookFunction(hk_Input,(DWORD)refksrvKeyboardProc);
 		HookFunction(hk_BeginUniSelect, (DWORD)refksrvUniSelect);
+		HookFunction(hk_D3D_CreateDevice,(DWORD)CustomGraphicCreateDevice);
 		HookFunction(hk_DrawKitSelectInfo,(DWORD)refksrvShowMenu);
 		HookFunction(hk_OnShowMenu,(DWORD)refksrvBeginUniSelect);
         HookFunction(hk_OnHideMenu,(DWORD)refksrvEndUniSelect);
+		HookFunction(hk_D3D_Reset,(DWORD)CustomGraphicReset);
 	}
 	else if (dwReason == DLL_PROCESS_DETACH){
 		Log(&k_refksrv,"Detaching dll...");
@@ -165,6 +237,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		UnhookFunction(hk_AfterReadFile,(DWORD)refksrvAfterReadFile);
 		UnhookFunction(hk_Input,(DWORD)refksrvKeyboardProc);
 		UnhookFunction(hk_DrawKitSelectInfo,(DWORD)refksrvShowMenu);
+		UnhookFunction(hk_D3D_Reset,(DWORD)CustomGraphicReset);
 
 		FreeRefKits();
 
@@ -434,8 +507,8 @@ void SetRefKit(DWORD id)
 		strcpy(model,refKits[selectedKit].model);
 		strcpy(folder,refKits[selectedKit].folder);
 		
-		//SafeRelease( &g_preview_tex );
-		g_newRefKit=true;
+		SafeRelease( &g_preview_tex );
+		g_newPrev=true;
 	};
 	
 	strcpy(display,"Referee Kit: ");
@@ -465,21 +538,25 @@ void refksrvKeyboardProc(int code1, WPARAM wParam, LPARAM lParam)
 
 	if ((code1==HC_ACTION) && (lParam & 0x80000000)) {
 		if (wParam == refksrv_config.keyNext) {
+			autoRandomMode = false;
 			SetRefKit(selectedKit+1);
 			g_userChoice = true;
-		} else if (wParam == refksrv_config.keyPrev) {
+		} 
+		else if (wParam == refksrv_config.keyPrev) {
+			autoRandomMode = false;
 			if (selectedKit<0)
 				SetRefKit(numKits-1);
 			else
 				SetRefKit(selectedKit-1);
 			g_userChoice = true;
-		} else if (wParam == refksrv_config.keyReset) {
+		} 
+		else if (wParam == refksrv_config.keyReset) {
 			SetRefKit(-1);
 			if (!autoRandomMode) {
         		autoRandomMode = true;
         		g_userChoice = true;
-	            
-        	} else {
+        	} 
+			else {
 				SetRefKit(-1);
 				g_userChoice = false;
 				autoRandomMode = false;
@@ -494,13 +571,14 @@ void refksrvKeyboardProc(int code1, WPARAM wParam, LPARAM lParam)
 		        }
 			}
 
-		} else if (wParam == refksrv_config.keyRandom) {
+		} 
+		else if (wParam == refksrv_config.keyRandom) {
+			autoRandomMode = true;
 			LARGE_INTEGER num;
 			QueryPerformanceCounter(&num);
 			int iterations = num.LowPart % MAX_ITERATIONS;
 			for (int j=0;j<iterations;j++)
 				SetRefKit(selectedKit+1);
-
 			g_userChoice = true;
 		}
 	}
@@ -543,10 +621,10 @@ void refksrvShowMenu()
 	KDrawText((g_bbWidth-size.cx)/2,g_bbHeight*0.75,color,16,display,true);
 
 
-	/*
+	
     //draw Referee Kit preview
     DrawPreview(g_device);
-	*/
+	
 	return;
 };
 
@@ -559,8 +637,8 @@ void refksrvBeginUniSelect()
     dksiSetMenuTitle("Referee kit selection");
     
     // invalidate preview texture
-    //SafeRelease( &g_preview_tex );
-    //g_newStad = true;
+    SafeRelease( &g_preview_tex );
+    g_newPrev = true;
 
 
     //HookFunction(hk_Input,(DWORD)stadKeyboardProc);
@@ -641,3 +719,312 @@ bool readConfig(REFKSRV_CFG* config, char* cfgFile)
 	fclose(cfg);
 	return true;
 }
+
+
+
+
+
+
+////////////////////// Graphic functions
+
+
+void SafeRelease(LPVOID ppObj)
+{
+    try {
+        IUnknown** ppIUnknown = (IUnknown**)ppObj;
+        if (ppIUnknown == NULL)
+        {
+            Log(&k_refksrv,"Address of IUnknown reference is 0");
+            return;
+        }
+        if (*ppIUnknown != NULL)
+        {
+            (*ppIUnknown)->Release();
+            *ppIUnknown = NULL;
+        }
+    } catch (...) {
+        // problem with a safe-release
+        TRACE(&k_refksrv,"Problem with safe-release");
+    }
+}
+
+
+
+void CustomGraphicCreateDevice(IDirect3D8* self, UINT Adapter,
+    D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags,
+    D3DPRESENT_PARAMETERS *pPresentationParameters, 
+    IDirect3DDevice8** ppReturnedDeviceInterface)
+{
+    g_device = *ppReturnedDeviceInterface;
+    return;
+}
+
+
+/* New Reset function */
+void CustomGraphicReset(IDirect3DDevice8* self, LPVOID params)
+{
+	Log(&k_refksrv,"CustomGraphicReset: cleaning-up.");
+
+	InvalidateDeviceObjects(self);
+	DeleteDeviceObjects(self);
+
+    g_needsRestore = TRUE;
+    g_device = self;
+	return;
+}
+
+
+void SetPosition(CUSTOMVERTEX2* dest, CUSTOMVERTEX2* src, int n, int x, int y) 
+{
+    FLOAT xratio = GetPESInfo()->bbWidth / 1024.0;
+    FLOAT yratio = GetPESInfo()->bbHeight / 768.0;
+    for (int i=0; i<n; i++) {
+        dest[i].x = (FLOAT)(int)((src[i].x + x) * xratio);
+        dest[i].y = (FLOAT)(int)((src[i].y + y) * yratio);
+    }
+}
+
+void SetPosition(CUSTOMVERTEX* dest, CUSTOMVERTEX* src, int n, int x, int y) 
+{
+    FLOAT xratio = GetPESInfo()->bbWidth / 1024.0;
+    FLOAT yratio = GetPESInfo()->bbHeight / 768.0;
+    for (int i=0; i<n; i++) {
+        dest[i].x = (FLOAT)(int)((src[i].x + x) * xratio);
+        dest[i].y = (FLOAT)(int)((src[i].y + y) * yratio);
+    }
+}
+
+/* creates vertex buffers */
+HRESULT InitVB(IDirect3DDevice8* dev)
+{
+	VOID* pVertices;
+
+	// create vertex buffers
+	// preview
+	if (FAILED(dev->CreateVertexBuffer(sizeof(g_preview), D3DUSAGE_WRITEONLY, 
+					D3DFVF_CUSTOMVERTEX2, D3DPOOL_MANAGED, &g_pVB_preview)))
+	{
+		Log(&k_refksrv,"CreateVertexBuffer() failed.");
+		return E_FAIL;
+	}
+	Log(&k_refksrv,"CreateVertexBuffer() done.");
+
+	if (FAILED(g_pVB_preview->Lock(0, sizeof(g_preview), (BYTE**)&pVertices, 0)))
+	{
+		Log(&k_refksrv,"g_pVB_preview->Lock() failed.");
+		return E_FAIL;
+	}
+	memcpy(pVertices, g_preview, sizeof(g_preview));
+	SetPosition((CUSTOMVERTEX2*)pVertices, g_preview, sizeof(g_preview)/sizeof(CUSTOMVERTEX2), 
+            512-64, 310);
+	g_pVB_preview->Unlock();
+
+	// preview outline
+	if (FAILED(dev->CreateVertexBuffer(sizeof(g_preview_outline), D3DUSAGE_WRITEONLY, 
+					D3DFVF_CUSTOMVERTEX2, D3DPOOL_MANAGED, &g_pVB_preview_outline)))
+	{
+		Log(&k_refksrv,"CreateVertexBuffer() failed.");
+		return E_FAIL;
+	}
+	Log(&k_refksrv,"CreateVertexBuffer() done.");
+
+	if (FAILED(g_pVB_preview_outline->Lock(0, sizeof(g_preview_outline), (BYTE**)&pVertices, 0)))
+	{
+		Log(&k_refksrv,"g_pVB_preview_outline->Lock() failed.");
+		return E_FAIL;
+	}
+	memcpy(pVertices, g_preview_outline, sizeof(g_preview_outline));
+	SetPosition((CUSTOMVERTEX*)pVertices, g_preview_outline, sizeof(g_preview_outline)/sizeof(CUSTOMVERTEX), 
+          512-65, 309);
+	g_pVB_preview_outline->Unlock();
+
+	// preview outline2
+	if (FAILED(dev->CreateVertexBuffer(sizeof(g_preview_outline2), D3DUSAGE_WRITEONLY, 
+					D3DFVF_CUSTOMVERTEX2, D3DPOOL_MANAGED, &g_pVB_preview_outline2)))
+	{
+		Log(&k_refksrv,"CreateVertexBuffer() failed.");
+		return E_FAIL;
+	}
+	Log(&k_refksrv,"CreateVertexBuffer() done.");
+
+	if (FAILED(g_pVB_preview_outline2->Lock(0, sizeof(g_preview_outline2), (BYTE**)&pVertices, 0)))
+	{
+		Log(&k_refksrv,"g_pVB_preview_outline2->Lock() failed.");
+		return E_FAIL;
+	}
+	memcpy(pVertices, g_preview_outline2, sizeof(g_preview_outline2));
+	SetPosition((CUSTOMVERTEX*)pVertices, g_preview_outline2, sizeof(g_preview_outline2)/sizeof(CUSTOMVERTEX), 
+            512-66, 308);
+	g_pVB_preview_outline2->Unlock();
+
+    return S_OK;
+}
+
+void DrawPreview(IDirect3DDevice8* dev)
+{
+	if (selectedKit<0) return;
+	if (g_needsRestore) 
+	{
+		if (FAILED(RestoreDeviceObjects(dev)))
+		{
+			Log(&k_refksrv,"DrawPreview: RestoreDeviceObjects() failed.");
+            return;
+		}
+		Log(&k_refksrv,"DrawPreview: RestoreDeviceObjects() done.");
+        g_needsRestore = FALSE;
+        D3DVIEWPORT8 vp;
+        dev->GetViewport(&vp);
+        LogWithNumber(&k_refksrv,"VP: %d",vp.X);
+        LogWithNumber(&k_refksrv,"VP: %d",vp.Y);
+        LogWithNumber(&k_refksrv,"VP: %d",vp.Width);
+        LogWithNumber(&k_refksrv,"VP: %d",vp.Height);
+        LogWithDouble(&k_refksrv,"VP: %f",vp.MinZ);
+        LogWithDouble(&k_refksrv,"VP: %f",vp.MaxZ);
+	}
+
+	// render
+	dev->BeginScene();
+
+	// setup renderstate
+	//dev->CaptureStateBlock( g_dwSavedStateBlock );
+	//dev->ApplyStateBlock( g_dwDrawOverlayStateBlock );
+    
+    if (!g_preview_tex && g_newPrev) {
+        char buf[2048];
+        sprintf(buf, "%s\\GDB\\referee kits\\%s\\preview.png", GetPESInfo()->gdbDir, folder);
+        if (FAILED(D3DXCreateTextureFromFileEx(dev, buf, 
+                    0, 0, 1, 0, D3DFMT_UNKNOWN, D3DPOOL_MANAGED,
+                    D3DX_FILTER_NONE, D3DX_FILTER_NONE,
+                    0, NULL, NULL, &g_preview_tex))) {
+            // try "preview.bmp"
+            sprintf(buf, "%s\\GDB\\referee kits\\%s\\preview.bmp", GetPESInfo()->gdbDir, folder);
+            if (FAILED(D3DXCreateTextureFromFileEx(dev, buf, 
+                        0, 0, 1, 0, D3DFMT_UNKNOWN, D3DPOOL_MANAGED,
+                        D3DX_FILTER_NONE, D3DX_FILTER_NONE,
+                        0, NULL, NULL, &g_preview_tex))) {
+                Log(&k_refksrv,"FAILED to load image for stadium preview.");
+            }
+        }
+        g_newPrev = false;
+    }
+    if (g_preview_tex) {
+        // outline
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX );
+        dev->SetTexture(0, NULL);
+        dev->SetStreamSource( 0, g_pVB_preview_outline2, sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 0, 2);
+        dev->SetStreamSource( 0, g_pVB_preview_outline, sizeof(CUSTOMVERTEX));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 0, 2);
+
+        // texture
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX2 );
+        dev->SetTexture(0, g_preview_tex);
+        dev->SetStreamSource( 0, g_pVB_preview, sizeof(CUSTOMVERTEX2));
+        dev->DrawPrimitive( D3DPT_TRIANGLESTRIP, 0, 2);
+    }
+
+	// restore the modified renderstates
+	//dev->ApplyStateBlock( g_dwSavedStateBlock );
+
+	dev->EndScene();
+}
+
+void DeleteStateBlocks(IDirect3DDevice8* dev)
+{
+	// Delete the state blocks
+	try
+	{
+        //LogWithNumber(&k_refksrv,"dev = %08x", (DWORD)dev);
+        DWORD* vtab = (DWORD*)(*(DWORD*)dev);
+        //LogWithNumber(&k_refksrv,"vtab = %08x", (DWORD)vtab);
+        if (vtab && vtab[VTAB_DELETESTATEBLOCK]) {
+            //LogWithNumber(&k_refksrv,"vtab[VTAB_DELETESTATEBLOCK] = %08x", (DWORD)vtab[VTAB_DELETESTATEBLOCK]);
+            if (g_dwSavedStateBlock) {
+                dev->DeleteStateBlock( g_dwSavedStateBlock );
+                Log(&k_refksrv,"g_dwSavedStateBlock deleted.");
+            }
+            if (g_dwDrawOverlayStateBlock) {
+                dev->DeleteStateBlock( g_dwDrawOverlayStateBlock );
+                Log(&k_refksrv,"g_dwDrawOverlayStateBlock deleted.");
+            }
+        }
+	}
+	catch (...)
+	{
+        // problem deleting state block
+	}
+
+	g_dwSavedStateBlock = 0L;
+	g_dwDrawOverlayStateBlock = 0L;
+}
+
+//-----------------------------------------------------------------------------
+// Name: InvalidateDeviceObjects()
+// Desc: Destroys all device-dependent objects
+//-----------------------------------------------------------------------------
+HRESULT InvalidateDeviceObjects(IDirect3DDevice8* dev)
+{
+	TRACE(&k_refksrv,"InvalidateDeviceObjects called.");
+	if (dev == NULL)
+	{
+		TRACE(&k_refksrv,"InvalidateDeviceObjects: nothing to invalidate.");
+		return S_OK;
+	}
+
+    // stadium preview
+	SafeRelease( &g_pVB_preview );
+	SafeRelease( &g_pVB_preview_outline );
+	SafeRelease( &g_pVB_preview_outline2 );
+
+	Log(&k_refksrv,"InvalidateDeviceObjects: SafeRelease(s) done.");
+
+    DeleteStateBlocks(dev);
+    Log(&k_refksrv,"InvalidateDeviceObjects: DeleteStateBlock(s) done.");
+    return S_OK;
+}
+
+//-----------------------------------------------------------------------------
+// Name: DeleteDeviceObjects()
+// Desc: Destroys all device-dependent objects
+//-----------------------------------------------------------------------------
+HRESULT DeleteDeviceObjects(IDirect3DDevice8* dev)
+{
+    return S_OK;
+}
+
+//-----------------------------------------------------------------------------
+// Name: RestoreDeviceObjects()
+// Desc:
+//-----------------------------------------------------------------------------
+HRESULT RestoreDeviceObjects(IDirect3DDevice8* dev)
+{
+    HRESULT hr = InitVB(dev);
+    if (FAILED(hr))
+    {
+		Log(&k_refksrv,"InitVB() failed.");
+        return hr;
+    }
+	Log(&k_refksrv,"InitVB() done.");
+
+	// Create the state blocks for rendering overlay graphics
+	for( UINT which=0; which<2; which++ )
+	{
+		dev->BeginStateBlock();
+
+        dev->SetTextureStageState( 0, D3DTSS_COLOROP, D3DTOP_SELECTARG1 );
+        dev->SetTextureStageState( 0, D3DTSS_COLORARG1, D3DTA_TEXTURE );
+        dev->SetTextureStageState( 0, D3DTSS_ALPHAOP, D3DTOP_DISABLE );
+        dev->SetVertexShader( D3DFVF_CUSTOMVERTEX2 );
+        dev->SetTexture( 0, g_preview_tex );
+
+		if( which==0 )
+			dev->EndStateBlock( &g_dwSavedStateBlock );
+		else
+			dev->EndStateBlock( &g_dwDrawOverlayStateBlock );
+	}
+
+    return S_OK;
+}
+
+
+////////////////////////
