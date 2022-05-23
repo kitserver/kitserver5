@@ -621,7 +621,7 @@ void refksrvShowMenu()
 
 
     //draw Referee Kit preview
-    if (refkCfg.previewEnabled) {
+    if (refksrv_config.previewEnabled) {
 		DrawPreview(g_device);
     }
 	return;

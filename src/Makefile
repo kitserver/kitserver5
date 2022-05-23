@@ -143,12 +143,12 @@ clock.obj: clock.cpp clock.h
 
 gameplay.lib: gameplay.obj
 gameplay.dll: gameplay.lib gameplay.res
-	$(LINK) $(LFLAGS) /out:gameplay.dll /DLL gameplay.obj kload.lib DXSDK\lib\d3dx8.lib gameplay.res $(LIBS)
+	$(LINK) $(LFLAGS) /out:gameplay.dll /DLL gameplay.obj kload.lib d3dx8.lib gameplay.res $(LIBS)
 gameplay.obj: gameplay.cpp gameplay.h
 
 referees.lib: referees.obj
 referees.dll: referees.lib referees.res
-	$(LINK) $(LFLAGS) /out:referees.dll /DLL referees.obj kload.lib DXSDK\lib\d3dx8.lib referees.res $(LIBS)
+	$(LINK) $(LFLAGS) /out:referees.dll /DLL referees.obj kload.lib d3dx8.lib referees.res $(LIBS)
 referees.obj: referees.cpp referees.h
 
 
