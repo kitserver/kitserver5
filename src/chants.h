@@ -1,4 +1,4 @@
-// bserv.h
+// chants.h
 
 #define MODID 122
 #define NAMELONG "Chants server 5.0.0"
@@ -10,11 +10,11 @@
 
 #define DATALEN 5
 
-#define X_TEXT 3
+#define AFS_FILE 0
 
-#define HOME_CHANT_ID 150
+#define HOME_CHANT_ID 25
 
-#define AWAY_CHANT_ID 155
+#define AWAY_CHANT_ID 30
 
 #define TOTAL_CHANTS 5
 

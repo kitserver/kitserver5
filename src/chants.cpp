@@ -93,7 +93,7 @@ bool chantsGetNumPages(DWORD afsId, DWORD fileId, DWORD orgNumPages, DWORD *numP
     DWORD fileSize = 0;
     char filename[512] = {0};
 
-    if (afsId == X_TEXT) { // x_text.afs
+    if (afsId == AFS_FILE) { // x_text.afs
 		if (fileId >= HOME_CHANT_ID && fileId < HOME_CHANT_ID + TOTAL_CHANTS && homeHasChants){
 			WORD homeTeamId = GetTeamId(HOME);
 			std::string* homeFolderString = MAP_FIND(g_chantsMap,homeTeamId);
@@ -164,7 +164,7 @@ bool chantsAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRe
     char filename[512] = {0};
 
 	// ensure it is x_TEXT.afs
-	if (afsId == X_TEXT) {
+	if (afsId == AFS_FILE) {
 		DWORD offset = SetFilePointer(hFile, 0, NULL, FILE_CURRENT) - (*lpNumberOfBytesRead);
 		DWORD fileId = GetProbableFileIdForHandle(afsId, offset, hFile);
 
@@ -290,12 +290,12 @@ void relinkChants()
 		if (homeHasChants){
 			WORD homeTeamId = GetTeamId(HOME);
 			*(WORD*)(dta[CHANTS_ADDRESS] + homeTeamId * 4) = HOME_CHANT_ID;
-			*(WORD*)(dta[CHANTS_ADDRESS] + homeTeamId * 4 + 2) = X_TEXT;
+			*(WORD*)(dta[CHANTS_ADDRESS] + homeTeamId * 4 + 2) = AFS_FILE;
 		}
 		if (awayHasChants){
 			WORD awayTeamId = GetTeamId(AWAY);
 			*(WORD*)(dta[CHANTS_ADDRESS] + awayTeamId * 4) = AWAY_CHANT_ID;
-			*(WORD*)(dta[CHANTS_ADDRESS] + awayTeamId * 4 + 2) = X_TEXT;
+			*(WORD*)(dta[CHANTS_ADDRESS] + awayTeamId * 4 + 2) = AFS_FILE;
 		}
 	};
 
