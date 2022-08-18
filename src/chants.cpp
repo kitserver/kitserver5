@@ -21,7 +21,7 @@ bool awayHasChants = false;
 #define MAP_CONTAINS(map,key) (map.find(key)!=map.end())
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
-void InitBserv();
+void InitChants();
 bool chantsGetNumPages(DWORD afsId, DWORD fileId, DWORD orgNumPages, DWORD *numPages);
 bool chantsAfterReadFile(HANDLE hFile, LPVOID lpBuffer, 
         DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead,  
@@ -58,17 +58,18 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		
 		
 		
-		HookFunction(hk_D3D_CreateDevice,(DWORD)InitBserv);
+		HookFunction(hk_D3D_CreateDevice,(DWORD)InitChants);
+		HookFunction(hk_BeginUniSelect, (DWORD)chantsBeginUniSelect);
         HookFunction(hk_GetNumPages,(DWORD)chantsGetNumPages);
 		HookFunction(hk_AfterReadFile,(DWORD)chantsAfterReadFile);
 		
-		HookFunction(hk_BeginUniSelect, (DWORD)chantsBeginUniSelect);
 
 	}
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
 		Log(&k_chants,"Detaching dll...");
-		
+		UnhookFunction(hk_BeginUniSelect, (DWORD)chantsBeginUniSelect);
+
 		UnhookFunction(hk_AfterReadFile,(DWORD)chantsAfterReadFile);
 		
 		g_chantsMap.clear();
@@ -79,11 +80,11 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 	return true;
 };
 
-void InitBserv()
+void InitChants()
 {
     
     ReadMap();
-
+	UnhookFunction(hk_D3D_CreateDevice,(DWORD)InitChants);
 }
 
 
