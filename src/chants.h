@@ -40,11 +40,11 @@ static DWORD dtaArray[][DATALEN] = {
 	// WE9
 	{
      0xadf128, 221,
-     0x3be0f60, 0x38b77a4, 0x38b77a8,
+     0x3be0f40, 0x38b77a4, 0x38b77a8,
 	},
     // WE9:LE
 	{
-     0xadced8, 221,
+     0xade8d8, 221, 
      0x3b68a80, 0x37f20b4, 0x37f20b8,
 	},
 };
