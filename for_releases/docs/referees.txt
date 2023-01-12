@@ -1,0 +1,47 @@
+Referees Module for PES5, WE9, WE9LE by Elaf, Marqisspes6 and Ciais
+===================================================================
+Version 5.0.3
+
+
+ADDITIONAL REFEREES IN EXHIBITION MODE OPTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[additional-refs-exhibition.enabled]:
+If set to 1, additional referees originally only available in League/Cup/ML modes will be added to Exhibition
+mode, with the total cumulative number (original + additional referees) set by the following option:
+- Total = [additional-refs-exhibition.total]  # Default = 10
+* This value must be no lower than 10 and no higher than 22
+If set to 0, only the default 10 referees will be available in Exhibition mode.
+* These additional referees can only be selected individually, as setting Referee to Random will only randomly
+choose between the default 10 ones
+
+
+REFEREES STRICTNESS OPTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[card-strictness.enabled]:
+If set to 1, the referees' card strictness will be changed according to the options below.
+If set to 0, the referees' card strictness will remain at default values.
+
+
+RANDOM REFEREES STRICTNESS OPTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[random-card-strictness.enabled]:
+* For this setting to work, [card-strictness.enabled] must be set to 1
+If set to 1, card strictness for all referees is randomly chosen from inside the defined range of values:
+- Minimum = [card-strictness.random.minimum]  # Default = 336860180 (Martin O'Brien)
+* This value must be no lower than 252641284
+- Maximum = [card-strictness.random.maximum]  # Default = 1482184724 (Kazuki Ito)
+* This value must be no higher than 4199999999
+If set to 0, the fixed card strictness is used for all referees.
+
+
+FIXED REFEREES STRICTNESS
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[card.strictness]:
+* For this setting to work, [card-strictness.enabled] must be set to 1
+If [random-card-strictness.enabled] is set to 0, then this fixed card strictness value is used.
+* This value must be no lower than 252641284 and no higher than 4199999999
+

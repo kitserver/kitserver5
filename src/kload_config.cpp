@@ -81,6 +81,12 @@ BOOL ReadConfig(KLOAD_CONFIG* config, char* cfgFile)
 
 			hasGdbDir = true;
 		}
+		else if (stricmp(name, "display.fps")==0)
+		{
+			if (sscanf(pValue, "%d", &value)!=1) continue;
+			LogWithNumber(&k_kload,"ReadConfig: display.fps = (%d)", value);
+			config->drawFPS = (value > 0);
+		}
        	else if (lstrcmp(name, "pes.dir")==0)
 		{
 			char* startQuote = strstr(pValue, "\"");
@@ -114,7 +120,7 @@ BOOL ReadConfig(KLOAD_CONFIG* config, char* cfgFile)
 			float fval = 0.0f;
 			if (sscanf(pValue, "%f", &fval)!=1) continue;
 			if (fval >= 0.0f && fval <= 5.0f) {
-				LogWithNumber(&k_kload,"ReadConfig: font-size.factor = (%0.3f)", fval);
+				LogWithDouble(&k_kload,"ReadConfig: font-size.factor = (%0.3f)", (double)fval);
 				config->fontSizeFactor = fval;
 			}
 		}
@@ -134,7 +140,8 @@ BOOL ReadConfig(KLOAD_CONFIG* config, char* cfgFile)
 		{
 			if (sscanf(pValue, "%d", &value)!=1) continue;
 			LogWithNumber(&k_kload,"ReadConfig: DLL.num = (%d)", value);
-			for (int i=0;i< config->numDLLs ;i++) delete config->dllnames[i];
+			int i;
+			for (i=0;i< config->numDLLs ;i++) delete config->dllnames[i];
 			delete config->dllnames;
 			config->numDLLs=value;
 			config->dllnames=new LPTSTR[value];

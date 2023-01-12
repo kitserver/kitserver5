@@ -1,0 +1,101 @@
+Gameplay Module for PES5, WE9, WE9LE by Kingsley813 and Ciais
+=============================================================
+Version 5.0.3
+
+
+AUTOMATIC BALL PHYSICS OPTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[auto-ball-physics.enabled]:
+If set to 1, ball physics are automatically changed according to selected weather and season:
+- Summer / fine  = Standard ball physics
+- Summer / rainy = Rainy ball physics
+- Winter / fine  = Hard pitch ball physics
+- Winter / rainy = Rainy ball physics
+- Winter / snow  = Snow ball physics
+If set to 0, standard ball physics are used for all weathers and seasons.
+
+[random-fine-ball-physics.enabled]:
+* For this setting to work, [auto-ball-physics.enabled] must be set to 1
+If set to 1, standard or hard pitch ball physics are randomly assigned each match to fine weather
+using different probabilities according to the selected season:
+- Summer = [hard-pitch.summer.probability]  # Example: 33 = 33% chance of hard pitch ball physics
+- Winter = [hard-pitch.winter.probability]  # Example: 60 = 60% chance of hard pitch ball physics
+The resulting weather/season assignments are as follows:
+- Summer / fine  = Standard or hard pitch ball physics (according to set summer probability)
+- Summer / rainy = Rainy ball physics
+- Winter / fine  = Standard or hard pitch ball physics (according to set winter probability)
+- Winter / rainy = Rainy ball physics
+- Winter / snow  = Snow ball physics
+If set to 0, default [auto-ball-physics.enabled] assignments are used (see above).
+
+
+TWEAKED CONDITION ARROWS OPTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[tweaked-condition-arrows.enabled]:
+If set to 1, immediately before each match the condition arrows that affect a player's ratings are
+changed for both teams according to the chosen condition replacement:
+- Excellent = [excellent-condition.replacement]  # Example: good = Good form replaces Excellent form
+- Good      = [good-condition.replacement]
+- Normal    = [normal-condition.replacement]
+- Poor      = [poor-condition.replacement]
+- Terrible  = [terrible-condition.replacement]   # Example: poor = Poor form replaces Terrible form
+* Note that this only works for actual matches, inside League/ML menus and in Training Mode the
+condition arrows will remain as default.
+If set to 0, the game's default condition arrows are always used.
+
+
+ADDITIONAL SUBSTITUTION IN EXTRA TIME
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[additional-sub-extra-time.enabled]:
+If set to 1, if a match goes to extra time (full length, silver goal or golden goal), an
+additional substitution is available for both teams, regardless of already used ones.
+* This setting simulates the new substitution rule (as used at the 2018 FIFA World Cup)
+If set to 0, no additional substitution is added, meaning teams will have the set number of
+substitutions for the entirety of the match, even if a match goes to extra time.
+
+
+BALL PHYSICS
+~~~~~~~~~~~~
+
+[ball-player.proximity.*]:  # Default = 256
+Controls how responsive the player is to receiving the ball.
+It also affects the distance the player is to the ball at first touch.
+
+[ball.gravity.*]:  # Default = 188
+Self-explanatory, only a flat-earther wouldn't know what gravity does :)
+
+[ball.global-bounce-stick.*]:  # Default = -28
+Controls how much the ball sticks to the ground when rolling.
+
+[ball.spin-termination-speed.*]:  # Default = -376
+Controls how the much ball spins when touched by a foot during a player's run.
+* If the value is changed too dramatically, then the ball will either stop to a halt in a very
+unrealistic way, or keep on rolling like Neymar
+
+[ball.bounce-stick-frequency.*]:  # Default = -0.00390625
+Controls how much the ball will either bounce or stick to the ground when in a long pass.
+In effect this controls how much the ball bobbles during a long pass across the ground.
+* This value is very sensitive so should be adjusted in very very small increments
+
+[ball.topspin.*]:  # Default = 4551266
+Controls how much the ball in flight stays low or high.
+* A low topspin value will send the ball higher into the sky quicker when in flight, and a high
+topspin value will keep the ball down in flight for longer
+
+[ball.air-resistance.*]:  # Default = 1400000
+Controls how fast the ball travels through the air.
+
+[ball.touch-move-rate.*]:  # Default = 0.003472222248
+Controls how much the ball will roll away from the player when it's touched by the player's foot.
+
+[ball.retardation-rate.*]:  # Default = 0.01041666698
+Controls how fast the ball will slow down to a halt after being touched by the player's foot.
+
+[player.anim-speed.*]:  # Default = 0.0009765625
+Controls the animation speed of the players.
+* Not recommended to be modified, but if skating issues persist, then change this value in very
+small increments
+

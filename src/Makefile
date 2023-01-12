@@ -2,10 +2,13 @@ CC=cl
 LINK=link
 RC=rc
 
-CFLAGS=/nologo /GX $(EXTRA_CFLAGS) /DUSE_HASHMAPS /D_WIN32
-LFLAGS=/NOLOGO /NODEFAULTLIB:libcmt.lib
+CFLAGS=/nologo /MT /EHsc /wd4731 /wd4477 /D_WINNT_WIN32=0x501 /DKS_JMP_SHIFT=4 $(EXTRA_CFLAGS) /DUSE_HASHMAPS /D_WIN32
+LFLAGS=/NOLOGO /NODEFAULTLIB:libci.lib /LIBPATH:soft\dxsdk81\lib
 LIBS=gdi32.lib user32.lib advapi32.lib
 LIBSDLL=pngdib.obj libpng.lib zdll.lib $(LIBS)
+
+INCLUDE=$(INCLUDE);soft\dxsdk81\include
+LIB=$(LIB);soft\dxsdk81\lib
 
 INCPNGDIB=soft\pngdib
 INCCURL=soft\curl\include
@@ -30,11 +33,14 @@ all_apps: apps
 $(LPPNGDIB)\pngdib.obj:
 	(cd soft\pngdib && nmake EXTRA_CFLAGS=$(EXTRA_CFLAGS))
 
-dlls: kload.dll kserv.dll bserv.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll network.dll speeder.dll #afs2fs.dll #kserv-shpal.dll
-apps: setup.exe lodcfg.exe filedec.exe diag.exe afsexport.exe afswalk.exe afstest.exe
+dlls: kload.dll kserv.dll bserv.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll chants.dll gameplay.dll referees.dll refksrv.dll camerazoomer.dll network.dll speeder.dll #afs2fs.dll #kserv-shpal.dll
+apps: setup.exe lodcfg.exe #filedec.exe diag.exe afsexport.exe afswalk.exe afstest.exe
 
-release:
-	$(MAKE) EXTRA_CFLAGS=/DMYDLL_RELEASE_BUILD
+!if "$(debug)"=="1"
+EXTRA_CFLAGS=/DDEBUG
+!else
+EXTRA_CFLAGS=/DMYDLL_RELEASE_BUILD
+!endif
 
 setup: setup.exe
 
@@ -134,6 +140,33 @@ clock.lib: clock.obj
 clock.dll: clock.lib clock.res
 	$(LINK) $(LFLAGS) /out:clock.dll /DLL clock.obj kload.lib d3dx8.lib clock.res $(LIBS)
 clock.obj: clock.cpp clock.h
+
+chants.lib: chants.obj
+chants.dll: chants.lib chants.res
+	$(LINK) $(LFLAGS) /out:chants.dll /DLL chants.obj kload.lib d3dx8.lib chants.res $(LIBS)
+chants.obj: chants.cpp chants.h
+
+gameplay.lib: gameplay.obj
+gameplay.dll: gameplay.lib gameplay.res
+	$(LINK) $(LFLAGS) /out:gameplay.dll /DLL gameplay.obj kload.lib d3dx8.lib gameplay.res $(LIBS)
+gameplay.obj: gameplay.cpp gameplay.h
+
+referees.lib: referees.obj
+referees.dll: referees.lib referees.res
+	$(LINK) $(LFLAGS) /out:referees.dll /DLL referees.obj kload.lib d3dx8.lib referees.res $(LIBS)
+referees.obj: referees.cpp referees.h
+
+
+camerazoomer.lib: camerazoomer.obj
+camerazoomer.dll: camerazoomer.lib camerazoomer.res
+	$(LINK) $(LFLAGS) /out:camerazoomer.dll /DLL camerazoomer.obj kload.lib d3dx8.lib camerazoomer.res $(LIBS)
+camerazoomer.obj: camerazoomer.cpp camerazoomer.h
+
+refksrv.lib: refksrv.obj
+refksrv.dll: refksrv.lib refksrv.res
+	$(LINK) $(LFLAGS) /out:refksrv.dll /DLL refksrv.obj kload.lib d3dx8.lib refksrv.res $(LIBS)
+refksrv.obj: refksrv.cpp refksrv.h
+
 
 network.lib: network.obj md5.obj
 network.dll: network.lib network.res

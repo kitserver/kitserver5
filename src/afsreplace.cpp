@@ -15,7 +15,7 @@ enum {
     AFS_PAGELEN_TABLE
 };
 
-static DWORD dataArray[][DATALEN] = {
+static DWORD dtaArray[][DATALEN] = {
     // PES5 DEMO 2
     {
         0,
@@ -34,7 +34,7 @@ static DWORD dataArray[][DATALEN] = {
     },
 };
 
-static DWORD data[DATALEN];
+static DWORD dta[DATALEN];
 
 CALLLINE l_GetNumPages={0,NULL};
 
@@ -54,7 +54,7 @@ KEXPORT DWORD GetAfsIdByBase(DWORD base)
 {
     //LogWithNumber(&k_kload, "GetAfsIdByBase:: AFS_PAGELEN_TABLE = %d",
     //        AFS_PAGELEN_TABLE);
-    DWORD* pageLenTable = (DWORD*)data[AFS_PAGELEN_TABLE];
+    DWORD* pageLenTable = (DWORD*)dta[AFS_PAGELEN_TABLE];
     //LogWithNumber(&k_kload, "GetAfsIdByBase:: pageLenTable = %08x",
     //        (DWORD)pageLenTable);
     for (DWORD i=0; i<8; i++)
@@ -65,7 +65,7 @@ KEXPORT DWORD GetAfsIdByBase(DWORD base)
 
 KEXPORT DWORD GetFileIdByOffset(DWORD afsId, DWORD offset)
 {
-    DWORD* pageLenTable = (DWORD*)data[AFS_PAGELEN_TABLE];
+    DWORD* pageLenTable = (DWORD*)dta[AFS_PAGELEN_TABLE];
     AFS_INFO* afsInfo = (AFS_INFO*)pageLenTable[afsId];
     DWORD prevFileId = 0, fileId = 0;
     DWORD offsetSoFar = 0x800 * afsInfo->pages[0];
@@ -123,7 +123,7 @@ KEXPORT void ClearProbableReadForHandle(HANDLE hFile, DWORD wasOffset)
 
 KEXPORT DWORD GetOffsetByFileId(DWORD afsId, DWORD fileId)
 {
-    DWORD* pageLenTable = (DWORD*)data[AFS_PAGELEN_TABLE];
+    DWORD* pageLenTable = (DWORD*)dta[AFS_PAGELEN_TABLE];
     AFS_INFO* afsInfo = (AFS_INFO*)pageLenTable[afsId];
     DWORD offset = 0;
     for (DWORD i=0; i<=fileId; i++) {
@@ -163,7 +163,7 @@ DWORD newReadNumPages(DWORD base, DWORD fileId, DWORD orgNumPages)
 {
     //Log(&k_kload, "newReadNumPages called");
     //for (int j=0; j<DATALEN; j++) {
-    //    LogWithTwoNumbers(&k_kload, "data[%d]=%08x", j, data[j]);
+    //    LogWithTwoNumbers(&k_kload, "dta[%d]=%08x", j, dta[j]);
     //}
     DWORD afsId = GetAfsIdByBase(base);
     //LogWithNumber(&k_kload, "afsId=%d", afsId);
@@ -185,5 +185,5 @@ DWORD newReadNumPages(DWORD base, DWORD fileId, DWORD orgNumPages)
 void afsreplace_init(int v)
 {
     //LogWithNumber(&k_kload, "afsreplace_init:: v=%d", v);
-    memcpy(data, dataArray[v], sizeof(data));
+    memcpy(dta, dtaArray[v], sizeof(dta));
 }

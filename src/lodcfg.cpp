@@ -52,6 +52,7 @@ void SetLCMDefaults()
     SendMessage(g_timeListControl, CB_SETCURSEL, 0, 0);
     SendMessage(g_seasonListControl, CB_SETCURSEL, 0, 0);
     SendMessage(g_stadiumEffectsListControl, CB_SETCURSEL, 0, 0);
+    SendMessage(g_numberOfSubs, CB_SETCURSEL, 0, 0);	
     SendMessage(g_homeCrowdListControl, CB_SETCURSEL, 0, 0);
     SendMessage(g_awayCrowdListControl, CB_SETCURSEL, 0, 0);
     SendMessage(g_crowdStanceListControl, CB_SETCURSEL, 0, 0);
@@ -63,6 +64,7 @@ void EnableLCM(BOOL value)
     EnableWindow(g_timeListControl, value);
     EnableWindow(g_seasonListControl, value);
     EnableWindow(g_stadiumEffectsListControl, value);
+    EnableWindow(g_numberOfSubs, value);	
     EnableWindow(g_homeCrowdListControl, value);
     EnableWindow(g_awayCrowdListControl, value);
     EnableWindow(g_crowdStanceListControl, value);
@@ -250,6 +252,8 @@ void SetLCM()
     SendMessage(g_seasonListControl, CB_SETCURSEL, (WPARAM)idx, (LPARAM)0);
     idx = (g_lcm.effects == 0xff)?0:g_lcm.effects+1;
     SendMessage(g_stadiumEffectsListControl, CB_SETCURSEL, (WPARAM)idx, (LPARAM)0);
+    idx = (g_lcm.numSubs == 0xff)?0:((g_lcm.numSubs == 0)?1:g_lcm.numSubs-1);
+    SendMessage(g_numberOfSubs, CB_SETCURSEL, (WPARAM)idx, (LPARAM)0);
     idx = (g_lcm.homeCrowd == 0xff)?0:g_lcm.homeCrowd+1;
     SendMessage(g_homeCrowdListControl, CB_SETCURSEL, (WPARAM)idx, (LPARAM)0);
     idx = (g_lcm.awayCrowd == 0xff)?0:g_lcm.awayCrowd+1;
@@ -310,6 +314,7 @@ void GetLCM()
     GetLCMValueFromList(g_timeListControl, &g_lcm.timeOfDay);
     GetLCMValueFromList(g_seasonListControl, &g_lcm.season);
     GetLCMValueFromList(g_stadiumEffectsListControl, &g_lcm.effects);
+    GetLCMValueFromList(g_numberOfSubs, &g_lcm.numSubs);	
     GetLCMValueFromList(g_homeCrowdListControl, &g_lcm.homeCrowd);
     GetLCMValueFromList(g_awayCrowdListControl, &g_lcm.awayCrowd);
     GetLCMValueFromList(g_crowdStanceListControl, &g_lcm.crowdStance);

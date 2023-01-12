@@ -1,0 +1,12 @@
+# This is the map file for Referee kits server
+# Format: "<name displayed in game>","<model file>","<folder with textures>"
+# Example: "UCL Black","malupe_model.str","UCL\black"
+# Texture paths are relative to GDB\referee kits\, model paths to GDB\referee kits\mdl\
+
+# UCL
+
+"UCL Black","malupe_model.str","UCL\black"
+"UCL Blue Sky","malupe_model.str","UCL\blue sky"
+"UCL Green","malupe_model.str","UCL\green"
+"UCL Red","malupe_model.str","UCL\red"
+"UCL Yellow","malupe_model.str","UCL\yellow"

@@ -34,7 +34,7 @@ enum {
     TEAM_IDS, ML_HOME_AREA, ML_AWAY_AREA,
 };
 
-static DWORD dataArray[][DATALEN] = {
+static DWORD dtaArray[][DATALEN] = {
 	// PES5 Demo 2
 	{
 	 0, 0
@@ -58,7 +58,7 @@ static DWORD dataArray[][DATALEN] = {
 
 
 static DWORD code[CODELEN];
-static DWORD data[DATALEN];
+static DWORD dta[DATALEN];
 	
 
 #define SWAPBYTES(dw) \

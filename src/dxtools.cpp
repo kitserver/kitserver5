@@ -36,7 +36,7 @@ enum {
 };
 
 // Data addresses.
-DWORD dataArray[][DATALEN] = {
+DWORD dtaArray[][DATALEN] = {
     // PES5 DEMO 2
     {
         0, 0,
@@ -55,7 +55,7 @@ DWORD dataArray[][DATALEN] = {
     },
 };
 
-DWORD data[DATALEN];
+DWORD dta[DATALEN];
 
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
@@ -79,8 +79,8 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 
 void SetInternalResolution(DXCONFIG *cfg)
 {
-    DWORD *w = (DWORD*)data[INTRES_WIDTH];
-    DWORD *h = (DWORD*)data[INTRES_HEIGHT];
+    DWORD *w = (DWORD*)dta[INTRES_WIDTH];
+    DWORD *h = (DWORD*)dta[INTRES_HEIGHT];
     if (w != NULL && h != NULL) {
         LogWithTwoNumbers(&k_dxtools,"Internal resolution was: %d x %d", *w, *h);
         DWORD protection;
@@ -143,7 +143,7 @@ void dxtoolsCreateDevice(IDirect3D8* self, UINT Adapter,
     int v = GetPESInfo()->GameVersion;
     if (v != -1)
     {
-        memcpy(data, dataArray[v], sizeof(data));
+        memcpy(dta, dtaArray[v], sizeof(dta));
     }
 }
 

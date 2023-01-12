@@ -4,6 +4,6 @@
 #include <windows.h>
 
 DWORD Sign(BYTE* buffer);
-DWORD GetCRC(BYTE* data, DWORD len);
+DWORD GetCRC(BYTE* dta, DWORD len);
 
 #endif

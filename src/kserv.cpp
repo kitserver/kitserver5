@@ -366,7 +366,7 @@ enum {
 };
 
 // Data addresses.
-DWORD dataArray[][DATALEN] = {
+DWORD dtaArray[][DATALEN] = {
     // PES5 DEMO 2
     { 0, 0, 0,
       0, 0, 0,
@@ -406,7 +406,7 @@ DWORD dataArray[][DATALEN] = {
 };
 
 DWORD code[CODELEN];
-DWORD data[DATALEN];
+DWORD dta[DATALEN];
 
 //safe_allocator<MEMITEMINFO> myAlloc;
 //std::map<DWORD,MEMITEMINFO*,cmp,myAlloc> g_AFS_offsetMap;
@@ -1336,7 +1336,7 @@ PALETTEENTRY g_away_socks_pal[0x100];
 
 BYTE GetEditModeFlag()
 {
-    return *(BYTE*)data[EDITMODE_FLAG];
+    return *(BYTE*)dta[EDITMODE_FLAG];
 }
 
 // Calls IUnknown::Release() on an instance
@@ -1389,7 +1389,8 @@ void SetPosition(CUSTOMVERTEX2* dest, CUSTOMVERTEX2* src, int n, int x, int y)
 {	
 	FLOAT xratio = GetPESInfo()->stretchX;
     FLOAT yratio = GetPESInfo()->stretchY;
-    for (int i=0; i<n; i++) {
+	int i;
+    for (i=0; i<n; i++) {
         dest[i].x = (FLOAT)(int)((src[i].x + x) * xratio);
         dest[i].y = (FLOAT)(int)((src[i].y + y) * yratio);
     }
@@ -1399,7 +1400,8 @@ void SetPosition(CUSTOMVERTEX* dest, CUSTOMVERTEX* src, int n, int x, int y)
 {
 	FLOAT xratio = GetPESInfo()->stretchX;
     FLOAT yratio = GetPESInfo()->stretchY;
-    for (int i=0; i<n; i++) {
+	int i;
+    for (i=0; i<n; i++) {
         dest[i].x = (FLOAT)(int)((src[i].x + x) * xratio);
         dest[i].y = (FLOAT)(int)((src[i].y + y) * yratio);
     }
@@ -1407,7 +1409,8 @@ void SetPosition(CUSTOMVERTEX* dest, CUSTOMVERTEX* src, int n, int x, int y)
 
 void NarrowBackCorrection(CUSTOMVERTEX2* dest, CUSTOMVERTEX2* src, int n)
 {
-    for (int i=0; i<n; i++) {
+	int i;
+    for (i=0; i<n; i++) {
         dest[i].tu = src[i].tu;
         dest[i].tv = src[i].tv;
     }
@@ -1863,18 +1866,18 @@ BOOL BackToStandardStripSelection(BYTE homeStrip, BYTE awayStrip)
 WORD GetTeamId(int which)
 {
     BYTE* mlData;
-    if (data[TEAM_IDS]==0) return 0xffff;
-    WORD id = ((WORD*)data[TEAM_IDS])[which];
+    if (dta[TEAM_IDS]==0) return 0xffff;
+    WORD id = ((WORD*)dta[TEAM_IDS])[which];
     if (id==0xf2 || id==0xf3) {
         switch (id) {
             case 0xf2:
                 // master league team (home)
-                mlData = *((BYTE**)data[ML_HOME_AREA]);
+                mlData = *((BYTE**)dta[ML_HOME_AREA]);
                 id = *((DWORD*)(mlData + 0x6c)) & 0xffff; // 3rd byte is a flag of "edited" kit
                 break;
             case 0xf3:
                 // master league team (away)
-                mlData = *((BYTE**)data[ML_AWAY_AREA]);
+                mlData = *((BYTE**)dta[ML_AWAY_AREA]);
                 id = *((DWORD*)(mlData + 0x6c)) & 0xffff; // 3rd byte is a flag of "edited" kit
                 break;
         }
@@ -1887,8 +1890,8 @@ WORD GetTeamId(int which)
  */
 BYTE GetTeamStrips(int which)
 {
-    if (data[TEAM_STRIPS]==0) return 0xff;
-    return ((BYTE*)data[TEAM_STRIPS])[which];
+    if (dta[TEAM_STRIPS]==0) return 0xff;
+    return ((BYTE*)dta[TEAM_STRIPS])[which];
 }
 
 /**
@@ -2074,7 +2077,8 @@ PALETTEENTRY* MakePaletteCopy(PALETTEENTRY* src)
 void PrintPal(PALETTEENTRY* pal)
 {
     FILE* f = fopen("c:\\pal.log","ab");
-    for (int i=0; i<0x100; i++) {
+	int i;
+    for (i=0; i<0x100; i++) {
         fprintf(f,"%c%c%c%c",pal[i].peRed,pal[i].peGreen,pal[i].peBlue,pal[i].peFlags);
     }
     fclose(f);
@@ -2679,9 +2683,10 @@ void JuceReset(IDirect3DDevice8* self, LPVOID params)
 int GetKitSlot(int kitId)
 {
 	int slot = -1;
-	for (int i=0; i<4; i++) 
+	int i;
+	for (i=0; i<4; i++) 
 	{
-		WORD id = *((WORD*)(data[KIT_SLOTS] + i*0x38 + 0x0a));
+		WORD id = *((WORD*)(dta[KIT_SLOTS] + i*0x38 + 0x0a));
 		if (kitId == id) { slot = i; break; }
 	}
 	return slot;
@@ -2705,7 +2710,7 @@ void JucePresent(IDirect3DDevice8* self, CONST RECT* src, CONST RECT* dest, HWND
 	if (g_triggerLoad3rdKit > 0)
 	{
 		int kitId = 0, slot = -1;
-		BYTE* strips = (BYTE*)data[TEAM_STRIPS];
+		BYTE* strips = (BYTE*)dta[TEAM_STRIPS];
 
 		switch (g_triggerLoad3rdKit)
 		{
@@ -2716,9 +2721,9 @@ void JucePresent(IDirect3DDevice8* self, CONST RECT* src, CONST RECT* dest, HWND
 				slot = GetKitSlot(kitId);
 				if (slot != -1)
 				{
-					ZeroMemory((BYTE*)data[KIT_SLOTS] + slot * 0x38, 0x38);
+					ZeroMemory((BYTE*)dta[KIT_SLOTS] + slot * 0x38, 0x38);
 					// set uni-reload flag
-					*((DWORD*)data[KIT_CHECK_TRIGGER]) = 1;
+					*((DWORD*)dta[KIT_CHECK_TRIGGER]) = 1;
 				}
 				break;
 
@@ -2729,9 +2734,9 @@ void JucePresent(IDirect3DDevice8* self, CONST RECT* src, CONST RECT* dest, HWND
 				slot = GetKitSlot(kitId);
 				if (slot != -1)
 				{
-					ZeroMemory((BYTE*)data[KIT_SLOTS] + slot * 0x38, 0x38);
+					ZeroMemory((BYTE*)dta[KIT_SLOTS] + slot * 0x38, 0x38);
 					// set uni-reload flag
-					*((DWORD*)data[KIT_CHECK_TRIGGER]) = 1;
+					*((DWORD*)dta[KIT_CHECK_TRIGGER]) = 1;
 				}
 				break;
 		}
@@ -2835,7 +2840,7 @@ BOOL InitMemItemInfo(DWORD** ppIds, MEMITEMINFO** ppMemItemInfoArray, DWORD n)
 
 	int i;
     for (i=0; i<n; i++) {
-        ids[i] = data[FIRST_ID] + i;
+        ids[i] = dta[FIRST_ID] + i;
     }
 	for (i=0; i<n; i++) {
 		memItemInfo[i].id = ids[i];
@@ -3517,7 +3522,8 @@ NEWKIT* CreateNewKits(NEWKITFILES files)
 
 void UnloadNewKits()
 {
-	for (int i=0;i<MAX_STORED_NEWKITS;i++)
+	int i;
+	for (i=0;i<MAX_STORED_NEWKITS;i++)
 		UnloadNewKits(i);
 	g_nextNewKitId=0;
 	ZeroMemory(g_NewKitFilenames,MAX_STORED_NEWKITS*sizeof(NEWKITFILES));
@@ -3717,9 +3723,9 @@ void InitKserv()
     if (v != -1)
     {
         memcpy(code, codeArray[v], sizeof(code));
-        memcpy(data, dataArray[v], sizeof(data));
+        memcpy(dta, dtaArray[v], sizeof(dta));
 
-        if (!InitMemItemInfo(&g_AFS_id, &g_AFS_memItemInfo, data[LAST_ID]-data[FIRST_ID]+1)) {
+        if (!InitMemItemInfo(&g_AFS_id, &g_AFS_memItemInfo, dta[LAST_ID]-dta[FIRST_ID]+1)) {
             LOG(&k_mydll,"InitMemItemInfo failed.");
             return;
         }
@@ -3953,7 +3959,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 // returns TRUE if specified slot contains edited kit.
 BOOL IsEditedKit(int slot) 
 {
-	KitSlot* kitSlot = (KitSlot*)(data[ANOTHER_KIT_SLOTS] + slot*sizeof(KitSlot));
+	KitSlot* kitSlot = (KitSlot*)(dta[ANOTHER_KIT_SLOTS] + slot*sizeof(KitSlot));
 	return kitSlot->isEdited;
 }
 
@@ -3963,7 +3969,8 @@ HRESULT STDMETHODCALLTYPE JuceSetTransform(IDirect3DDevice8* dev, D3DTRANSFORMST
     if (state == D3DTS_PROJECTION) {
         Log(&k_mydll, "matrix:");
         /*
-        for (int i=0; i<4; i++) {
+		int i;
+        for (i=0; i<4; i++) {
             LogWithFourFloats(&k_mydll, "%0.5f %0.5f %0.5f %0.5f", 
                     pMatrix->m[i][0], pMatrix->m[i][1], pMatrix->m[i][2], pMatrix->m[i][3]);
         }
@@ -4091,17 +4098,17 @@ DWORD RGBAColorToDWORD(RGBAColor *clr)
 
 DWORD SetRadarColors()
 {
-    DWORD home_radar = *(DWORD*)data[RADARCOLOR_HOME];
-    DWORD away_radar = *(DWORD*)data[RADARCOLOR_AWAY];
+    DWORD home_radar = *(DWORD*)dta[RADARCOLOR_HOME];
+    DWORD away_radar = *(DWORD*)dta[RADARCOLOR_AWAY];
     LOG(&k_mydll, "Radar Colors WAS: HOME(%08x) vs AWAY(%08x)", home_radar, away_radar);
     if (radar_home) {
-        *(DWORD*)data[RADARCOLOR_HOME] = RGBAColorToDWORD(radar_home);
+        *(DWORD*)dta[RADARCOLOR_HOME] = RGBAColorToDWORD(radar_home);
     }
     if (radar_away) {
-        *(DWORD*)data[RADARCOLOR_AWAY] = RGBAColorToDWORD(radar_away);
+        *(DWORD*)dta[RADARCOLOR_AWAY] = RGBAColorToDWORD(radar_away);
     }
-    home_radar = *(DWORD*)data[RADARCOLOR_HOME];
-    away_radar = *(DWORD*)data[RADARCOLOR_AWAY];
+    home_radar = *(DWORD*)dta[RADARCOLOR_HOME];
+    away_radar = *(DWORD*)dta[RADARCOLOR_AWAY];
     LOG(&k_mydll, "Radar Colors NOW: HOME(%08x) vs AWAY(%08x)", home_radar, away_radar);
     return 0;
 }
@@ -4134,9 +4141,9 @@ void CycleIterator(BYTE which,KitIterator* ki,StringKitMap* skm)
 {
 	KitIterator tmp=*ki;
 	bool forward=true;
-	bool SinglePlayer=*(BYTE*)(data[SINGLEPLAYER]) != 3;
-	DWORD KitSelectSide=*(DWORD*)(data[KITSELECTSIDE]);
-	BYTE* PlayerSide=(BYTE*)(data[PLAYERSIDE]);
+	bool SinglePlayer=*(BYTE*)(dta[SINGLEPLAYER]) != 3;
+	DWORD KitSelectSide=*(DWORD*)(dta[KITSELECTSIDE]);
+	BYTE* PlayerSide=(BYTE*)(dta[PLAYERSIDE]);
 	
 	if (SinglePlayer)
 		forward=(g_cycleDirection[PlayerSide[0]] == CYCLE_RIGHT) && (KitSelectSide==which);
@@ -4640,7 +4647,7 @@ void DumpImagePack(TEXIMGPACKHEADER* imagePackHeader)
 }
 
 // Read a file into a memory block.
-static int read_file_to_mem(char *fn,unsigned char **ppfiledata, int *pfilesize)
+static int read_file_to_mem(char *fn,unsigned char **ppfiledta, int *pfilesize)
 {
 	HANDLE hfile;
 	DWORD fsize;
@@ -4660,7 +4667,7 @@ static int read_file_to_mem(char *fn,unsigned char **ppfiledata, int *pfilesize)
 		if(fbuf) {
 			if(ReadFile(hfile,(void*)fbuf,fsize,&bytesread,NULL)) {
 				if(bytesread==fsize) { 
-					(*ppfiledata)  = fbuf;
+					(*ppfiledta)  = fbuf;
 					(*pfilesize) = (int)fsize;
 					CloseHandle(hfile);
 					return 0;   // success
@@ -4686,7 +4693,8 @@ void ApplyAlphaChunk(RGBQUAD* palette, BYTE* memblk, DWORD size)
         if (chunk->dwName == MAKEFOURCC('t','R','N','S')) {
             int numColors = SWAPBYTES(chunk->dwSize);
             BYTE* alphaValues = memblk + offset + sizeof(chunk->dwSize) + sizeof(chunk->dwName);
-            for (int i=0; i<numColors; i++) {
+			int i;
+            for (i=0; i<numColors; i++) {
                 //palette[i].rgbReserved = (alphaValues[i]==0xff) ? 0x80 : alphaValues[i]/2;
                 palette[i].rgbReserved = alphaValues[i];
             }
@@ -4753,7 +4761,8 @@ DWORD LoadPNGTexture(BITMAPINFO** tex, char* filename)
     }
     //LogWithNumber(&k_mydll, "colors = %d", colors);
     if (colors<=256) {
-        for (int i=0; i<colors; i++) {
+		int i;
+        for (i=0; i<colors; i++) {
             pBMI->bmiColors[i].rgbReserved = 0xff;
         }
     }
@@ -4823,7 +4832,8 @@ void ApplyDIBTexture(TEXIMGPACKHEADER* orgKit, BITMAPINFO* bitmap)
 		memcpy(largeKit + 0x80 + bank*32*4 + 24*4, srcTex + palOff + bank*32*4 + 24*4, 8*4);
 	}
 	// swap R and B
-	for (int i=0; i<0x100; i++) 
+	int i;
+	for (i=0; i<0x100; i++) 
 	{
 		BYTE blue = largeKit[0x80 + i*4];
 		BYTE red = largeKit[0x80 + i*4 + 2];
@@ -5018,7 +5028,8 @@ void ApplyDIBTextureMipMap(TEXIMGPACKHEADER* orgKit, int ordinal, BITMAPINFO* bi
 		memcpy(destData + 0x80 + bank*32*4 + 24*4, srcTex + palOff + bank*32*4 + 24*4, 8*4);
 	}
 	// swap R and B
-	for (int i=0; i<0x100; i++) 
+	int i;
+	for (i=0; i<0x100; i++) 
 	{
 		BYTE blue = destData[0x80 + i*4];
 		BYTE red = destData[0x80 + i*4 + 2];
@@ -5061,7 +5072,8 @@ void Apply4BitDIBPalette(TEXIMGHEADER* tex, BITMAPINFO* bitmap)
     memcpy(pal, srcTex + palOff, 16*4); // take only 1st 16 colors
 
     // swap R and B
-    for (int i=0; i<16; i++) 
+	int i;
+    for (i=0; i<16; i++) 
     {
         BYTE blue = pal[i*4];
         BYTE red = pal[i*4 + 2];
@@ -5094,7 +5106,8 @@ void Apply4BitDIBTexture(TEXIMGPACKHEADER* pack, BITMAPINFO* bitmap, BOOL usePal
 		memcpy(pal, srcTex + palOff, 16*4); // take only 1st 16 colors
 
 		// swap R and B
-		for (int i=0; i<16; i++) 
+		int i;
+		for (i=0; i<16; i++) 
 		{
 			BYTE blue = pal[i*4];
 			BYTE red = pal[i*4 + 2];
@@ -5177,7 +5190,8 @@ void ApplyGlovesDIBTexture(TEXIMGPACKHEADER* orgKit, BITMAPINFO* bitmap)
 		memcpy(largeGloves + 0x80 + bank*32*4 + 24*4, srcTex + palOff + bank*32*4 + 24*4, 8*4);
 	}
 	// swap R and B
-	for (int i=0; i<0x100; i++) 
+	int i;
+	for (i=0; i<0x100; i++) 
 	{
 		BYTE blue = largeGloves[0x80 + i*4];
 		BYTE red = largeGloves[0x80 + i*4 + 2];
@@ -5586,7 +5600,8 @@ BOOL IsKitOffset(DWORD offset)
 		return false;
 
 	// precise check: check every kit
-	for (int i=0; i<g_numTeams; i++) 
+	int i;
+	for (i=0; i<g_numTeams; i++) 
 	{
 		if (g_teamInfo[i].ga.dwOffset == offset) return true;
 		if (g_teamInfo[i].gb.dwOffset == offset) return true;
@@ -5669,7 +5684,7 @@ void JuceUnpack(DWORD addr1, DWORD addr2, DWORD size1, DWORD zero, DWORD* size2,
     TRACE2(&k_mydll,"JuceUnpack: addr = %08x", addr1 - 0x20);
     bool replaced = FALSE;
 
-    //BYTE* strips = (BYTE*)data[TEAM_STRIPS];
+    //BYTE* strips = (BYTE*)dta[TEAM_STRIPS];
     //LogWithTwoNumbers(&k_mydll,"strip = %02x %02x", strips[0], strips[1]);
 
     MEMITEMINFO* memItemInfo = FindMemItemInfoByAddress(addr1 - 0x20);
@@ -5723,7 +5738,7 @@ void JuceUnpack(DWORD addr1, DWORD addr2, DWORD size1, DWORD zero, DWORD* size2,
             TEXIMGHEADER* palAtex = (TEXIMGHEADER*)((BYTE*)pack + pack->toc[1]);
 
             int id1 = memItemInfo->id;
-            int fileType = (memItemInfo->id - data[FIRST_ID]) % 20;
+            int fileType = (memItemInfo->id - dta[FIRST_ID]) % 20;
             switch (fileType) {
                 case GA_NUMBERS: id1 = memItemInfo->id - GA_NUMBERS + GA_UNKNOWN1; break;
                 case GB_NUMBERS: id1 = memItemInfo->id - GB_NUMBERS + GA_UNKNOWN1; break;
@@ -5822,8 +5837,8 @@ BOOL FileExists(char* filename)
 
 string GetKitFolderKey(DWORD id)
 {
-    WORD teamId = (id - data[FIRST_ID]) / 20;
-    int fileType = (id - data[FIRST_ID]) % 20;
+    WORD teamId = (id - dta[FIRST_ID]) / 20;
+    int fileType = (id - dta[FIRST_ID]) % 20;
     //LogWithNumber(&k_mydll,"GetKitFolderKey: fileType = %d", fileType);
 
     WORD home = GetTeamId(HOME);
@@ -5838,7 +5853,7 @@ string GetKitFolderKey(DWORD id)
 
     BOOL isHome = TRUE;
     if (home == away) {
-        BYTE* strips = (BYTE*)data[TEAM_STRIPS];
+        BYTE* strips = (BYTE*)dta[TEAM_STRIPS];
         // special case. We need to find out then
         // which team this file is being loaded for: away or home
         switch (fileType) {
@@ -5952,8 +5967,8 @@ string GetKitFolderKey(DWORD id)
 
 BOOL FindImageFileForIdEx(DWORD id, char* suffix, char* filename, char* ext)
 {
-    WORD teamId = (id - data[FIRST_ID]) / 20;
-    int fileType = (id - data[FIRST_ID]) % 20;
+    WORD teamId = (id - dta[FIRST_ID]) / 20;
+    int fileType = (id - dta[FIRST_ID]) % 20;
 
     KitCollection* col = MAP_FIND(gdb->uni,teamId);
     if (!col) {
@@ -6109,8 +6124,8 @@ DWORD FindImageFileForId2(DWORD id, char* suffix, char* filename)
 
 DWORD FindShortsPalImageFileForId(DWORD id, string& kitFolderKey, char* filename)
 {
-    WORD teamId = (id - data[FIRST_ID]) / 20;
-    int fileType = (id - data[FIRST_ID]) % 20;
+    WORD teamId = (id - dta[FIRST_ID]) / 20;
+    int fileType = (id - dta[FIRST_ID]) % 20;
 
     KitCollection* col = MAP_FIND(gdb->uni,teamId);
     if (col) {
@@ -6143,7 +6158,7 @@ DWORD FindShortsPalImageFileForId(DWORD id, string& kitFolderKey, char* filename
 
 BOOL IsNumOrFontTexture(DWORD id)
 {
-	DWORD ordinal = (id - data[FIRST_ID]) % 20;
+	DWORD ordinal = (id - dta[FIRST_ID]) % 20;
 	switch (ordinal) {
 		case GA_NUMBERS:
 		case GA_FONT:
@@ -6160,7 +6175,7 @@ BOOL IsNumOrFontTexture(DWORD id)
 
 BOOL IsNumbersTexture(DWORD id)
 {
-	DWORD ordinal = (id - data[FIRST_ID]) % 20;
+	DWORD ordinal = (id - dta[FIRST_ID]) % 20;
 	switch (ordinal) {
 		case GA_NUMBERS:
 		case GB_NUMBERS:
@@ -6173,7 +6188,7 @@ BOOL IsNumbersTexture(DWORD id)
 
 BOOL IsGK(DWORD id)
 {
-	DWORD ordinal = (id - data[FIRST_ID]) % 20;
+	DWORD ordinal = (id - dta[FIRST_ID]) % 20;
 	switch (ordinal) {
 		case GA_KIT:
 		case GB_KIT:
@@ -6184,7 +6199,7 @@ BOOL IsGK(DWORD id)
 
 BOOL IsGKTexture(DWORD id)
 {
-	DWORD ordinal = (id - data[FIRST_ID]) % 20;
+	DWORD ordinal = (id - dta[FIRST_ID]) % 20;
 	switch (ordinal) {
 		case GA_KIT:
 		case GA_UNKNOWN1:
@@ -6203,7 +6218,7 @@ BOOL IsGKTexture(DWORD id)
 
 BOOL IsShirt(DWORD id)
 {
-	DWORD ordinal = (id - data[FIRST_ID]) % 20;
+	DWORD ordinal = (id - dta[FIRST_ID]) % 20;
 	switch (ordinal) {
 		case GA_KIT:
 		case GB_KIT:
@@ -6216,7 +6231,7 @@ BOOL IsShirt(DWORD id)
 
 BOOL IsShortsOrSocks(DWORD id)
 {
-	DWORD ordinal = (id - data[FIRST_ID]) % 20;
+	DWORD ordinal = (id - dta[FIRST_ID]) % 20;
 	switch (ordinal) {
 		case GA_UNKNOWN1:
 		case GA_UNKNOWN2:
@@ -6233,7 +6248,7 @@ BOOL IsShortsOrSocks(DWORD id)
 
 BOOL IsKitTexture(DWORD id)
 {
-	DWORD ordinal = (id - data[FIRST_ID]) % 20;
+	DWORD ordinal = (id - dta[FIRST_ID]) % 20;
 	switch (ordinal) {
 		case GA_KIT:
 		case GB_KIT:
@@ -6250,7 +6265,7 @@ BOOL IsKitTexture(DWORD id)
 
 DWORD GetSplitKitOffset(DWORD id)
 {
-	DWORD ordinal = (id - data[FIRST_ID]) % 20;
+	DWORD ordinal = (id - dta[FIRST_ID]) % 20;
 	switch (ordinal) {
 		case PA_SHIRT:
 		case PB_SHIRT:
@@ -6313,7 +6328,8 @@ void MaskKitTexture(BITMAPINFOHEADER* tex, DWORD id, BITMAPINFO* maskTex)
 	};
 
 	BYTE Index=255;
-	for (int i=0;i<256;i++)
+	int i;
+	for (i=0;i<256;i++)
 		if ((((DWORD*)((BYTE*)maskTex + bih->biSize))[i] & 0xFFFFFF) == partColor) {
 			Index=i;
 			break;
@@ -6473,11 +6489,11 @@ void JuceGetClubTeamInfo(DWORD id,DWORD result)
 
 	if (id == 0xf2) {
 		// master league team (home)
-		BYTE* mlData = *((BYTE**)data[ML_HOME_AREA]);
+		BYTE* mlData = *((BYTE**)dta[ML_HOME_AREA]);
 		id = *((DWORD*)(mlData + 0x6c)) & 0xffff; // 3rd byte is a flag of "edited" kit
 	} else if (id == 0xf3) {
 		// master league team (away)
-		BYTE* mlData = *((BYTE**)data[ML_AWAY_AREA]);
+		BYTE* mlData = *((BYTE**)dta[ML_AWAY_AREA]);
 		id = *((DWORD*)(mlData + 0x6c)) & 0xffff; // 3rd byte is a flag of "edited" kit
 	}
 
@@ -6502,14 +6518,14 @@ void JuceGetClubTeamInfo(DWORD id,DWORD result)
 
         KitCollection* col = MAP_FIND(gdb->uni,id);
         if (col) {
-            Kit* ga = MAP_FIND(col->goalkeepers,GetKitFolderKey(data[FIRST_ID]+id*20+GA_KIT));
-            Kit* gb = MAP_FIND(col->goalkeepers,GetKitFolderKey(data[FIRST_ID]+id*20+GB_KIT));
-            Kit* gaShorts = MAP_FIND(col->goalkeepers,GetKitFolderKey(data[FIRST_ID]+id*20+GA_UNKNOWN1));
-            Kit* gbShorts = MAP_FIND(col->goalkeepers,GetKitFolderKey(data[FIRST_ID]+id*20+GB_UNKNOWN1));
-            Kit* pa = MAP_FIND(col->players,GetKitFolderKey(data[FIRST_ID]+id*20+PA_SHIRT));
-            Kit* pb = MAP_FIND(col->players,GetKitFolderKey(data[FIRST_ID]+id*20+PB_SHIRT));
-            Kit* paShorts = MAP_FIND(col->players,GetKitFolderKey(data[FIRST_ID]+id*20+PA_SHORTS));
-            Kit* pbShorts = MAP_FIND(col->players,GetKitFolderKey(data[FIRST_ID]+id*20+PB_SHORTS));
+            Kit* ga = MAP_FIND(col->goalkeepers,GetKitFolderKey(dta[FIRST_ID]+id*20+GA_KIT));
+            Kit* gb = MAP_FIND(col->goalkeepers,GetKitFolderKey(dta[FIRST_ID]+id*20+GB_KIT));
+            Kit* gaShorts = MAP_FIND(col->goalkeepers,GetKitFolderKey(dta[FIRST_ID]+id*20+GA_UNKNOWN1));
+            Kit* gbShorts = MAP_FIND(col->goalkeepers,GetKitFolderKey(dta[FIRST_ID]+id*20+GB_UNKNOWN1));
+            Kit* pa = MAP_FIND(col->players,GetKitFolderKey(dta[FIRST_ID]+id*20+PA_SHIRT));
+            Kit* pb = MAP_FIND(col->players,GetKitFolderKey(dta[FIRST_ID]+id*20+PB_SHIRT));
+            Kit* paShorts = MAP_FIND(col->players,GetKitFolderKey(dta[FIRST_ID]+id*20+PA_SHORTS));
+            Kit* pbShorts = MAP_FIND(col->players,GetKitFolderKey(dta[FIRST_ID]+id*20+PB_SHORTS));
           
             //BOOL editable = kDB->editable[id];
             BOOL editable = TRUE;
@@ -6533,11 +6549,11 @@ void JuceGetClubTeamInfo(DWORD id,DWORD result)
                 }
                 flagKits = (flagKits + 1) % 2;
             }
-            else if (data[EDITTEAM_KIT_ID]) {
+            else if (dta[EDITTEAM_KIT_ID]) {
                 // Edit mode
-                WORD playerId = *(WORD*)data[EDITPLAYER_ID];
+                WORD playerId = *(WORD*)dta[EDITPLAYER_ID];
                 if (playerId != 0) {
-                    BYTE pos = *(BYTE*)(data[EDITPLAYER_ID] - 0x47);
+                    BYTE pos = *(BYTE*)(dta[EDITPLAYER_ID] - 0x47);
                     //LogWithTwoNumbers(&k_mydll, "player id: %d, pos: 0x%02x\n", playerId, pos);
                     if ((pos & 0xf0) == 0) {
                         // GK
@@ -6546,8 +6562,8 @@ void JuceGetClubTeamInfo(DWORD id,DWORD result)
                         if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
                     }
                 }
-                if (*(BYTE*)data[EDITPLAYER_NUMBER] == 0) {
-                    BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
+                if (*(BYTE*)dta[EDITPLAYER_NUMBER] == 0) {
+                    BYTE kit_id = *(BYTE*)dta[EDITTEAM_KIT_ID];
                     if (kit_id == 2 || kit_id == 3) {
                         // GK
                         if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
@@ -6584,7 +6600,7 @@ void clearTeamKitInfo()
 		TEAMKITINFO* savedTeamInfo = g_teamKitInfoIterator->second;
 
 		LogWithThreeNumbers(&k_mydll,"clearTeamKitInfo: restoring info for %03d (%00005d) at %08x", 
-				savedTeamInfo->teamId, data[FIRST_ID]+savedTeamInfo->teamId*20, (DWORD)kitPackInfo);
+				savedTeamInfo->teamId, dta[FIRST_ID]+savedTeamInfo->teamId*20, (DWORD)kitPackInfo);
 
 		// reset licensed flags
         ResetKitPackInfo(kitPackInfo, &savedTeamInfo->kits);
@@ -6660,14 +6676,14 @@ void JuceGetClubTeamInfoML2(DWORD id,DWORD result)
 
         KitCollection* col = MAP_FIND(gdb->uni,id);
         if (col) {
-            Kit* ga = MAP_FIND(col->goalkeepers,GetKitFolderKey(data[FIRST_ID]+id*20+GA_KIT));
-            Kit* gb = MAP_FIND(col->goalkeepers,GetKitFolderKey(data[FIRST_ID]+id*20+GB_KIT));
-            Kit* gaShorts = MAP_FIND(col->goalkeepers,GetKitFolderKey(data[FIRST_ID]+id*20+GA_UNKNOWN1));
-            Kit* gbShorts = MAP_FIND(col->goalkeepers,GetKitFolderKey(data[FIRST_ID]+id*20+GB_UNKNOWN1));
-            Kit* pa = MAP_FIND(col->players,GetKitFolderKey(data[FIRST_ID]+id*20+PA_SHIRT));
-            Kit* pb = MAP_FIND(col->players,GetKitFolderKey(data[FIRST_ID]+id*20+PB_SHIRT));
-            Kit* paShorts = MAP_FIND(col->players,GetKitFolderKey(data[FIRST_ID]+id*20+PA_SHORTS));
-            Kit* pbShorts = MAP_FIND(col->players,GetKitFolderKey(data[FIRST_ID]+id*20+PB_SHORTS));
+            Kit* ga = MAP_FIND(col->goalkeepers,GetKitFolderKey(dta[FIRST_ID]+id*20+GA_KIT));
+            Kit* gb = MAP_FIND(col->goalkeepers,GetKitFolderKey(dta[FIRST_ID]+id*20+GB_KIT));
+            Kit* gaShorts = MAP_FIND(col->goalkeepers,GetKitFolderKey(dta[FIRST_ID]+id*20+GA_UNKNOWN1));
+            Kit* gbShorts = MAP_FIND(col->goalkeepers,GetKitFolderKey(dta[FIRST_ID]+id*20+GB_UNKNOWN1));
+            Kit* pa = MAP_FIND(col->players,GetKitFolderKey(dta[FIRST_ID]+id*20+PA_SHIRT));
+            Kit* pb = MAP_FIND(col->players,GetKitFolderKey(dta[FIRST_ID]+id*20+PB_SHIRT));
+            Kit* paShorts = MAP_FIND(col->players,GetKitFolderKey(dta[FIRST_ID]+id*20+PA_SHORTS));
+            Kit* pbShorts = MAP_FIND(col->players,GetKitFolderKey(dta[FIRST_ID]+id*20+PB_SHORTS));
             
             //BOOL editable = kDB->editable[id];
             BOOL editable = TRUE;
@@ -6689,11 +6705,11 @@ void JuceGetClubTeamInfoML2(DWORD id,DWORD result)
                 }
                 flagKits = (flagKits + 1) % 2;
             }
-            else if (data[EDITTEAM_KIT_ID]) {
+            else if (dta[EDITTEAM_KIT_ID]) {
                 // Edit mode
-                WORD playerId = *(WORD*)data[EDITPLAYER_ID];
+                WORD playerId = *(WORD*)dta[EDITPLAYER_ID];
                 if (playerId != 0) {
-                    BYTE pos = *(BYTE*)(data[EDITPLAYER_ID] - 0x47);
+                    BYTE pos = *(BYTE*)(dta[EDITPLAYER_ID] - 0x47);
                     //LogWithTwoNumbers(&k_mydll, "player id: %d, pos: 0x%02x\n", playerId, pos);
                     if ((pos & 0xf0) == 0) {
                         // GK
@@ -6702,8 +6718,8 @@ void JuceGetClubTeamInfoML2(DWORD id,DWORD result)
                         if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
                     }
                 }
-                if (*(BYTE*)data[EDITPLAYER_NUMBER] == 0) {
-                    BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
+                if (*(BYTE*)dta[EDITPLAYER_NUMBER] == 0) {
+                    BYTE kit_id = *(BYTE*)dta[EDITTEAM_KIT_ID];
                     if (kit_id == 2 || kit_id == 3) {
                         // GK
                         if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
@@ -6753,14 +6769,14 @@ void JuceGetNationalTeamInfo(DWORD id,DWORD result)
 
         KitCollection* col = MAP_FIND(gdb->uni,id);
         if (col) {
-            Kit* ga = MAP_FIND(col->goalkeepers,GetKitFolderKey(data[FIRST_ID]+id*20+GA_KIT));
-            Kit* gb = MAP_FIND(col->goalkeepers,GetKitFolderKey(data[FIRST_ID]+id*20+GB_KIT));
-            Kit* gaShorts = MAP_FIND(col->goalkeepers,GetKitFolderKey(data[FIRST_ID]+id*20+GA_UNKNOWN1));
-            Kit* gbShorts = MAP_FIND(col->goalkeepers,GetKitFolderKey(data[FIRST_ID]+id*20+GB_UNKNOWN1));
-            Kit* pa = MAP_FIND(col->players,GetKitFolderKey(data[FIRST_ID]+id*20+PA_SHIRT));
-            Kit* pb = MAP_FIND(col->players,GetKitFolderKey(data[FIRST_ID]+id*20+PB_SHIRT));
-            Kit* paShorts = MAP_FIND(col->players,GetKitFolderKey(data[FIRST_ID]+id*20+PA_SHORTS));
-            Kit* pbShorts = MAP_FIND(col->players,GetKitFolderKey(data[FIRST_ID]+id*20+PB_SHORTS));
+            Kit* ga = MAP_FIND(col->goalkeepers,GetKitFolderKey(dta[FIRST_ID]+id*20+GA_KIT));
+            Kit* gb = MAP_FIND(col->goalkeepers,GetKitFolderKey(dta[FIRST_ID]+id*20+GB_KIT));
+            Kit* gaShorts = MAP_FIND(col->goalkeepers,GetKitFolderKey(dta[FIRST_ID]+id*20+GA_UNKNOWN1));
+            Kit* gbShorts = MAP_FIND(col->goalkeepers,GetKitFolderKey(dta[FIRST_ID]+id*20+GB_UNKNOWN1));
+            Kit* pa = MAP_FIND(col->players,GetKitFolderKey(dta[FIRST_ID]+id*20+PA_SHIRT));
+            Kit* pb = MAP_FIND(col->players,GetKitFolderKey(dta[FIRST_ID]+id*20+PB_SHIRT));
+            Kit* paShorts = MAP_FIND(col->players,GetKitFolderKey(dta[FIRST_ID]+id*20+PA_SHORTS));
+            Kit* pbShorts = MAP_FIND(col->players,GetKitFolderKey(dta[FIRST_ID]+id*20+PB_SHORTS));
             
             //BOOL editable = kDB->editable[id];
             BOOL editable = TRUE;
@@ -6782,11 +6798,11 @@ void JuceGetNationalTeamInfo(DWORD id,DWORD result)
                 }
                 flagKits = (flagKits + 1) % 2;
             }
-            else if (data[EDITTEAM_KIT_ID]) {
+            else if (dta[EDITTEAM_KIT_ID]) {
                 // Edit mode
-                WORD playerId = *(WORD*)data[EDITPLAYER_ID];
+                WORD playerId = *(WORD*)dta[EDITPLAYER_ID];
                 if (playerId != 0) {
-                    BYTE pos = *(BYTE*)(data[EDITPLAYER_ID] - 0x47);
+                    BYTE pos = *(BYTE*)(dta[EDITPLAYER_ID] - 0x47);
                     //LogWithTwoNumbers(&k_mydll, "player id: %d, pos: 0x%02x\n", playerId, pos);
                     if ((pos & 0xf0) == 0) {
                         // GK
@@ -6795,8 +6811,8 @@ void JuceGetNationalTeamInfo(DWORD id,DWORD result)
                         if (gb != NULL) SetKitModel(&kitPackInfo->plAway, gb->model);
                     }
                 }
-                if (*(BYTE*)data[EDITPLAYER_NUMBER] == 0) {
-                    BYTE kit_id = *(BYTE*)data[EDITTEAM_KIT_ID];
+                if (*(BYTE*)dta[EDITPLAYER_NUMBER] == 0) {
+                    BYTE kit_id = *(BYTE*)dta[EDITTEAM_KIT_ID];
                     if (kit_id == 2 || kit_id == 3) {
                         // GK
                         if (ga != NULL) SetKitModel(&kitPackInfo->plHome, ga->model);
@@ -6946,7 +6962,7 @@ void JuceClear2Dkits()
     // Special logic for a case when team is playing against itself
     WORD id = GetTeamId(HOME); 
     if (id == GetTeamId(AWAY) && id != 0xffff & TeamDirExists(id)) {
-        BYTE* strips = (BYTE*)data[TEAM_STRIPS];
+        BYTE* strips = (BYTE*)dta[TEAM_STRIPS];
 
         // home: set bits to 0,0,0,0,0,0
         strips[0] = (((strips[0] & STRIP_PL_SHIRT_C) & STRIP_PL_SHORTS_C) & STRIP_PL_SOCKS_C);
@@ -6974,7 +6990,7 @@ void JuceClear2Dkits()
 void FindKitPartsNames(DWORD id, NEWKITFILES* files)
 {
 	char filename[BUFLEN];
-	DWORD baseId=id - ((id-data[FIRST_ID]) % 5);
+	DWORD baseId=id - ((id-dta[FIRST_ID]) % 5);
 	
     DWORD texType=TEXTYPE_NONE;
     
@@ -7003,14 +7019,14 @@ void FindKitPartsNames(DWORD id, NEWKITFILES* files)
     strcpy(files->overlayName,"\0");
 	
 	//Mask
-	WORD teamId = (id - data[FIRST_ID]) / 20;
+	WORD teamId = (id - dta[FIRST_ID]) / 20;
     KitCollection* col = MAP_FIND(gdb->uni,teamId);
     Kit* kit=NULL;
     string kitKey = GetKitFolderKey(id);
     if (!col)
     	 goto NoCollection;
     
-	kit=((id - data[FIRST_ID]) % 20 < PA_SHIRT) ? MAP_FIND(col->goalkeepers,kitKey):
+	kit=((id - dta[FIRST_ID]) % 20 < PA_SHIRT) ? MAP_FIND(col->goalkeepers,kitKey):
 												  MAP_FIND(col->players,kitKey);
 	
     if (kit != NULL && (kit->attDefined & MASK_FILE)) {
@@ -7030,7 +7046,7 @@ void FindKitPartsNames(DWORD id, NEWKITFILES* files)
     //Overlay
     CheckOverlay:
     kitKey = GetKitFolderKey(baseId);
-    kit=((id - data[FIRST_ID]) % 20 < PA_SHIRT) ? MAP_FIND(col->goalkeepers,kitKey):
+    kit=((id - dta[FIRST_ID]) % 20 < PA_SHIRT) ? MAP_FIND(col->goalkeepers,kitKey):
                                                   MAP_FIND(col->players,kitKey);
 
     if (kit != NULL && (kit->attDefined & OVERLAY_FILE)) {
@@ -7048,7 +7064,7 @@ void FindKitPartsNames(DWORD id, NEWKITFILES* files)
 
 bool HasKitFile(DWORD id, NEWKITFILES* newKitFiles)
 {
-    int fileType = (id - data[FIRST_ID]) % 20;
+    int fileType = (id - dta[FIRST_ID]) % 20;
     switch (fileType) {
         case PA_SHIRT:
         case PB_SHIRT:
@@ -7122,7 +7138,8 @@ void JuceUniDecode(DWORD addr, DWORD size, DWORD result)
             if (dbh1->dwSig==DEC_SIG_IMAGE) {
                 //make palette transparent
                 pOffset=(BYTE*)dbh1+dbh1->paletteOffset;
-                for (int i=3;i<1024;i+=4) {
+				int i;
+                for (i=3;i<1024;i+=4) {
                     //0==0;//pOffset[i]=(i+1)/4-1;		
                     pOffset[i]=(i+1)/4-1;		
                     for (int k=i-1; k>i-4; k--) pOffset[k] = 0;
@@ -7133,7 +7150,8 @@ void JuceUniDecode(DWORD addr, DWORD size, DWORD result)
                 if (dbh2->dwSig==DEC_SIG_IMAGE) {
                     //make palette transparent
                     pOffset=(BYTE*)dbh2+dbh2->paletteOffset;
-                    for (int i=3;i<1024;i+=4) {
+					int i;
+                    for (i=3;i<1024;i+=4) {
                         //0==0;//pOffset[i]=(i+1)/4-1;
                         pOffset[i]=(i+1)/4-1;
                         for (int k=i-1; k>i-4; k--) pOffset[k] = 0;
@@ -7409,7 +7427,8 @@ HRESULT SaveAs4bitBMP(char* filename, BYTE* buf, BYTE* pal, LONG width, LONG hei
 		WriteFile(hFile, &infoheader, sizeof(infoheader), (LPDWORD)&wbytes, NULL);
 
 		// write palette
-		for (int i=0; i<16; i++)
+		int i;
+		for (i=0; i<16; i++)
 		{
 			WriteFile(hFile, pal + i*4 + 2, 1, (LPDWORD)&wbytes, NULL);
 			WriteFile(hFile, pal + i*4 + 1, 1, (LPDWORD)&wbytes, NULL);
@@ -7662,7 +7681,7 @@ TeamAttr* utilGetTeamAttr(WORD id)
 	if (id < 0 || id > 255)
 		return NULL;
 
-	DWORD teamAttrBase = *((DWORD*)data[TEAM_COLLARS_PTR]);
+	DWORD teamAttrBase = *((DWORD*)dta[TEAM_COLLARS_PTR]);
 	return (TeamAttr*)(teamAttrBase + id*sizeof(TeamAttr));
 }
 
@@ -7671,7 +7690,7 @@ TeamAttr* utilGetTeamAttr(WORD id)
 void VerifyTeams()
 {
 	g_currTeams[0] = g_currTeams[1] = 0xffff;
-	WORD* teams = (WORD*)data[TEAM_IDS];
+	WORD* teams = (WORD*)dta[TEAM_IDS];
 
 	// try to define both teams.
 	if (teams[0] >=0 && teams[0] <= g_numTeams) g_currTeams[0] = teams[0];
@@ -7683,7 +7702,7 @@ void VerifyTeams()
 		int which = (teams[0] == 0x0122) ? 1 : 0;
 
 		// looks like it's an ML team.
-		DWORD* mlPtrs = (DWORD*)data[MLDATA_PTRS];
+		DWORD* mlPtrs = (DWORD*)dta[MLDATA_PTRS];
 		if (mlPtrs[which] != NULL)
 		{
 			WORD* mlData = (WORD*)(mlPtrs[which] + 0x278);
@@ -7699,7 +7718,7 @@ void VerifyTeams()
 		int which = (teams[1] == 0x0122) ? 1 : 0;
 
 		// looks like it's an ML team.
-		DWORD* mlPtrs = (DWORD*)data[MLDATA_PTRS];
+		DWORD* mlPtrs = (DWORD*)dta[MLDATA_PTRS];
 		if (mlPtrs[which] != NULL)
 		{
 			WORD* mlData = (WORD*)(mlPtrs[which] + 0x278);

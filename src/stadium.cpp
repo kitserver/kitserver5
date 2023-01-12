@@ -181,23 +181,27 @@ static DWORD codeArray[][CODELEN] = {
      },
 };
 
-#define DATALEN 17
+#define DATALEN 21
 enum {
     NUM_FILES, NUM_STADS, STAD_FIRST, NOU_CAMP_SHIFT_ID, SHIFT, 
     ADBOARD_TEX_FIRST, NUM_ADBOARD_TEX, DELLA_ALPI_ADBOARDS,
     AFS_PAGELEN_TABLE,
     TEAM_IDS, ML_HOME_AREA, ML_AWAY_AREA, DELLA_ALPI,
     STADIUM_TEXT_TABLE, STADIUM_TEXT_LEN, RANDOM_STADIUM_FLAG,
-    ISVIEWSTADIUMMODE,
+    ISVIEWSTADIUMMODE, 
+	TUNNEL_FIRST, TOTAL_TUNNEL,
+	ENTRANCE_MDL_FIRST, TOTAL_ENTRANCE_MDL,
 };
-static DWORD dataArray[][DATALEN] = {
+static DWORD dtaArray[][DATALEN] = {
 	// PES5 DEMO 2
 	{0, 0, 0, 0, 0, 
      0, 0, 0,
      0,
      0, 0, 0, 0,
      0, 0,
-     0,
+     0, 
+	 0, 0, 
+	 0, 0, 
      },
 	// PES5
 	{66, 35, 9090, 9694, 4, 
@@ -205,7 +209,9 @@ static DWORD dataArray[][DATALEN] = {
      0x3bfff00,
      0x3be0f40, 0x38b77a4, 0x38b77a8, 10348,
      0x38b77bc, 61, 0x3b7ee28,
-     0x00fe0a70,
+     0x00fe0a70, 
+	 239, 5, 
+	 219, 13,
      },
 	// WE9
 	{66, 35, 9090, 9694, 4, 
@@ -213,7 +219,9 @@ static DWORD dataArray[][DATALEN] = {
      0x3bfff20,
      0x3be0f60, 0x38b77a4, 0x38b77a8, 10348,
      0x38b77bc, 61, 0x3b7ee48,
-     0x00fe0a78,
+     0x00fe0a78, 
+	 239, 5, 
+	 219, 13,
      },
     // WE9:LE
 	{66, 35, 9099, 9703, 4, 
@@ -221,7 +229,9 @@ static DWORD dataArray[][DATALEN] = {
      0x3adef40,
      0x3b68a80, 0x37f20b4, 0x37f20b8, 10357,
      0x37f20cc, 61, 0x3adb168,
-     0x00f1aa00,
+     0x00f1aa00, 
+	 245, 5, 
+	 225, 13,
      },
 };
 
@@ -295,11 +305,15 @@ static char* FILE_NAMES[] = {
     "6_night_snow\\stad2_entrance.bin",
     "6_night_snow\\stad3_adboards.bin",
     "adboards_tex\\default.bin",
+    "tunnel\\tunnel.str",
+	"entrance_mdls\\default.bin",
 };
 
 #define STAD_MAIN(x) (x==8 || x==19 || x==30 || x==41 || x==52 || x==63)
 #define STAD_ADBOARDS(x) (x==10 || x==21 || x==32 || x==43 || x==54 || x==65)
 #define ADBOARDS 66
+#define TUNNEL 67
+#define ENTRANCE 68
 
 // comparator for string pointers
 struct ltstr
@@ -321,13 +335,13 @@ static char* WEATHER_NAMES[] = {
 };
 
 static DWORD code[CODELEN];
-static DWORD data[DATALEN];
+static DWORD dta[DATALEN];
 
 static std::map<DWORD,bool> g_AFS_idMap;
 static std::map<DWORD,MEMITEMINFO*> g_AFS_offsetMap;
 static std::map<WORD,std::string*> g_HomeStadiumMap;
 static std::map<std::string*,STADINFO*,ltstr> g_stadiumMap;
-static std::map<std::string*,STADINFO*,ltstr>::iterator g_stadiumMapIterator = NULL;
+static std::map<std::string*,STADINFO*,ltstr>::iterator g_stadiumMapIterator;
 
 static bool hasGdbStadiums = false;
 static char g_stadiumText[61];
@@ -365,6 +379,8 @@ int GetFileId(DWORD id);
 static void InitStadiumMaps();
 static WORD GetTeamId(int which);
 DWORD FindAdboardsFile(char* filename);
+DWORD FindTunnelFile(char* filename);
+DWORD FindEntranceFile(char* filename);
 DWORD FindStadiumFile(DWORD stadFileId, char* filename);
 
 void stadKeyboardProc(int code1, WPARAM wParam, LPARAM lParam);
@@ -584,18 +600,18 @@ static void InitStadiumMaps()
 static WORD GetTeamId(int which)
 {
     BYTE* mlData;
-    if (data[TEAM_IDS]==0) return 0xffff;
-    WORD id = ((WORD*)data[TEAM_IDS])[which];
+    if (dta[TEAM_IDS]==0) return 0xffff;
+    WORD id = ((WORD*)dta[TEAM_IDS])[which];
     if (id==0xf2 || id==0xf3) {
         switch (id) {
             case 0xf2:
                 // master league team (home)
-                mlData = *((BYTE**)data[ML_HOME_AREA]);
+                mlData = *((BYTE**)dta[ML_HOME_AREA]);
                 id = *((DWORD*)(mlData + 0x6c)) & 0xffff; // 3rd byte is a flag of "edited" kit
                 break;
             case 0xf3:
                 // master league team (away)
-                mlData = *((BYTE**)data[ML_AWAY_AREA]);
+                mlData = *((BYTE**)dta[ML_AWAY_AREA]);
                 id = *((DWORD*)(mlData + 0x6c)) & 0xffff; // 3rd byte is a flag of "edited" kit
                 break;
         }
@@ -680,7 +696,7 @@ void InitStadiumServer()
     int i,j;
 
 	memcpy(code, codeArray[GetPESInfo()->GameVersion], sizeof(code));
-	memcpy(data, dataArray[GetPESInfo()->GameVersion], sizeof(data));
+	memcpy(dta, dtaArray[GetPESInfo()->GameVersion], sizeof(dta));
 
     HookCallPoint(code[C_EXIT_VIEW_STADIUMS], 
             stadExitViewStadiumsCallPoint, 6, 5, false);
@@ -697,10 +713,10 @@ void InitStadiumServer()
     }
 
     // read offsets for stadium files
-	for (i=0; i<data[NUM_STADS]; i++) {
-        for (j=0; j<data[NUM_FILES]; j++) {
-            DWORD id = data[STAD_FIRST] + i*data[NUM_FILES] + j;
-            id = (id > data[NOU_CAMP_SHIFT_ID])?(id + data[SHIFT]):id;
+	for (i=0; i<dta[NUM_STADS]; i++) {
+        for (j=0; j<dta[NUM_FILES]; j++) {
+            DWORD id = dta[STAD_FIRST] + i*dta[NUM_FILES] + j;
+            id = (id > dta[NOU_CAMP_SHIFT_ID])?(id + dta[SHIFT]):id;
             // store id in id-map
             g_AFS_idMap[id] = true;
 
@@ -721,8 +737,8 @@ void InitStadiumServer()
     }
 
     // read offsets for adboard textures
-	for (i=0; i<data[NUM_ADBOARD_TEX]; i++) {
-        DWORD id = data[ADBOARD_TEX_FIRST] + i;
+	for (i=0; i<dta[NUM_ADBOARD_TEX]; i++) {
+        DWORD id = dta[ADBOARD_TEX_FIRST] + i;
         // store id in id-map
         g_AFS_idMap[id] = true;
 
@@ -741,6 +757,46 @@ void InitStadiumServer()
         g_AFS_offsetMap[info->afsItemInfo.dwOffset] = info;
     }
 
+    // read offsets for tunnels
+	for (i=0; i<dta[TOTAL_TUNNEL]; i++) {
+        DWORD id = dta[TUNNEL_FIRST] + i;
+        // store id in id-map
+        g_AFS_idMap[id] = true;
+
+        MEMITEMINFO* info = (MEMITEMINFO*)HeapAlloc(GetProcessHeap(), 
+                HEAP_ZERO_MEMORY, sizeof(MEMITEMINFO));
+        if (!info) {
+            Log(&k_stadium, "InitStadiumServer: problem allocating MEMITEMINFO");
+            continue;
+        }
+        info->id = id;
+        ReadItemInfoById(f, id, &info->afsItemInfo, 0);
+        TRACE2(&k_stadium, "info->id = %08x", info->id);
+        TRACE2(&k_stadium, "dwOffset = %08x", info->afsItemInfo.dwOffset);
+        TRACE2(&k_stadium, "dwSize = %08x", info->afsItemInfo.dwSize);
+        // store in offset map
+        g_AFS_offsetMap[info->afsItemInfo.dwOffset] = info;
+    }
+    // read offsets for entrances & also we skip the file 221
+	for (i=0; i<dta[TOTAL_ENTRANCE_MDL] && i!=2; i++) {
+        DWORD id = dta[ENTRANCE_MDL_FIRST] + i;
+        // store id in id-map
+        g_AFS_idMap[id] = true;
+
+        MEMITEMINFO* info = (MEMITEMINFO*)HeapAlloc(GetProcessHeap(), 
+                HEAP_ZERO_MEMORY, sizeof(MEMITEMINFO));
+        if (!info) {
+            Log(&k_stadium, "InitStadiumServer: problem allocating MEMITEMINFO");
+            continue;
+        }
+        info->id = id;
+        ReadItemInfoById(f, id, &info->afsItemInfo, 0);
+        TRACE2(&k_stadium, "info->id = %08x", info->id);
+        TRACE2(&k_stadium, "dwOffset = %08x", info->afsItemInfo.dwOffset);
+        TRACE2(&k_stadium, "dwSize = %08x", info->afsItemInfo.dwSize);
+        // store in offset map
+        g_AFS_offsetMap[info->afsItemInfo.dwOffset] = info;
+    }
     fclose(f);
 
     // initialize with info from "map.txt"
@@ -757,31 +813,31 @@ void InitStadiumServer()
 
 int GetStadId(DWORD id)
 {
-    int sid = id - data[STAD_FIRST];
-    sid = (id > data[NOU_CAMP_SHIFT_ID])?(sid - data[SHIFT]):sid;
-    return sid / data[NUM_FILES];
+    int sid = id - dta[STAD_FIRST];
+    sid = (id > dta[NOU_CAMP_SHIFT_ID])?(sid - dta[SHIFT]):sid;
+    return sid / dta[NUM_FILES];
 }
 
 int GetFileId(DWORD id)
 {
-    int sid = id - data[STAD_FIRST];
-    sid = (id > data[NOU_CAMP_SHIFT_ID])?(sid - data[SHIFT]):sid;
-    return sid % data[NUM_FILES];
+    int sid = id - dta[STAD_FIRST];
+    sid = (id > dta[NOU_CAMP_SHIFT_ID])?(sid - dta[SHIFT]):sid;
+    return sid % dta[NUM_FILES];
 }
 
 int GetStadiumBase(DWORD stadId)
 {
-    int base = data[STAD_FIRST] + stadId * data[NUM_FILES];
-    base = (base > data[NOU_CAMP_SHIFT_ID])?(base + data[SHIFT]):base;
+    int base = dta[STAD_FIRST] + stadId * dta[NUM_FILES];
+    base = (base > dta[NOU_CAMP_SHIFT_ID])?(base + dta[SHIFT]):base;
     LogWithTwoNumbers(&k_stadium, "GetStadiumBase(%d): base = %d", stadId, base);
     return base;
 }
 
 DWORD FindAdboardsFile(char* filename)
 {
-	LCM* lcm=(LCM*)data[TEAM_IDS];
+	LCM* lcm=(LCM*)dta[TEAM_IDS];
     // force full stadium reload next time
-    BYTE* randomStad = (BYTE*)data[RANDOM_STADIUM_FLAG];
+    BYTE* randomStad = (BYTE*)dta[RANDOM_STADIUM_FLAG];
     if ((*randomStad & 0x01) == 0) {
         *randomStad = *randomStad | 0x01;
         Log(&k_stadium, "Flag set for full stadium reload.");
@@ -814,6 +870,106 @@ DWORD FindAdboardsFile(char* filename)
 
     //sprintf(filename,"%sGDB\\stadiums\\Santiago Bernabeu\\%s", 
     //        GetPESInfo()->gdbDir, FILE_NAMES[ADBOARDS]);
+
+    HANDLE hfile;
+    DWORD fsize = 0;
+    hfile = CreateFile(filename, GENERIC_READ,FILE_SHARE_READ,NULL,
+        OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+    if (hfile!=INVALID_HANDLE_VALUE) {
+        fsize = GetFileSize(hfile,NULL);
+        CloseHandle(hfile);
+    }
+
+    return fsize;
+}
+
+DWORD FindTunnelFile(char* filename)
+{
+	LCM* lcm=(LCM*)dta[TEAM_IDS];
+    // force full stadium reload next time
+    BYTE* randomStad = (BYTE*)dta[RANDOM_STADIUM_FLAG];
+    if ((*randomStad & 0x01) == 0) {
+        *randomStad = *randomStad | 0x01;
+        Log(&k_stadium, "Flag set for full stadium reload.");
+    }
+
+    if (isViewStadiumMode && viewGdbStadiums)
+    {
+        return 0; // don't use tunnel texture in "View Stadiums"
+    }
+    else if (g_gameChoice) 
+    {
+        return 0; //game choice stadium
+    }
+
+    if (g_homeTeamChoice) {
+        WORD teamId = GetTeamId(HOME);
+        LogWithNumber(&k_stadium, "FindTunnelFile: home team = %d", teamId);
+        std::string* folderString = MAP_FIND(g_HomeStadiumMap,teamId);
+        if (folderString != NULL) {
+            LogWithString(&k_stadium, "FindTunnelFile: has a home stadium: %s", 
+                    (char*)folderString->c_str());
+
+            sprintf(filename,"%sGDB\\stadiums\\%s\\%s", 
+                    GetPESInfo()->gdbDir, (char*)folderString->c_str(), FILE_NAMES[TUNNEL]);
+        }
+    } else {
+        sprintf(filename,"%sGDB\\stadiums\\%s\\%s", 
+                GetPESInfo()->gdbDir, g_stadiumMapIterator->first->c_str(), FILE_NAMES[TUNNEL]);
+    }
+
+    //sprintf(filename,"%sGDB\\stadiums\\Santiago Bernabeu\\%s", 
+    //        GetPESInfo()->gdbDir, FILE_NAMES[TUNNEL]);
+
+    HANDLE hfile;
+    DWORD fsize = 0;
+    hfile = CreateFile(filename, GENERIC_READ,FILE_SHARE_READ,NULL,
+        OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+    if (hfile!=INVALID_HANDLE_VALUE) {
+        fsize = GetFileSize(hfile,NULL);
+        CloseHandle(hfile);
+    }
+
+    return fsize;
+}
+
+DWORD FindEntranceFile(char* filename)
+{
+	LCM* lcm=(LCM*)dta[TEAM_IDS];
+    // force full stadium reload next time
+    BYTE* randomStad = (BYTE*)dta[RANDOM_STADIUM_FLAG];
+    if ((*randomStad & 0x01) == 0) {
+        *randomStad = *randomStad | 0x01;
+        Log(&k_stadium, "Flag set for full stadium reload.");
+    }
+
+    if (isViewStadiumMode && viewGdbStadiums)
+    {
+        return 0; // don't use entrances mdls in "View Stadiums"
+    }
+    else if (g_gameChoice) 
+    {
+        return 0; //game choice stadium
+    }
+
+    if (g_homeTeamChoice) {
+        WORD teamId = GetTeamId(HOME);
+        LogWithNumber(&k_stadium, "FindEntranceFile: home team = %d", teamId);
+        std::string* folderString = MAP_FIND(g_HomeStadiumMap,teamId);
+        if (folderString != NULL) {
+            LogWithString(&k_stadium, "FindEntranceFile: has a home stadium: %s", 
+                    (char*)folderString->c_str());
+
+            sprintf(filename,"%sGDB\\stadiums\\%s\\%s", 
+                    GetPESInfo()->gdbDir, (char*)folderString->c_str(), FILE_NAMES[ENTRANCE]);
+        }
+    } else {
+        sprintf(filename,"%sGDB\\stadiums\\%s\\%s", 
+                GetPESInfo()->gdbDir, g_stadiumMapIterator->first->c_str(), FILE_NAMES[ENTRANCE]);
+    }
+
+    //sprintf(filename,"%sGDB\\stadiums\\Santiago Bernabeu\\%s", 
+    //        GetPESInfo()->gdbDir, FILE_NAMES[TUNNEL]);
 
     HANDLE hfile;
     DWORD fsize = 0;
@@ -931,11 +1087,19 @@ bool stadAfterReadFile(HANDLE hFile,
     char filename[512] = {0};
     DWORD fileSize = 0;
 
-    if (fileId < data[STAD_FIRST]) {
-        // adboard textures
-        fileSize = FindAdboardsFile(filename);
+	if (fileId >= dta[TUNNEL_FIRST] && fileId < dta[TUNNEL_FIRST] + dta[TOTAL_TUNNEL]) {
+		// Tunnel
+		fileSize = FindTunnelFile(filename);
 
-    } else {
+	}else if(fileId >= dta[ENTRANCE_MDL_FIRST] && fileId < dta[ENTRANCE_MDL_FIRST] + dta[TOTAL_ENTRANCE_MDL] && fileId != dta[ENTRANCE_MDL_FIRST] + 2){
+		// Entrance mdls
+		fileSize = FindEntranceFile(filename);
+		
+	}else if (fileId < dta[STAD_FIRST]){
+		// adboard textures
+		fileSize = FindAdboardsFile(filename);
+
+	}else {
         // stadium files
 
         // check if stadium file exists
@@ -1014,7 +1178,7 @@ void stadBeginUniSelect()
             g_homeTeamChoice = true;
             g_gameChoice = false;
 
-            std::map<std::string*,STADINFO*,ltstr>::iterator it = NULL;
+            std::map<std::string*,STADINFO*,ltstr>::iterator it;
             it = g_stadiumMap.find(folderString);
             if (it != g_stadiumMap.end()) {
                 g_stadiumMapIterator = it;
@@ -1161,7 +1325,7 @@ void stadKeyboardProc(int code1, WPARAM wParam, LPARAM lParam)
                     g_homeTeamChoice = true;
                     g_gameChoice = false;
 
-                    std::map<std::string*,STADINFO*,ltstr>::iterator it = NULL;
+                    std::map<std::string*,STADINFO*,ltstr>::iterator it;
                     it = g_stadiumMap.find(folderString);
                     if (it != g_stadiumMap.end()) {
                         g_stadiumMapIterator = it;
@@ -1319,8 +1483,8 @@ void stadPresent(IDirect3DDevice8* self, CONST RECT* src, CONST RECT* dest, HWND
 
 bool IsStadiumText(char* text) 
 {
-    DWORD base = *((DWORD*)data[STADIUM_TEXT_TABLE]);
-    for (int i=0; i<data[NUM_STADS]; i++) {
+    DWORD base = *((DWORD*)dta[STADIUM_TEXT_TABLE]);
+    for (int i=0; i<dta[NUM_STADS]; i++) {
         if (base + STADIUM_TEXT_LEN*i == (DWORD)text) return true;
     }
     return false;
@@ -1700,7 +1864,7 @@ DWORD stadWriteCapacity(char* dest, char* format, DWORD num)
 
 void CheckViewStadiumMode()
 {	
-	if (data[ISVIEWSTADIUMMODE]!=0 && *(BYTE*)data[ISVIEWSTADIUMMODE] != 0) {
+	if (dta[ISVIEWSTADIUMMODE]!=0 && *(BYTE*)dta[ISVIEWSTADIUMMODE] != 0) {
 		if (!isViewStadiumMode) {
 			//reset parameters if reentering View Stadium mode
 			viewGdbStadiums=false;
@@ -1718,7 +1882,7 @@ DWORD stadSetLCM(DWORD p1)
 {
 	stadEndUniSelect();
 	
-	LCM* lcm=(LCM*)data[TEAM_IDS];
+	LCM* lcm=(LCM*)dta[TEAM_IDS];
 	
     DWORD result = MasterCallNext(p1);
  	
@@ -1778,11 +1942,23 @@ bool stadReadNumPages(DWORD afsId, DWORD fileId,
     if (afsId == 1) { // 0_text.afs
         if (MAP_CONTAINS(g_AFS_idMap, fileId)) {
             LogWithTwoNumbers(&k_stadium,"stadReadNumPages: afsId=%d, fileId=%d", afsId, fileId);
-            if (fileId < data[STAD_FIRST]) {
+            if (fileId >= dta[TUNNEL_FIRST] && fileId < dta[TUNNEL_FIRST] + dta[TOTAL_TUNNEL]) {
+				// Tunnel
+				fileSize = FindTunnelFile(filename);
+
+            }else if(
+				fileId >= dta[ENTRANCE_MDL_FIRST] && 
+				fileId < dta[ENTRANCE_MDL_FIRST] + dta[TOTAL_ENTRANCE_MDL] && 
+				fileId != dta[ENTRANCE_MDL_FIRST] + 2 // We skip the opd file in the middle
+				){
+				// Entrance mdls
+				fileSize = FindEntranceFile(filename);
+
+			}else if (fileId < dta[STAD_FIRST]){
                 // adboard textures
                 fileSize = FindAdboardsFile(filename);
 
-            } else {
+			}else {
                 // stadium files
                 int stadId = GetStadId(fileId);
                 int stadFileId = GetFileId(fileId);
@@ -1838,7 +2014,7 @@ void stadExitViewStadiumsCallPoint()
 
 void stadExitViewStadiums()
 {
-    *(DWORD*)data[ISVIEWSTADIUMMODE] = 0;
+    *(DWORD*)dta[ISVIEWSTADIUMMODE] = 0;
     //UnhookFunction(hk_Input,(DWORD)stadKeyboardProc);
     UnhookFunction(hk_D3D_Present,(DWORD)stadPresent);
     CheckViewStadiumMode();
