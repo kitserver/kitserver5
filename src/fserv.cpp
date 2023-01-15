@@ -440,7 +440,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                     if (res == D3D_OK) {
                         LOG(&k_fserv, "Created small HD hair texture: (%dx%d)", w/2, h/2);
                         *IsProcessed = true;
-                        //g_SmallHairTextures[*ppTexture] = filename;
+                        g_SmallHairTextures[*ppTexture] = filename;
                     }
                     else {
                         LOG(&k_fserv, "ERROR calling OrgCreateTexture (%dx%d) for small hair tex", w, h);
