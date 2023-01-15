@@ -31,12 +31,16 @@ $(LPPNGDIB)\pngdib.obj:
 	(cd soft\pngdib && nmake EXTRA_CFLAGS=$(EXTRA_CFLAGS))
 
 dlls: kload.dll kserv.dll bserv.dll fserv.dll bootserv.dll stadium.dll lodmixer.dll dxtools.dll clock.dll network.dll speeder.dll #afs2fs.dll #kserv-shpal.dll
-apps: setup.exe lodcfg.exe filedec.exe diag.exe afsexport.exe afswalk.exe afstest.exe
+apps: setup.exe lodcfg.exe filedec.exe diag.exe afsexport.exe afswalk.exe afstest.exe zlibtool.exe
 
 release:
 	$(MAKE) EXTRA_CFLAGS=/DMYDLL_RELEASE_BUILD
 
 setup: setup.exe
+
+zlibtool.obj: zlibtool.cpp
+zlibtool.exe: zlibtool.obj
+	$(LINK) $(LFLAGS) /out:zlibtool.exe zlibtool.obj /LIBPATH:$(LPZLIB) $(LIBS) zdll.lib
 
 imageutil.obj: imageutil.cpp imageutil.h
 detect.obj: detect.cpp detect.h
