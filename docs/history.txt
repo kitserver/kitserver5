@@ -2,6 +2,12 @@ Kitserver 5 HISTORY notes
 =========================
 
 
+2023-02-05
+----------
+v5.7.2
+- fserv: fixing problems with mixed-up HD hair 
+
+
 2021-06-28
 ----------
 v5.7.1
