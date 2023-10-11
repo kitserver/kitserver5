@@ -16,6 +16,41 @@ typedef struct _CALLLINE {
 	DWORD* addr;
 } CALLLINE;
 
+typedef struct _PLAYER_RECORD {
+	BYTE number;
+	BYTE unknown1[3];
+	DWORD* texMain;
+	BYTE unknown2[6];
+	WORD playerId;
+	BYTE formOrientation; //something with the formation
+	BYTE posInTeam;
+	BYTE team;
+	BYTE unknown3[0x240 - 19];
+} PLAYER_RECORD;
+
+typedef struct _TEXTURE_INFO {
+	DWORD id;
+	WORD refCount;
+	WORD dummy1;	//not used
+	IDirect3DTexture8* tex;
+	DWORD unknown1;
+	DWORD unknown2;
+	BYTE unknown3;
+	BYTE unknown4;
+	BYTE unknown5;	//set to 1
+	BYTE unknown6;
+	DWORD unknown7;
+	DWORD unknown8;
+	DWORD unknown9;	//set to 0->tex is always returned by PesGetTexture
+	DWORD unknown10;
+	DWORD unknown11;
+	BYTE unknown12;
+	BYTE unknown13;
+	WORD dummy2;	//not used
+	DWORD unknown14;
+	DWORD unknown15;
+} TEXTURE_INFO;
+
 #define VTAB_GETDEVICECAPS 13
 #define VTAB_CREATEDEVICE 15
 #define VTAB_RESET 14
@@ -116,6 +151,9 @@ typedef void   (*CINPUT)(int,WPARAM,LPARAM);
 typedef DWORD  (*UNISPLIT)(DWORD);
 typedef void   (*CUNISPLIT)(DWORD,DWORD,DWORD);
 typedef void   (*UNLOCKRECT)(IDirect3DTexture8*,UINT);
+typedef IDirect3DTexture8* (STDMETHODCALLTYPE* PES_GETTEXTURE)(DWORD);
+typedef void   (*CPES_GETTEXTURE)(DWORD, DWORD, DWORD, IDirect3DTexture8**);
+typedef void   (*CBEGINRENDERPLAYER)(DWORD); 
 typedef void   (*ALLVOID)();
 
 void HookDirect3DCreate8();
@@ -151,6 +189,8 @@ KEXPORT DWORD GetPlayerInfo(DWORD PlayerNumber,DWORD Mode);
 void NewFileFromAFS(DWORD dummy, DWORD infoBlock);
 void NewFreeMemory(DWORD addr);
 void NewProcessPlayerData(DWORD Caller);
+IDirect3DTexture8* STDMETHODCALLTYPE NewPesGetTexture(DWORD p1);
+void NewBeginRenderPlayer();
 
 BOOL STDMETHODCALLTYPE NewReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead,
   LPDWORD lpNumberOfBytesRead,
@@ -249,6 +289,8 @@ enum HOOKS {
 	hk_D3D_UnlockRect,
     hk_GetNumPages,
     hk_CreateOption,
+	hk_PesGetTexture,
+	hk_BeginRenderPlayer,
 };
 
 KEXPORT bool GetOriginalFrequency(LARGE_INTEGER* lpPerformanceFrequency);

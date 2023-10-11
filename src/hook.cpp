@@ -65,7 +65,7 @@ KEXPORT HANDLE WINAPI Override_CreateFileW(
 KEXPORT BOOL WINAPI Override_CloseHandle(
   HANDLE hObject);
 
-#define CODELEN 47
+#define CODELEN 51
 
 enum {
 	C_UNIDECODE, C_UNIDECODE_CS,C_UNIDECODE_CS2,
@@ -88,98 +88,112 @@ enum {
     C_UNISPLIT_CS6, C_UNISPLIT_CS7, C_UNISPLIT_CS8,
     C_READNUMPAGES, D_PESDIR_STRING,
     C_RESMEM1, C_RESMEM2, C_RESMEM3,
+	C_PES_GETTEXTURE, C_PES_GETTEXTURE_CS1,
+	C_BEGIN_RENDERPLAYER_CS, C_BEGIN_RENDERPLAYER_JUMPHACK,
 };
 
 // Code addresses.
 DWORD codeArray[][CODELEN] = { 
 	// PES5 DEMO 2
-	{ 0x6f95f0, 0x7076a2, 0,
-	  0x6f9580, 0x4913b6,
-	  0, 0,
-	  0x72e4b4, 0, 0, 
-	  0, 0,
-	  0, 0,
-	  0, 0, 
-	  0, 0,
-      0, 0,
-      0, 0,
-      0, 0,
-      0, 0,
-      0, 0,
-      0, 0, 0,
-      0, 0,
-      0, 0, 0,
-      0, 0, 0,
-      0, 0, 0,
-      0, 0,
-      0, 0, 0,
-      },
+	{ 
+		0x6f95f0, 0x7076a2, 0,
+		0x6f9580, 0x4913b6,
+		0, 0,
+		0x72e4b4, 0, 0, 
+		0, 0,
+		0, 0,
+		0, 0, 
+		0, 0,
+		0, 0,
+		0, 0,
+		0, 0,
+		0, 0,
+		0, 0,
+		0, 0, 0,
+		0, 0,
+		0, 0, 0,
+		0, 0, 0,
+		0, 0, 0,
+		0, 0,
+		0, 0, 0,
+		0, 0,
+		0, 0,
+    },
 	// PES5 
-	{ 0x829360, 0x84c522, 0x85032d, //C_UNIDECODE_CS2 is not used anymore at the moment
-	  0x8292f0, 0x5b7ab6,
-	  0x5b7c00, 0x5b7a92,
-	  0x877994, 0x8f1f90, 0x8f2120, 
-	  0x8f2466, 0x8f2498,
-	  0x8f2287, 0x8f22b6,
-	  0xacbb63, 0x8f2522, 
-	  0xacbbe0, 0x8f2376,
-      0x51ed70, 0x51ff8b,
-      0x523990, 0x51fe2a,
-      0xa43b20, 0xa312f7,
-      0x52c5b0, 0x52d1c8,
-      0x8f0d30, 0x8f0eab,
-      0x5b8018, 0x8d5220, 0x8311fc,
-      0x6226d4, 0x42d8c4,
-      0x8d5600, 0x84c5bd, 0x84c5d9,
-      0x84c63e, 0x84c65d, 0x84c7d2,
-      0x84c7f5, 0x84c834, 0x84c86f,
-      0x874767, 0xdb06a8,
-      0x8316fd, 0x831712, 0x831729,
-      },
+	{ 
+		0x829360, 0x84c522, 0x85032d, //C_UNIDECODE_CS2 is not used anymore at the moment
+		0x8292f0, 0x5b7ab6,
+		0x5b7c00, 0x5b7a92,
+		0x877994, 0x8f1f90, 0x8f2120, 
+		0x8f2466, 0x8f2498,
+		0x8f2287, 0x8f22b6,
+		0xacbb63, 0x8f2522, 
+		0xacbbe0, 0x8f2376,
+		0x51ed70, 0x51ff8b,
+		0x523990, 0x51fe2a,
+		0xa43b20, 0xa312f7,
+		0x52c5b0, 0x52d1c8,
+		0x8f0d30, 0x8f0eab,
+		0x5b8018, 0x8d5220, 0x8311fc,
+		0x6226d4, 0x42d8c4,
+		0x8d5600, 0x84c5bd, 0x84c5d9,
+		0x84c63e, 0x84c65d, 0x84c7d2,
+		0x84c7f5, 0x84c834, 0x84c86f,
+		0x874767, 0xdb06a8,
+		0x8316fd, 0x831712, 0x831729,
+		0x42aee0, 0x424b03,
+		0x8530a3, 0x8530fb,
+	},
 	// WE9 
-	{ 0x8297e0, 0x84c9d2, 0x8507dd,
-	  0x829770, 0x5b7ec6,
-	  0x5b8010, 0x5b7ea2,
-	  0x877e74, 0x8f2170, 0x8f2300, 
-	  0x8f2646, 0x8f2678,
-	  0x8f2467, 0x8f2496,
-	  0xacbe23, 0x8f2702, 
-	  0xacbea0, 0x8f2556,
-      0x51f170, 0x52038b,
-      0x523dc0, 0x52022a,
-      0xa43f20, 0xa31717,
-	  0x52c9e0, 0x52d5f8,
-      0x8f0f10, 0x8f108b,
-      0x5b8428, 0x8d5780, 0x8316bc,
-      0x622a84, 0x42dce4,
-      0x8d5b60, 0x84ca6d, 0x84ca89,
-      0x84caee, 0x84cb0d, 0x84cc82,
-      0x84cca5, 0x84cce4, 0x84cd1f,
-      0x874c37, 0xdb06a8,
-      0x831bbd, 0x831bd2, 0x831be9,
-      },
+	{ 
+		0x8297e0, 0x84c9d2, 0x8507dd,
+		0x829770, 0x5b7ec6,
+		0x5b8010, 0x5b7ea2,
+		0x877e74, 0x8f2170, 0x8f2300, 
+		0x8f2646, 0x8f2678,
+		0x8f2467, 0x8f2496,
+		0xacbe23, 0x8f2702, 
+		0xacbea0, 0x8f2556,
+		0x51f170, 0x52038b,
+		0x523dc0, 0x52022a,
+		0xa43f20, 0xa31717,
+		0x52c9e0, 0x52d5f8,
+		0x8f0f10, 0x8f108b,
+		0x5b8428, 0x8d5780, 0x8316bc,
+		0x622a84, 0x42dce4,
+		0x8d5b60, 0x84ca6d, 0x84ca89,
+		0x84caee, 0x84cb0d, 0x84cc82,
+		0x84cca5, 0x84cce4, 0x84cd1f,
+		0x874c37, 0xdb06a8,
+		0x831bbd, 0x831bd2, 0x831be9,
+		0x42aee0, 0x424b03,
+		0x8530a3, 0x8530fb,
+	},
    	// WE9:LE
-	{ 0x850ac0, 0x873c82, 0x877a8d,
-      0x850a50, 0x5df2a6, 
-      0x5df3f0, 0x5df282,
-	  0x59ade4, 0x8f1730, 0x8f18c0, 
-	  0x8f1c06, 0x8f1c38,
-	  0x8f1a27, 0x8f1a56,
-	  0xacb743, 0x8f1cc2, 
-	  0xacb7c0, 0x8f1b16,
-      0x519b60, 0x51ad7b,
-      0x51e800, 0x51ac1a,
-      0xa46e60, 0xa34647,
-      0x5c5000, 0x527e13,
-      0x8f04d0, 0x8f064b,
-      0x5df808, 0x8d49b0, 0x85895c,
-      0x649e04, 0x42dd54,
-      0x8d4d90, 0x873d1d, 0x873d39,
-      0x873d9e, 0x873dbd, 0x873f32,
-      0x873f55, 0x873f94, 0x873fcf,
-      0x5a9977, 0xcea6a8,
-      0x858e5d, 0x858e72, 0x858e89,
-      },
+	{ 
+		0x850ac0, 0x873c82, 0x877a8d,
+		0x850a50, 0x5df2a6, 
+		0x5df3f0, 0x5df282,
+		0x59ade4, 0x8f1730, 0x8f18c0, 
+		0x8f1c06, 0x8f1c38,
+		0x8f1a27, 0x8f1a56,
+		0xacb743, 0x8f1cc2, 
+		0xacb7c0, 0x8f1b16,
+		0x519b60, 0x51ad7b,
+		0x51e800, 0x51ac1a,
+		0xa46e60, 0xa34647,
+		0x5c5000, 0x527e13,
+		0x8f04d0, 0x8f064b,
+		0x5df808, 0x8d49b0, 0x85895c,
+		0x649e04, 0x42dd54,
+		0x8d4d90, 0x873d1d, 0x873d39,
+		0x873d9e, 0x873dbd, 0x873f32,
+		0x873f55, 0x873f94, 0x873fcf,
+		0x5a9977, 0xcea6a8,
+		0x858e5d, 0x858e72, 0x858e89,
+		0, 0,
+		0, 0,
+    },
 };
 
 //C_SETFILEPOINTER_CS for PES 5 Demo 2 is 0x72d6a6
@@ -293,6 +307,9 @@ bool bFileFromAFSHooked = false;
 bool bFreeMemoryHooked = false;
 bool bProcessPlayerDataHooked = false;
 bool bUniSplitHooked = false;
+bool bPesGetTextureHooked = false;
+bool bBeginRenderPlayerHooked = false;
+bool bBeginRenderPlayerJumpHackHooked = false;
 
 UNIDECODE UniDecode = NULL;
 UNPACK Unpack = NULL;
@@ -306,6 +323,7 @@ SETLODMIXERDATA SetLodMixerData2 = NULL;
 GETPLAYERINFO oGetPlayerInfo = NULL;
 FREEMEMORY oFreeMemory = NULL;
 UNISPLIT UniSplit = NULL;
+PES_GETTEXTURE orgPesGetTexture = NULL;
 
 CALLLINE l_D3D_Create={0,NULL};
 CALLLINE l_D3D_GetDeviceCaps={0,NULL};
@@ -339,6 +357,8 @@ CALLLINE l_UniSplit={0,NULL};
 CALLLINE l_AfterReadFile={0,NULL};
 CALLLINE l_D3D_UnlockRect={0,NULL};
 CALLLINE l_CreateOption={0,NULL};
+CALLLINE l_PesGetTexture = { 0,NULL };
+CALLLINE l_BeginRenderPlayer = { 0,NULL };
 
 double _fps = 0.0;
 int _frame_count = 0;
@@ -571,6 +591,36 @@ void HookOthers()
 	    };
 	};
 
+	// hook PesGetTexure
+	bPesGetTextureHooked = HookProc(C_PES_GETTEXTURE, C_PES_GETTEXTURE_CS1, (DWORD)NewPesGetTexture,
+		"C_PES_GETTEXTURE", "C_PES_GETTEXTURE_CS1");
+
+	// hook BeginRenderPlayer
+	if (code[C_BEGIN_RENDERPLAYER_CS] != 0 && code[C_BEGIN_RENDERPLAYER_JUMPHACK] != 0)
+	{
+		bptr = (BYTE*)(code[C_BEGIN_RENDERPLAYER_CS]);
+		ptr = (DWORD*)(code[C_BEGIN_RENDERPLAYER_CS] + 1);
+
+		if (VirtualProtect(bptr, 9, newProtection, &protection)) {
+			bptr[0] = 0xe8; //call
+			bptr[5] = 0x33; //xor ebx, ebx
+			bptr[6] = 0xdb;
+			bptr[7] = 0xeb; //jump back
+			bptr[8] = code[C_BEGIN_RENDERPLAYER_JUMPHACK] - (code[C_BEGIN_RENDERPLAYER_CS] + 7);
+			ptr[0] = (DWORD)NewBeginRenderPlayer - (DWORD)(code[C_BEGIN_RENDERPLAYER_CS] + 5);
+			bBeginRenderPlayerHooked = true;
+			Log(&k_kload, "BeginRenderPlayer HOOKED at code[C_BEGIN_RENDERPLAYER_CS]");
+		};
+
+		bptr = (BYTE*)(code[C_BEGIN_RENDERPLAYER_JUMPHACK]);
+		if (VirtualProtect(bptr, 2, newProtection, &protection)) {
+			bptr[0] = 0xeb;
+			bptr[1] = 0x100 + code[C_BEGIN_RENDERPLAYER_CS] - (code[C_BEGIN_RENDERPLAYER_JUMPHACK] + 2);
+			bBeginRenderPlayerJumpHackHooked = true;
+			Log(&k_kload, "BeginRenderPlayer Short-Jump-Hack installed.");
+		}
+	};
+
 	return;
 };
 
@@ -690,7 +740,12 @@ void UnhookOthers()
 		}
 		
 		ClearLine(&l_GetPlayerInfo);
+		// unhook PesGetTexure
+		bPesGetTextureHooked = !UnhookProc(bPesGetTextureHooked, C_PES_GETTEXTURE,
+			C_PES_GETTEXTURE_CS1, "C_PES_GETTEXTURE", "C_PES_GETTEXTURE_CS1");
 
+		ClearLine(&l_PesGetTexture);
+		ClearLine(&l_BeginRenderPlayer);
 	return;
 };
 
@@ -1860,6 +1915,51 @@ HRESULT STDMETHODCALLTYPE NewSetRenderState(IDirect3DDevice8* self,D3DRENDERSTAT
 	return res;
 };
 
+IDirect3DTexture8* STDMETHODCALLTYPE NewPesGetTexture(DWORD p1)
+{
+	DWORD oldEBP;
+	__asm mov oldEBP, ebp
+
+	IDirect3DTexture8* res = orgPesGetTexture(p1);
+
+	DWORD orgEBP = *(DWORD*)oldEBP;
+	DWORD p2 = *(DWORD*)(orgEBP + 8), p3 = *(DWORD*)(orgEBP + 0xc);
+
+
+	CPES_GETTEXTURE NextCall = NULL;
+	for (int i = 0; i < (l_PesGetTexture.num); i++)
+		if (l_PesGetTexture.addr[i] != 0) {
+			NextCall = (CPES_GETTEXTURE)l_PesGetTexture.addr[i];
+			NextCall(p1, p2, p3, &res);
+		};
+
+	return res;
+}
+
+void NewBeginRenderPlayer()
+{
+	DWORD oldEAX, oldEDI;
+
+	__asm {
+		mov oldEAX, eax
+		mov oldEDI, edi
+	};
+
+	CBEGINRENDERPLAYER NextCall = NULL;
+	for (int i = 0; i < (l_BeginRenderPlayer.num); i++)
+		if (l_BeginRenderPlayer.addr[i] != 0) {
+			NextCall = (CBEGINRENDERPLAYER)l_BeginRenderPlayer.addr[i];
+			NextCall(oldEDI);
+		};
+
+	__asm {
+		mov edi, oldEDI
+		mov eax, oldEAX
+		xor ebx, ebx
+	};
+	return;
+};
+
 void DrawFPS()
 {
     _frame_count = (_frame_count + 1) % 60;
@@ -2121,6 +2221,8 @@ CALLLINE* LineFromID(HOOKS h)
 		case hk_D3D_UnlockRect: cl = &l_D3D_UnlockRect; break;
 		case hk_GetNumPages: cl = &l_GetNumPages; break;
 		case hk_CreateOption: cl = &l_CreateOption; break;
+		case hk_PesGetTexture: cl = &l_PesGetTexture; break;
+		case hk_BeginRenderPlayer: cl = &l_BeginRenderPlayer; break;
 	};
 	return cl;
 };
@@ -2145,6 +2247,7 @@ void InitAddresses(int v)
 	oGetPlayerInfo = (GETPLAYERINFO)code[C_GETPLAYERINFO];
 	oFreeMemory = (FREEMEMORY)code[C_FREEMEMORY];
 	UniSplit = (UNISPLIT)code[C_UNISPLIT];
+	orgPesGetTexture = (PES_GETTEXTURE)code[C_PES_GETTEXTURE];
 	
 	return;
 };
