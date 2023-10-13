@@ -20,12 +20,12 @@ typedef struct _PLAYER_RECORD {
 	BYTE number;
 	BYTE unknown1[3];
 	DWORD* texMain;
-	BYTE unknown2[6];
+	BYTE unknown2[52];
 	WORD playerId;
 	BYTE formOrientation; //something with the formation
 	BYTE posInTeam;
 	BYTE team;
-	BYTE unknown3[0x290 - 19];
+	BYTE unknown3[0x290 - 66];
 } PLAYER_RECORD;
 
 typedef struct _TEXTURE_INFO {
