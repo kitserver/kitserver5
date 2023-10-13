@@ -1,81 +1,9 @@
 // skins.cpp
-#include <windows.h>
-#include <stdio.h>
-#include <ctime>
-#include <unordered_map>
 #include "skins.h"
 #include "kload_exp.h"
 
-KMOD k_skin={MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG};
+KMOD k_skin = { MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG };
 HINSTANCE hInst;
-
-#define DATALEN 14
-enum {
-    EDITMODE_CURRPLAYER_MOD, EDITMODE_CURRPLAYER_ORG,
-    EDITMODE_FLAG, EDITPLAYERMODE_FLAG, EDITPLAYER_ID,
-    PLAYERS_LINEUP, PLAYERID_IN_PLAYERDATA,
-    LINEUP_RECORD_SIZE, LINEUP_BLOCKSIZE, PLAYERDATA_SIZE, STACK_SHIFT,
-    EDITPLAYERBOOT_FLAG, EDITBOOTS_FLAG,PLAYERDATA_BASE,
-};
-DWORD dtaArray[][DATALEN] = {
-      // PES5
-    {
-        0, 0,
-        0, 0, 0,
-        0, 0,
-        0, 0, 0, 0,
-        0, 0, 0 ,
-    },
-      // PES5
-    {
-        0, 0,
-        0x38f97f8, 0x38f9ae4, 0x3937218,
-        0x3BCF880, 0x3bd3e00,
-        0x290, 0x60, 0x344, 0,
-        0x0, 0x38f9be8, 0x3BD3DD8,
-    },
-    // WE9
-    {
-        0, 0,
-        0x38f97f8, 0x38f9ae4, 0x3937218,
-        0x3bcfb30, 0x3bd3e20,
-        0x290, 0x60, 0x344, 0,
-        0x0, 0x38f9be8,0x3bd3dfc,
-    },
-    // WE9LE
-    {
-        0, 0,
-        0x3834108, 0x38343f4, 0x388c070,
-        0x3b57650, 0x3b5b940,
-        0x290, 0x60, 0x344, 0,
-        0x0, 0x38344f8,0x3b5b91c,
-    },
-};
-DWORD dta[DATALEN];
-
-#define CODELEN 2
-enum {
-    C_COPYPLAYERDATA_CS,
-    C_RESETFLAG2_CS,
-};
-DWORD codeArray[][CODELEN] = {
-    // PES5 DEMO 2
-    {
-        0x4dd5c0,
-        0x50730a, //? - might be unnecessary
-    },
-    // WE9
-    {
-        0x4dda10,
-        0x50777a, //?
-    },
-    // WE9LE
-    {
-        0x4dc0d0,
-        0x50218a, //?
-    },
-};
-DWORD code[CODELEN];
 
 class TexturePack {
 public:
@@ -106,6 +34,8 @@ IDirect3DTexture8* g_skinTextures[2][64]; //[no-gloves/gloves][32*team + posInTe
 DWORD g_skinPlayerIds[64]; //[32*team + posInTeam]
 DWORD currRenderPlayer=0xffffffff;
 PLAYER_RECORD* currRenderPlayerRecord=NULL;
+bool has_gloves = false;
+IDirect3DTexture8* skinTex = NULL;
 
 // keyboard hook handle
 static HHOOK g_hKeyboardHook = NULL;
@@ -146,9 +76,7 @@ void skinBeginUniSelect();
              /* process the key events */
              if (lParam & 0x80000000)
              {
-                 //KEYCFG* keyCfg = GetInputCfg();
-                 //if (wParam == keyCfg->keyboard.keyAction2) {
-                 if (wParam == 0x46) {
+                 if (wParam == 0x46) { // F key
                      dump_now = true;
                      dumping = false; 
                  }
@@ -201,24 +129,23 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
         RegisterKModule(&k_skin);
         HookFunction(hk_D3D_CreateDevice,(DWORD)skinInit);
 
-// #ifdef SKIN_TEXDUMP
+ #ifdef SKIN_TEXDUMP
          // install keyboard hook, if not done yet.
          if (g_hKeyboardHook == NULL)
          {
              g_hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD, skinKeyboardProc, hInst, GetCurrentThreadId());
              LogWithNumber(&k_skin,"installed keyboard hook: g_hKeyboardHook = %d", (DWORD)g_hKeyboardHook);
          }
-// #endif
+ #endif
     }
     else if (dwReason == DLL_PROCESS_DETACH)
     {
         Log(&k_skin,"Detaching dll...");
-// #ifdef SKIN_TEXDUMP
+ #ifdef SKIN_TEXDUMP
          UninstallKeyboardHook();
-// #endif
+ #endif
         UnhookFunction(hk_D3D_CreateDevice,(DWORD)skinInit);
         UnhookFunction(hk_BeginUniSelect,(DWORD)skinBeginUniSelect);
-        //MasterUnhookFunction(code[C_RESETFLAG2_CS], skinResetFlag2);
         UnhookFunction(hk_PesGetTexture,(DWORD)skinPesGetTexture);
         UnhookFunction(hk_BeginRenderPlayer,(DWORD)skinBeginRenderPlayer);
     }
@@ -242,14 +169,9 @@ void skinInit(IDirect3D8* self, UINT Adapter,
     memcpy(dta, dtaArray[GetPESInfo()->GameVersion], sizeof(dta));
 
     HookFunction(hk_BeginUniSelect,(DWORD)skinBeginUniSelect);
-    //MasterHookFunction(code[C_RESETFLAG2_CS], 0, skinResetFlag2);
     HookFunction(hk_PesGetTexture,(DWORD)skinPesGetTexture);
     HookFunction(hk_BeginRenderPlayer,(DWORD)skinBeginRenderPlayer);
 
-
-    // seed the random generator
-    // time_t timer;
-    // srand(time(&timer));
 }
 
 void readSkinsMap()
@@ -346,16 +268,6 @@ void skinBeginUniSelect()
 {
     Log(&k_skin,"skinBeginUniSelect: releasing skin textures");
     releaseTextures();
-}
-
-DWORD skinResetFlag2()
-{
-    Log(&k_skin,"skinResetFlag2: releasing skin textures");
-    releaseTextures();
-
-    // call original
-    DWORD result = MasterCallNext();
-    return result;
 }
 
 // color 1 is alpha-blended over color 2
@@ -498,26 +410,17 @@ IDirect3DTexture8* getSkinTexture(WORD playerId, bool overlay_gloves)
     return skinTexture;
 }
 
-// bool isEditPlayerMode()
-// {
-//     return *(BYTE*)dta[EDITPLAYERMODE_FLAG] == 1;
-// }
-
-// bool isEditPlayerBootMode()
-// {
-//     return *(BYTE*)dta[EDITPLAYERBOOT_FLAG] == 1;
-// }
 bool isEditMode()
 {
     return *(BYTE*)dta[EDITMODE_FLAG] == 1;
 }
-
 
 DWORD editPlayerId()
 {
     DWORD playerId = *(WORD*)dta[EDITPLAYER_ID];
     return playerId;
 };
+
 PLAYER_RECORD* playerRecord(BYTE pos)
 {
     if (pos>22) pos=1;
@@ -531,19 +434,12 @@ DWORD getRecordPlayerId(BYTE pos)
 
     //if (!isWatchReplayMode()) {
         PLAYER_RECORD* rec = playerRecord(pos);
-        id=*(WORD*)(dta[PLAYERDATA_BASE] + (rec->team*0x20 + rec->posInTeam)*0x344 + 0x28);
+        id = *(WORD*)(dta[PLAYERDATA_BASE] + (rec->team * 0x20 + rec->posInTeam)* dta[PLAYERDATA_SIZE] + 0x28);//0x344 + 0x28);
     /*} else {
         id=195;
     };*/
     return id;
 };
-// bool isEditBootsMode()
-// {
-//     return *(BYTE*)dta[EDITBOOTS_FLAG] == 1;
-// }
-
-bool has_gloves = false;
-IDirect3DTexture8 *skinTex = NULL;
 
 void skinBeginRenderPlayer(DWORD playerMainColl)
 {
@@ -577,7 +473,7 @@ void skinBeginRenderPlayer(DWORD playerMainColl)
                 currRenderPlayerRecord = playerRecord(i);
                 has_gloves = *pgloves;
 
-// #ifdef SKIN_TEXDUMP
+#ifdef SKIN_TEXDUMP
                  if (dump_now) LOG(&k_skin, ">>>>>>>>>>>> currrenderplayer: %d, currrenderplayerrecord: %p, pmc = %08x, has_gloves=%d",
                      currRenderPlayer, currRenderPlayerRecord, pmc, has_gloves);
 
@@ -591,7 +487,7 @@ void skinBeginRenderPlayer(DWORD playerMainColl)
                          dumping = true;
                      }
                  }
-// #endif
+#endif
 
                 BYTE temp=32*currRenderPlayerRecord->team + currRenderPlayerRecord->posInTeam;
                 if (currRenderPlayer != g_skinPlayerIds[temp]) {
@@ -638,7 +534,7 @@ void skinPesGetTexture(DWORD p1, DWORD p2, DWORD p3, IDirect3DTexture8** res)
     if (currRenderPlayer==0xffffffff) return;
 
 
-// #ifdef SKIN_TEXDUMP
+ #ifdef SKIN_TEXDUMP
      if (dump_now) LOG(&k_skin, "skinPesGetTexture:: p1=%08x, p2=%08x, p3=%08x, *res=%p", p1, p2, p3, *res);
 
      if (dump_now) {
@@ -651,14 +547,14 @@ void skinPesGetTexture(DWORD p1, DWORD p2, DWORD p3, IDirect3DTexture8** res)
              LOG(&k_skin, "FAILED to save texture to: %s", buf);
          }
      }
-// #endif
+ #endif
 
     for (int lod=0; lod<5; lod++) {
         if (p2==g_skinTexturesColl[lod] && p3==g_skinTexturesPos[lod]) {
             skinTex = *res;
-// #ifdef SKIN_TEXDUMP
+ #ifdef SKIN_TEXDUMP
              if (dump_now) LOG(&k_skin, "skinPesGetTexture:: ^^^ skin texture!! p1=%08x, p2=%08x, p3=%08x, *res=%p", p1, p2, p3, *res);
-// #endif
+ #endif
 
             BYTE j=(has_gloves)?1:0;
             BYTE temp=32*currRenderPlayerRecord->team + currRenderPlayerRecord->posInTeam;
@@ -687,16 +583,16 @@ void skinPesGetTexture(DWORD p1, DWORD p2, DWORD p3, IDirect3DTexture8** res)
         if (p2==g_handsTexturesColl[i] && p3==g_handsTexturesPos[i]) {
             // check for GK gloves
             if (*res != skinTex) {
-// #ifdef SKIN_TEXDUMP
+ #ifdef SKIN_TEXDUMP
                  if (dump_now) LOG(&k_skin, "skinPesGetTexture:: ^^^ GK glove texture!! p1=%08x, p2=%08x, p3=%08x, *res=%p", p1, p2, p3, *res);
-// #endif
+ #endif
                 // done for this texture
                 break;
             }
 
-// #ifdef SKIN_TEXDUMP
+ #ifdef SKIN_TEXDUMP
              if (dump_now) LOG(&k_skin, "skinPesGetTexture:: ^^^ hand texture!! p1=%08x, p2=%08x, p3=%08x, *res=%p", p1, p2, p3, *res);
-// #endif
+ #endif
 
             BYTE j=(has_gloves)?1:0;
             BYTE temp=32*currRenderPlayerRecord->team + currRenderPlayerRecord->posInTeam;
@@ -723,9 +619,9 @@ void skinPesGetTexture(DWORD p1, DWORD p2, DWORD p3, IDirect3DTexture8** res)
 
     for (int i=0; i<1; i++) {
         if (p2==g_neckTexturesColl[i] && p3==g_neckTexturesPos[i]) {
-// #ifdef SKIN_TEXDUMP
+ #ifdef SKIN_TEXDUMP
              if (dump_now) LOG(&k_skin, "skinPesGetTexture:: ^^^ neck texture!! p1=%08x, p2=%08x, p3=%08x, *res=%p", p1, p2, p3, *res);
-// #endif
+ #endif
 
             BYTE j=(has_gloves)?1:0;
             BYTE temp=32*currRenderPlayerRecord->team + currRenderPlayerRecord->posInTeam;
