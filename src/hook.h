@@ -25,7 +25,7 @@ typedef struct _PLAYER_RECORD {
 	BYTE formOrientation; //something with the formation
 	BYTE posInTeam;
 	BYTE team;
-	BYTE unknown3[0x240 - 19];
+	BYTE unknown3[0x290 - 19];
 } PLAYER_RECORD;
 
 typedef struct _TEXTURE_INFO {
