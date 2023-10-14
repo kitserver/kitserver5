@@ -50,7 +50,6 @@ void skinInit(IDirect3D8* self, UINT Adapter,
     D3DPRESENT_PARAMETERS *pPresentationParameters,
     IDirect3DDevice8** ppReturnedDeviceInterface);
 void readSkinsMap();
-DWORD skinResetFlag2();
 void skinBeginRenderPlayer(DWORD playerMainColl);
 void skinPesGetTexture(DWORD p1, DWORD p2, DWORD p3, IDirect3DTexture8** res);
 void skinBeginUniSelect();
@@ -455,7 +454,7 @@ void skinBeginRenderPlayer(DWORD playerMainColl)
     bool edit_mode = isEditMode();
     if (edit_mode) {
         playerNumber = editPlayerId();
-        maxI=1;
+        maxI=2;
     }
 
     for (int i=minI;i<=maxI;i++) {
