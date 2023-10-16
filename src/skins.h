@@ -12,13 +12,13 @@
 #include <unordered_map>
 
 
-#define DATALEN 14
+#define DATALEN 13
 enum {
     EDITMODE_CURRPLAYER_MOD, EDITMODE_CURRPLAYER_ORG,
     EDITMODE_FLAG, EDITPLAYERMODE_FLAG, EDITPLAYER_ID,
     PLAYERS_LINEUP, PLAYERID_IN_PLAYERDATA,
     LINEUP_RECORD_SIZE, LINEUP_BLOCKSIZE, PLAYERDATA_SIZE, STACK_SHIFT,
-    EDITPLAYERBOOT_FLAG, EDITBOOTS_FLAG, PLAYERDATA_BASE,
+    EDITPLAYERBOOT_FLAG, EDITBOOTS_FLAG, 
 };
 DWORD dtaArray[][DATALEN] = {
     // PES5
@@ -27,7 +27,7 @@ DWORD dtaArray[][DATALEN] = {
       0, 0, 0,
       0, 0,
       0, 0, 0, 0,
-      0, 0, 0 ,
+      0, 0,
   },
   // PES5
 {
@@ -35,7 +35,7 @@ DWORD dtaArray[][DATALEN] = {
     0x38f97f8, 0x38f9ae4, 0x3937218,
     0x3BCF880, 0x3bd3e00,
     0x290, 0x60, 0x344, 0,
-    0, 0x38f9be8, 0x3BD3DD8,
+    0, 0x38f9be8,
 },
 // WE9
 {
@@ -43,15 +43,15 @@ DWORD dtaArray[][DATALEN] = {
     0x38f97f8, 0x38f9ae4, 0x3937218,
     0x3bcfb30, 0x3bd3e20,
     0x290, 0x60, 0x344, 0,
-    0, 0x38f9be8, 0x3bd3dfc,
+    0, 0x38f9be8,
 },
 // WE9LE
 {
     0, 0,
     0x3834108, 0x38343f4, 0x388c070,
-    0x3b57650, 0x3b5b940,
+    0x3b573c0, 0x3b5b940,
     0x290, 0x60, 0x344, 0,
-    0, 0x38344f8, 0x3b5b91c,
+    0, 0x38344f8,
 },
 };
 DWORD dta[DATALEN];

@@ -433,7 +433,7 @@ DWORD getRecordPlayerId(BYTE pos)
 
     //if (!isWatchReplayMode()) {
         PLAYER_RECORD* rec = playerRecord(pos);
-        id = *(WORD*)(dta[PLAYERDATA_BASE] + (rec->team * 0x20 + rec->posInTeam)* dta[PLAYERDATA_SIZE] + 0x28);//0x344 + 0x28);
+        id = *(WORD*)(dta[PLAYERID_IN_PLAYERDATA] + (rec->team * 0x20 + rec->posInTeam)* dta[PLAYERDATA_SIZE]);
     /*} else {
         id=195;
     };*/
