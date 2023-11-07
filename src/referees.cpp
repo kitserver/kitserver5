@@ -1,9 +1,5 @@
 // referees.cpp
-#include <windows.h>
-#include <stdio.h>
 #include "referees.h"
-#include "kload_exp.h"
-#include "afsreplace.h"
 
 KMOD k_referees={MODID,NAMELONG,NAMESHORT,DEFAULT_DEBUG};
 
@@ -11,65 +7,6 @@ HINSTANCE hInst;
 
 DWORD protection;
 DWORD newProtection = PAGE_EXECUTE_READWRITE;
-
-#define DATALEN 15
-enum {
-    REF_START_ADDRESS, REF_DATA_SIZE, 
-	SELECTED_REF, SELECT_REF_FLAG, SELECT_TOTAL_REF,
-	REF_FACE_W, REF_FACE_Y, REF_FACE_R, REF_FACE_K,
-	REF_FACE_W_ID, REF_FACE_Y_ID, REF_FACE_R_ID, REF_FACE_K_ID,
-	REF_HAIRFILE, REF_HAIRFILE_ID, 
-};
-
-static DWORD dtaArray[][DATALEN] = {
-	// PES5 DEMO 2
-	{
-		0, 0, 
-		0, 0, 0,
-		0, 0, 0, 0,
-		0, 0, 0, 0, 
-		0, 0,
-	},
-	// PES5
-	{
-		0xff6bb0, 104, 
-		0xfe0d6c, 0xfe0d78, 0xfe0d74, // SELECTED_REF, SELECT_REF_FLAG are not used anymore
-		2212, 2357, 1953, 1896,
-		258, 138, 56, 31, 
-		4123, 1299, //Last dog hairstyle
-	},
-	// WE9
-	{
-		0xff6bb0, 104, 
-		0xfe0d6c, 0xfe0d78, 0xfe0d74,
-		2212, 2357, 1953, 1896,
-		258, 138, 56, 31, 
-		4123, 1299, //Last dog hairstyle
-	},
-	// WE9:LE
-	{
-		0xf77650, 104, 
-		0, 0, 0xf1ad04,
-		2219, 2364, 1960, 1903,
-		258, 138, 56, 31, 
-		4130, 1299, //Last dog hairstyle
-	},
-};
-
-static DWORD dta[DATALEN];
-#define FREE_NATIONALITY 108
-#define TOTAL_NATIONALITIES 109
-
-const string nationalities[] = {"Austria", "Belgium", "Bulgaria", "Croatia", "Czech Republic", "Denmark", "England", "Finland", "France", "Germany", "Greece", 
-"Hungary", "Ireland", "Italy", "Latvia", "Netherlands", "Northern Ireland", "Norway", "Poland", "Portugal", "Romania", "Russia", "Scotland", "Serbia and Montenegro", 
-"Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland", "Turkey", "Ukraine", "Wales", "Cameroon", "Cote d'Ivoire", "Morocco", "Nigeria", 
-"Senegal", "South Africa", "Tunisia", "Costa Rica", "Mexico", "USA", "Argentina", "Brazil", "Chile", "Colombia", 
-"Ecuador", "Paraguay", "Peru", "Uruguay", "Venezuela", "China", "Iran", "Japan", "Saudi Arabia", "South Korea", "Australia", "Albania", "Armenia", "Belarus", 
-"Bosnia and Herzegovina", "Cyprus", "Georgia", "Estonia", "Faroe Islands", "Iceland", "Israel", "Lithuania", "Luxembourg", "Macedonia", "Moldova", "Algeria", 
-"Angola", "Burkina Faso", "Cape Verde", "Congo", "DR Congo", "Egypt", "Equatorial Guinea", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Liberia", 
-"Libya", "Mali", "Mauritius", "Mozambique", "Namibia", "Sierra Leone", "Togo", "Zambia", "Zimbabwe", "Canada", "Grenada", "Guadeloupe", "Guatemala", "Honduras", 
-"Jamaica", "Martinique", "Netherlands Antilles", "Panama", "Trinidad and Tobago", "Bolivia", "Guyana", "Uzbekistan", "New Zealand", "Free Nationality" };
-
 
 unsigned long rand64()
 {
@@ -133,10 +70,7 @@ static IDirect3DDevice8* g_device = NULL;
 
 
 config_t referees_config;
-REFEREE_INFO ref1Info;
-REFEREE_INFO ref2Info;
-REFEREE_INFO ref3Info;
-REFEREE_INFO ref4Info;
+REFEREE_INFO refInfo;
 DWORD strictness;
 bool isSelectMode=false;
 static bool g_userChoice = true;
@@ -144,15 +78,10 @@ bool autoRandomMode = false;
 int selectedReferee = -1;
 DWORD numReferees = 0;
 REFEREES *refereesMap;
-char referee1Folder[BUFLEN];
-char referee2Folder[BUFLEN];
-char referee3Folder[BUFLEN];
-char referee4Folder[BUFLEN];
-char referee1Display[BUFLEN];
-char referee2Display[BUFLEN];
-char referee3Display[BUFLEN];
-char referee4Display[BUFLEN];
-static std::map<string,int> g_RefereesIdMap;
+char refereeFolder[BUFLEN];
+char refereeDisplay[BUFLEN];
+static unordered_map<string,DWORD> g_RefereesIdMap;
+LPVOID newCode;
 
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
 void InitReferees();
@@ -162,10 +91,11 @@ void SetAdditionalRefereesData();
 void SetRefereesGlobalStrictness();
 void ApplyStrictness(DWORD strictness);
 void SetRefereeData();
-int GetNationalityIndex (string nationality);
-int GetStrictness (string strictness);
+BYTE GetNationalityIndex (string nationality);
+DWORD GetStrictness (string strictness);
 void ReadRefereeMap();
-void AddReferee(LPTSTR sreferee1, LPTSTR sreferee2, LPTSTR sreferee3, LPTSTR sreferee4);
+void ReadRefereeFolder();
+void AddReferee(LPTSTR sreferee);
 void SetReferee(DWORD id);
 void FreeReferees();
 void refereeKeyboardProc(int code1, WPARAM wParam, LPARAM lParam);
@@ -175,6 +105,8 @@ void refereeBeginUniSelect();
 void refereeEndUniSelect();
 bool readRefInfo(REFEREE_INFO* config, char* cfgFile);
 bool readConfig(config_t& config);
+void NewProcessRefereesData(DWORD refereeNumber);
+void NewProcessRefereeDataCallPoint();
 
 /////////// definition of graphic variables and functions
 static bool g_needsRestore = TRUE;
@@ -204,7 +136,8 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		Log(&k_referees,"Attaching dll...");
 		int v=GetPESInfo()->GameVersion;
 
-		switch (v) {
+		switch (v) 
+		{
 			case gvPES5PC: //support for PES5 PC...
 			case gvWE9PC: //support for WE9 PC...
             case gvWE9LEPC: //... and WE9:LE PC
@@ -219,11 +152,11 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		RegisterKModule(&k_referees);
 
 		memcpy(dta, dtaArray[v], sizeof(dta));
-		
+		memcpy(code, codeArray[v], sizeof(code));
+
 		HookFunction(hk_D3D_Create,(DWORD)InitReferees);
 		HookFunction(hk_GetNumPages,(DWORD)refereesReadNumPages);
 		HookFunction(hk_AfterReadFile,(DWORD)refereesAfterReadFile);
-		HookFunction(hk_AfterReadFile,(DWORD)SetAdditionalRefereesData);
 	    HookFunction(hk_Input,(DWORD)refereeKeyboardProc);
 		HookFunction(hk_BeginUniSelect, (DWORD)refereeUniSelect);
 		HookFunction(hk_D3D_CreateDevice,(DWORD)CustomGraphicCreateDevice);
@@ -231,8 +164,10 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		HookFunction(hk_OnShowMenu,(DWORD)refereeBeginUniSelect);
         HookFunction(hk_OnHideMenu,(DWORD)refereeEndUniSelect);
 		HookFunction(hk_D3D_Reset,(DWORD)CustomGraphicReset);
-		HookFunction(hk_ProcessPlayerData,(DWORD)SetRefereesGlobalStrictness);
-		HookFunction(hk_ProcessPlayerData,(DWORD)SetRefereeData);
+		HookCallPoint(code[C_PROCESS_REFEREES_DATA_JMP], NewProcessRefereeDataCallPoint, 6, 1, false);
+
+		//HookFunction(hk_ProcessPlayerData,(DWORD)SetRefereesGlobalStrictness);
+		//HookFunction(hk_ProcessPlayerData,(DWORD)SetRefereeData);
 	}
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
@@ -260,17 +195,12 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		
 		UnhookFunction(hk_GetNumPages,(DWORD)refereesReadNumPages);
 		UnhookFunction(hk_AfterReadFile,(DWORD)refereesAfterReadFile);
-		//UnhookFunction(hk_ProcessPlayerData,(DWORD)SetRefereesData2);
 		UnhookFunction(hk_Input,(DWORD)refereeKeyboardProc);
 		UnhookFunction(hk_DrawKitSelectInfo,(DWORD)refereeShowMenu);
 		UnhookFunction(hk_D3D_Reset,(DWORD)CustomGraphicReset);
 
-		UnhookFunction(hk_AfterReadFile,(DWORD)SetAdditionalRefereesData);
-		UnhookFunction(hk_ProcessPlayerData,(DWORD)SetRefereesGlobalStrictness);
-		UnhookFunction(hk_ProcessPlayerData,(DWORD)SetRefereeData);
-
 		FreeReferees();
-
+		VirtualFree(newCode, 0, MEM_RELEASE);
 		g_RefereesIdMap.clear();
 
 
@@ -278,6 +208,42 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 	}
 
 	return true;
+}
+
+void NewProcessRefereeDataCallPoint() 
+{
+	__asm {
+		pushfd
+		push ebp
+		push eax
+		push ebx
+		push ecx
+		push edx
+		push esi
+		push edi
+		push ebx //referee number
+		call NewProcessRefereesData
+		add esp, 0x04  // pop parameters
+		pop edi
+		pop esi
+		pop edx
+		pop ecx
+		pop ebx
+		pop eax
+		pop ebp
+		popfd
+		inc ebx        // execute original code
+		cmp ebx, 0x04
+		mov[eax], ecx
+		retn
+	}
+}
+
+void NewProcessRefereesData(DWORD refereeNumber)
+{
+	if (refereeNumber) return; // Only do it for the first referee
+	SetRefereesGlobalStrictness();
+	SetRefereeData();
 }
 
 void InitReferees()
@@ -289,7 +255,8 @@ void InitReferees()
     sprintf(refereeDat, "%s\\referees.dat", GetPESInfo()->mydir);
     LOG(&k_referees, "reading: %s", refereeDat);
     FILE* f = fopen(refereeDat, "rb");
-    if (f) {
+    if (f) 
+	{
         fread(&referees_config.selectedReferee, sizeof(referees_config.selectedReferee), 1, f);
         fread(&referees_config.previewEnabled, sizeof(referees_config.previewEnabled), 1, f);
         fread(&referees_config.keyReset, 1, 1, f);
@@ -299,7 +266,9 @@ void InitReferees()
         fread(&referees_config.autoRandomMode, sizeof(referees_config.autoRandomMode), 1, f);
         fclose(f);
         autoRandomMode = referees_config.autoRandomMode;
-    } else {
+    } 
+	else 
+	{
         referees_config.selectedReferee=-1;
         g_userChoice = false;
     };
@@ -308,9 +277,22 @@ void InitReferees()
 	// read configuration
     readConfig(referees_config);
 
-    ReadRefereeMap();
+    //ReadRefereeMap(); // old method
+	ReadRefereeFolder();
     SetReferee(referees_config.selectedReferee);
 
+	newCode = VirtualAlloc(NULL, 32, MEM_COMMIT | MEM_RESERVE, newProtection);
+	if (newCode == NULL) 
+	{
+		// Handle error
+		Log(&k_referees, "Failed to allocate memory for new code");
+		return;
+	}
+	
+	if (referees_config.additionalRefsExhibitionEnabled && newCode!=NULL)
+	{
+		SetAdditionalRefereesData();
+	}
 	Log(&k_referees, "Module initialized.");
 }
 
@@ -321,34 +303,42 @@ bool refereesReadNumPages(DWORD afsId, DWORD fileId, DWORD orgNumPages, DWORD *n
     DWORD fileSize = 0;
     char filename[BUFLEN] = {0};
 
-    if (afsId == 1) { // 0_text.afs
-		if (fileId == dta[REF_FACE_W] || fileId == dta[REF_FACE_Y] || fileId == dta[REF_FACE_R] || fileId == dta[REF_FACE_K]) {
+    if (afsId == 1)  // 0_text.afs
+	{
+		if (fileId == dta[REF_FACE_W] || fileId == dta[REF_FACE_Y] || fileId == dta[REF_FACE_R] || fileId == dta[REF_FACE_K]) 
+		{
 			// face
 			strcpy(filename,GetPESInfo()->gdbDir);
 			strcat(filename,"GDB\\referees\\");
-			strcat(filename,referee1Folder);
+			strcat(filename,refereeFolder);
 			strcat(filename,"\\face.bin");
-			//strcat(filename,model);
-			//////////////////////////////////
-		}else if (fileId == dta[REF_HAIRFILE]){
+			LOG(&k_referees, "{refereesReadNumPages}, filename is %s", filename);
+		}
+		else if (fileId == dta[REF_HAIRFILE])
+		{
 			// hair
 			strcpy(filename,GetPESInfo()->gdbDir);
 			strcat(filename,"GDB\\referees\\");
-			strcat(filename,referee1Folder);
+			strcat(filename,refereeFolder);
 			strcat(filename,"\\hair.bin");
-			//strcat(filename,folder);
-			//strcat(filename,"\\");
-			//strcat(filename,FILE_NAMES[REF_KIT_HQ]);
+			LOG(&k_referees, "{refereesReadNumPages}, filename is %s", filename);
+		}
+		else
+		{
+			return false;
 		}
 		HANDLE TempHandle=CreateFile(filename,GENERIC_READ,3,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0);
-		if (TempHandle!=INVALID_HANDLE_VALUE) {
+		if (TempHandle!=INVALID_HANDLE_VALUE) 
+		{
 			fileSize=GetFileSize(TempHandle,NULL);
 			CloseHandle(TempHandle);
-		} else {
+		} else 
+		{
 			fileSize=0;
 		};
 
-		if (fileSize > 0) {
+		if (fileSize > 0) 
+		{
 			LogWithString(&k_referees, "refereesReadNumPages: found file: %s", filename);
 			LogWithTwoNumbers(&k_referees,"refereesReadNumPages: had size: %08x pages (%08x bytes)", 
 					orgNumPages, orgNumPages*0x800);
@@ -371,26 +361,27 @@ bool refereesAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesTo
     char filename[BUFLEN] = {0};
 
 	// ensure it is 0_TEXT.afs
-	if (afsId == 1) {
+	if (afsId == 1) 
+	{
 		DWORD offset = SetFilePointer(hFile, 0, NULL, FILE_CURRENT) - (*lpNumberOfBytesRead);
 		DWORD fileId = GetProbableFileIdForHandle(afsId, offset, hFile);
-		if (fileId == dta[REF_FACE_W] || fileId == dta[REF_FACE_Y] || fileId == dta[REF_FACE_R] || fileId == dta[REF_FACE_K]) {
+		if (fileId == dta[REF_FACE_W] || fileId == dta[REF_FACE_Y] || fileId == dta[REF_FACE_R] || fileId == dta[REF_FACE_K]) 
+		{
 			// face
 			strcpy(filename,GetPESInfo()->gdbDir);
 			strcat(filename,"GDB\\referees\\");
-			strcat(filename,referee1Folder);
+			strcat(filename,refereeFolder);
 			strcat(filename,"\\face.bin");
-			//strcat(filename,model);
-			//////////////////////////////////
-		}else if (fileId == dta[REF_HAIRFILE]){
+			LOG(&k_referees, "{refereesAfterReadFile}, filename is %s", filename);
+		}
+		else if (fileId == dta[REF_HAIRFILE])
+		{
 			// hair
 			strcpy(filename,GetPESInfo()->gdbDir);
 			strcat(filename,"GDB\\referees\\");
-			strcat(filename,referee1Folder);
+			strcat(filename,refereeFolder);
 			strcat(filename,"\\hair.bin");
-			//strcat(filename,folder);
-			//strcat(filename,"\\");
-			//strcat(filename,FILE_NAMES[REF_KIT_HQ]);
+			LOG(&k_referees, "{refereesAfterReadFile}, filename is %s", filename);
 		}
 
 		else{
@@ -406,14 +397,16 @@ bool refereesAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesTo
 		FILE_ATTRIBUTE_NORMAL,
 		NULL);
 		bool result = false;
-		if (handle!=INVALID_HANDLE_VALUE) {
+		if (handle!=INVALID_HANDLE_VALUE) 
+		{
 			filesize = GetFileSize(handle,NULL);
 			DWORD curr_offset = offset - GetOffsetByFileId(afsId, fileId);
 			LOG(&k_referees, 
 			"offset=%08x, GetOffsetByFileId()=%08x, curr_offset=%08x",
 			offset, GetOffsetByFileId(afsId, fileId), curr_offset);
 			DWORD bytesToRead = *lpNumberOfBytesRead;
-			if (filesize < curr_offset + *lpNumberOfBytesRead) {
+			if (filesize < curr_offset + *lpNumberOfBytesRead) 
+			{
 				bytesToRead = filesize - curr_offset;
 			}
 			DWORD bytesRead = 0;
@@ -422,7 +415,8 @@ bool refereesAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesTo
 			bytesToRead, *lpNumberOfBytesRead, filename);
 			ReadFile(handle, lpBuffer, bytesToRead, &bytesRead, lpOverlapped);
 			LOG(&k_referees, "read 0x%x bytes from {%s}", bytesRead, filename);
-			if (*lpNumberOfBytesRead - bytesRead > 0) {
+			if (*lpNumberOfBytesRead - bytesRead > 0) 
+			{
 				DEBUGLOG(&k_referees, "zeroing out 0x%0x bytes",
 				*lpNumberOfBytesRead - bytesRead);
 				memset(
@@ -430,13 +424,15 @@ bool refereesAfterReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesTo
 			}
 			CloseHandle(handle);
 			// set next likely read
-			if (filesize > curr_offset + bytesRead) {
+			if (filesize > curr_offset + bytesRead) 
+			{
 				SetNextProbableReadForHandle(
 				afsId, offset+bytesRead, fileId, hFile);
 			}
 			result = true;
 		}
-		else {
+		else 
+		{
 			LOG(&k_referees, "Unable to read file {%s} must be protected or opened", filename);
 		}
 		return result;
@@ -449,7 +445,7 @@ void ReadRefereeMap()
 	char tmp[BUFLEN];
 	char str[BUFLEN];
 	char *comment=NULL;
-	char sreferee1[BUFLEN], sreferee2[BUFLEN], sreferee3[BUFLEN], sreferee4[BUFLEN];
+	char sreferee[BUFLEN];
 		
 	strcpy(tmp,GetPESInfo()->gdbDir);
 	strcat(tmp,"GDB\\referees\\map.txt");
@@ -467,20 +463,46 @@ void ReadRefereeMap()
 		if (comment != NULL) comment[0] = '\0';
 		
 		// parse line
-		ZeroMemory(sreferee1,BUFLEN);
-		ZeroMemory(sreferee2,BUFLEN);
-		ZeroMemory(sreferee3,BUFLEN);
-		ZeroMemory(sreferee4,BUFLEN);
-		if (sscanf(str,"\"%[^\"]\",\"%[^\"]\",\"%[^\"]\",\"%[^\"]\"",sreferee1,sreferee2,sreferee3,sreferee4)==4)
+		ZeroMemory(sreferee,BUFLEN);
+		if (sscanf(str,"\"%[^\"]\"",sreferee)==1)
 			Log(&k_referees, "adding referees");
 
-			AddReferee(sreferee1,sreferee2,sreferee3,sreferee4);
+			AddReferee(sreferee);
 	};
 	fclose(cfg);	
 	return;
 };
 
-void AddReferee(LPTSTR sreferee1, LPTSTR sreferee2, LPTSTR sreferee3, LPTSTR sreferee4)
+void ReadRefereeFolder()
+{
+	WIN32_FIND_DATA fData;
+	char pattern[512] = { 0 };
+	ZeroMemory(pattern, sizeof(pattern));
+
+	sprintf(pattern, "%sGDB\\referees\\*",
+		GetPESInfo()->gdbDir);
+	LOG(&k_referees, "pattern: {%s}", pattern);
+
+	HANDLE hff = FindFirstFile(pattern, &fData);
+	if (hff != INVALID_HANDLE_VALUE) {
+		while (true) {
+			// check if this is a directory
+			if (fData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+				// check for system folders
+				if (fData.cFileName[0] != '.') 
+				{
+					AddReferee(fData.cFileName);
+				}
+			}
+			// proceed to next file
+			if (!FindNextFile(hff, &fData)) break;
+		}
+		FindClose(hff);
+	}
+}
+
+
+void AddReferee(LPTSTR sreferee)
 {
 	REFEREES *tmp=new REFEREES[numReferees+1];
 	memcpy(tmp,refereesMap,numReferees*sizeof(REFEREES));
@@ -489,84 +511,25 @@ void AddReferee(LPTSTR sreferee1, LPTSTR sreferee2, LPTSTR sreferee3, LPTSTR sre
 
 
 	// Loading ref 1 info
-	refereesMap[numReferees].referee1Folder=new char [strlen(sreferee1)+1];
-	strcpy(refereesMap[numReferees].referee1Folder,sreferee1);
+	refereesMap[numReferees].refereeFolder=new char [strlen(sreferee)+1];
+	strcpy(refereesMap[numReferees].refereeFolder,sreferee);
 
-	char ref1InfoLoc[BUFLEN] = {0};
-	strcpy(ref1InfoLoc,GetPESInfo()->gdbDir);
-	strcat(ref1InfoLoc,"GDB\\referees\\");
-	strcat(ref1InfoLoc,sreferee1);
-	strcat(ref1InfoLoc,"\\referee.txt");
+	char refInfoLoc[BUFLEN] = {0};
+	strcpy(refInfoLoc,GetPESInfo()->gdbDir);
+	strcat(refInfoLoc,"GDB\\referees\\");
+	strcat(refInfoLoc,sreferee);
+	strcat(refInfoLoc,"\\referee.txt");
 
-	if (readRefInfo(&ref1Info, ref1InfoLoc)){
-		refereesMap[numReferees].referee1Display=new char [strlen(ref1Info.name)+1];
-		strcpy(refereesMap[numReferees].referee1Display,ref1Info.name);
+	if (readRefInfo(&refInfo, refInfoLoc)){
+		refereesMap[numReferees].refereeDisplay=new char [strlen(refInfo.name)+1];
+		strcpy(refereesMap[numReferees].refereeDisplay,refInfo.name);
 	}
 	else{
-		refereesMap[numReferees].referee1Display=new char [strlen("game choice")+1];
-		strcpy(refereesMap[numReferees].referee1Display,"game choice");
+		refereesMap[numReferees].refereeDisplay=new char [strlen("game choice")+1];
+		strcpy(refereesMap[numReferees].refereeDisplay,"game choice");
 	}
 
-
-	// Loading ref 2 info
-
-	refereesMap[numReferees].referee2Folder=new char [strlen(sreferee2)+1];
-	strcpy(refereesMap[numReferees].referee2Folder,sreferee2);
-
-	char ref2InfoLoc[BUFLEN] = {0};
-	strcpy(ref2InfoLoc,GetPESInfo()->gdbDir);
-	strcat(ref2InfoLoc,"GDB\\referees\\");
-	strcat(ref2InfoLoc,sreferee2);
-	strcat(ref2InfoLoc,"\\referee.txt");
-
-	if (readRefInfo(&ref2Info, ref2InfoLoc)){
-		refereesMap[numReferees].referee2Display=new char [strlen(ref2Info.name)+1];
-		strcpy(refereesMap[numReferees].referee2Display,ref2Info.name);
-	}
-	else{
-		refereesMap[numReferees].referee2Display=new char [strlen("game choice")+1];
-		strcpy(refereesMap[numReferees].referee2Display,"game choice");
-	}
-
-	// Loading ref 3 info
-
-	refereesMap[numReferees].referee3Folder=new char [strlen(sreferee3)+1];
-	strcpy(refereesMap[numReferees].referee3Folder,sreferee3);
-	char ref3InfoLoc[BUFLEN] = {0};
-	strcpy(ref3InfoLoc,GetPESInfo()->gdbDir);
-	strcat(ref3InfoLoc,"GDB\\referees\\");
-	strcat(ref3InfoLoc,sreferee3);
-	strcat(ref3InfoLoc,"\\referee.txt");
-
-	if (readRefInfo(&ref3Info, ref3InfoLoc)){
-		refereesMap[numReferees].referee3Display=new char [strlen(ref3Info.name)+1];
-		strcpy(refereesMap[numReferees].referee3Display,ref3Info.name);
-	}
-	else{
-		refereesMap[numReferees].referee3Display=new char [strlen("game choice")+1];
-		strcpy(refereesMap[numReferees].referee3Display,"game choice");
-	}
-
-	// Loading ref 4 info
-
-	refereesMap[numReferees].referee4Folder=new char [strlen(sreferee4)+1];
-	strcpy(refereesMap[numReferees].referee4Folder,sreferee4);
-	char ref4InfoLoc[BUFLEN] = {0};
-	strcpy(ref4InfoLoc,GetPESInfo()->gdbDir);
-	strcat(ref4InfoLoc,"GDB\\referees\\");
-	strcat(ref4InfoLoc,sreferee4);
-	strcat(ref4InfoLoc,"\\referee.txt");
-
-	if (readRefInfo(&ref4Info, ref4InfoLoc)){
-		refereesMap[numReferees].referee4Display=new char [strlen(ref4Info.name)+1];
-		strcpy(refereesMap[numReferees].referee4Display,ref4Info.name);
-	}
-	else{
-		refereesMap[numReferees].referee4Display=new char [strlen("game choice")+1];
-		strcpy(refereesMap[numReferees].referee4Display,"game choice");
-	}
-
-	g_RefereesIdMap[sreferee1]=numReferees;
+	g_RefereesIdMap[sreferee]=numReferees;
 
 	numReferees++;
 	return;
@@ -574,10 +537,7 @@ void AddReferee(LPTSTR sreferee1, LPTSTR sreferee2, LPTSTR sreferee3, LPTSTR sre
 
 void SetReferee(DWORD id)
 {
-	char tmp1Display[BUFLEN];
-	char tmp2Display[BUFLEN];
-	char tmp3Display[BUFLEN];
-	char tmp4Display[BUFLEN];
+	char tmpDisplay[BUFLEN];
 	
 	if (id<numReferees)
 		selectedReferee=id;
@@ -587,58 +547,29 @@ void SetReferee(DWORD id)
 		selectedReferee=-1;
 		
 	if (selectedReferee<0) {
-		strcpy(tmp1Display,"game choice");
-		strcpy(tmp2Display,"game choice");
-		strcpy(tmp3Display,"game choice");
-		strcpy(tmp4Display,"game choice");
-		strcpy(referee1Folder,"\0");
-		strcpy(referee2Folder,"\0");
-		strcpy(referee3Folder,"\0");
-		strcpy(referee4Folder,"\0");
+		strcpy(tmpDisplay,"game choice");
+		strcpy(refereeFolder,"\0");
 	} else {
 
-		/*
-		strcpy(referee1,refereesMap[selectedReferee].referee1);
-		strcpy(referee2,refereesMap[selectedReferee].referee2);
-		strcpy(referee3,refereesMap[selectedReferee].referee3);
-		strcpy(referee4,refereesMap[selectedReferee].referee4);
-		*/
-		strcpy(tmp1Display,refereesMap[selectedReferee].referee1Display);
-		strcpy(tmp2Display,refereesMap[selectedReferee].referee2Display);
-		strcpy(tmp3Display,refereesMap[selectedReferee].referee3Display);
-		strcpy(tmp4Display,refereesMap[selectedReferee].referee4Display);
-		strcpy(referee1Folder,refereesMap[selectedReferee].referee1Folder);
-		strcpy(referee2Folder,refereesMap[selectedReferee].referee2Folder);
-		strcpy(referee3Folder,refereesMap[selectedReferee].referee3Folder);
-		strcpy(referee4Folder,refereesMap[selectedReferee].referee4Folder);
+		strcpy(tmpDisplay,refereesMap[selectedReferee].refereeDisplay);
+		strcpy(refereeFolder,refereesMap[selectedReferee].refereeFolder);
+		LOG(&k_referees, "refereefolder %s", refereeFolder);
 
 		SafeRelease( &g_preview_tex );
 		g_newPrev=true;
 	};
 	
-	strcpy(referee1Display,"Referee: ");
-	strcat(referee1Display,tmp1Display);
-	strcpy(referee2Display,"Referee: ");
-	strcat(referee2Display,tmp2Display);
-	strcpy(referee3Display,"Referee: ");
-	strcat(referee3Display,tmp3Display);
-	strcpy(referee4Display,"Referee: ");
-	strcat(referee4Display,tmp4Display);
-	
+	strcpy(refereeDisplay,"Referee: ");
+	strcat(refereeDisplay,tmpDisplay);
+
 	return;
 };
 
 void FreeReferees()
 {
 	for (int i=0;i<numReferees;i++) {
-		delete refereesMap[i].referee1Folder;
-		delete refereesMap[i].referee2Folder;
-		delete refereesMap[i].referee3Folder;
-		delete refereesMap[i].referee4Folder;
-		delete refereesMap[i].referee1Display;
-		delete refereesMap[i].referee2Display;
-		delete refereesMap[i].referee3Display;
-		delete refereesMap[i].referee4Display;
+		delete refereesMap[i].refereeFolder;
+		delete refereesMap[i].refereeDisplay;
 	};
 	delete refereesMap;
 	numReferees=0;
@@ -652,30 +583,33 @@ void FreeReferees()
 void SetAdditionalRefereesData()
 {
 
-	/*bool somevar = false;
-	if (somevar){
-	if (VirtualProtect((LPVOID)dta[SELECT_REF_FLAG], 5, newProtection, &protection)) {
-		//Disabling selecting another referee
-		*(BYTE*)(dta[SELECT_REF_FLAG]) = 0; 
-		//Enforce referee id 0
-		*(BYTE*)(dta[SELECTED_REF]) = 0; 
-		Log(&k_referees, "Referee menu disable and enforced referee id 0");
-	};
-	};*/
-	if (referees_config.additionalRefsExhibitionEnabled) {
-		if (VirtualProtect((LPVOID)dta[SELECT_TOTAL_REF], 4, newProtection, &protection)) {
-			*(BYTE*)dta[SELECT_TOTAL_REF] = 22;
-			//Log(&k_referees,"Additional referees in exhibition mode added.");
-		}
-		else {
-			Log(&k_referees, "Problem adding additional referees in exhibition mode.");
-		}
+	BYTE oldCode[5];
+    memcpy(oldCode, (LPVOID)(dta[EXTRA_REF_JMP]), sizeof(oldCode));
+    // Write the new code to the allocated memory
+    *(BYTE*)newCode = (BYTE)0xc6;
+    *(BYTE*)((DWORD)newCode + 1) = (BYTE)0x05;
+    *(DWORD*)((DWORD)newCode + 2) = dta[SELECT_TOTAL_REF];
+	*(BYTE*)((DWORD)newCode + 6) = (BYTE)0x16;
+	memcpy((LPVOID)((DWORD)newCode + 7), oldCode, sizeof(oldCode));
+	*(BYTE*)((DWORD)newCode + 12) = (BYTE)0xE9; //jmp
+    *(DWORD*)((DWORD)newCode + 13) = ((DWORD)dta[EXTRA_REF_JMP] + 5) - ((DWORD)newCode + 17);
+
+    // Change the memory protection of the original code
+    if (VirtualProtect((LPVOID)dta[EXTRA_REF_JMP], 5, newProtection, &protection)){
+		// Replace the original code with a jump to the new code
+		*(BYTE*)dta[EXTRA_REF_JMP] = 0xE9;
+		*(DWORD*)(dta[EXTRA_REF_JMP] + 1) = (DWORD)newCode - dta[EXTRA_REF_JMP] - 5;
+	}else{
+        Log(&k_referees, "Failed to change memory protection");
+        VirtualFree(newCode, 0, MEM_RELEASE);
+        return;
 	}
+
 }
 
-int GetNationalityIndex (string nationality)
+BYTE GetNationalityIndex (string nationality)
 {
-	int index = 0;
+	BYTE index = 0;
 	while (index < TOTAL_NATIONALITIES){
 		if (nationalities[index] == nationality) return index;
 		++index;
@@ -683,99 +617,122 @@ int GetNationalityIndex (string nationality)
 	return FREE_NATIONALITY; // return Free Nationality to avoid errors
 }
 
-int GetStrictness (string strictness)
+DWORD GetStrictness (string strictness)
 {
 	
-	if(strictness=="Lenient") return 336855042;
-	else if (strictness=="Average")	return 842150460;
-	else if (strictness=="Strict") return 1482184792;
+	if(strictness=="Lenient") return 336860180;
+	else if (strictness=="Medium")	return 842150450;
+	else if (strictness=="Strict") return 1482184758;
 	else if (strictness=="Default") return 1;
 	else return 0;
 }
 
+bool FileExists(const char* filename)
+{
+	LOG(&k_referees, "FileExists: Checking file: %s", (char*)filename);
+	HANDLE hFile;
+	hFile = CreateFile(TEXT(filename),        // file to open
+		GENERIC_READ,          // open for reading
+		FILE_SHARE_READ,       // share for reading
+		NULL,                  // default security
+		OPEN_EXISTING,         // existing file only
+		FILE_ATTRIBUTE_NORMAL, // normal file
+		NULL);                 // no attr. template
+
+	if (hFile == INVALID_HANDLE_VALUE)
+	{
+		return FALSE;
+	}
+	CloseHandle(hFile);
+	return TRUE;
+};
+
 void SetRefereeData()
 {	
+	char refInfoLoc[BUFLEN] = {0};
+	strcpy(refInfoLoc,GetPESInfo()->gdbDir);
+	strcat(refInfoLoc,"GDB\\referees\\");
+	strcat(refInfoLoc,refereeFolder);
+	strcat(refInfoLoc,"\\referee.txt");
+	REFEREE_INFO refInfo;
+	if (readRefInfo(&refInfo, refInfoLoc)){
+		if (referees_config.debug) LogWithString(&k_referees, "reading %s file Sucess!!", refInfoLoc);		
+		if (VirtualProtect((LPVOID)dta[REF_START_ADDRESS], dta[REF_DATA_SIZE], newProtection, &protection)) {
 
-    const char* refereesFolderArray[4] = {
-		referee1Folder,
-		referee2Folder,
-		referee3Folder,
-		referee4Folder,
-	};
-	for (int i = 0; i < 4; i++){
-		char refereeFolder[BUFLEN];
-		strcat(refereeFolder,refereesFolderArray[i]);
+			*(BYTE*)(dta[REF_START_ADDRESS] + 4) = GetNationalityIndex(refInfo.nationality); //Nationality
+			*(BYTE*)(dta[REF_START_ADDRESS] + 8) = GetNationalityIndex(refInfo.nationality); //Nationality 2
+			//*(BYTE*)(dta[REF_START_ADDRESS] + 20) = skinRelink; //Skin relink
+			*(BYTE*)(dta[REF_START_ADDRESS] + 21) = refInfo.skinColour - 1; //Skin colour
+			*(BYTE*)(dta[REF_START_ADDRESS] + 23) = (BYTE)0x02; //face type force to preset
+			// According to skin colour we set the corresponding face id number
+			*(WORD*)(dta[REF_START_ADDRESS] + 24) = (WORD)dta[REF_HAIRFILE_ID]; //hairstyle
 
-		char refInfoLoc[BUFLEN] = {0};
-		strcpy(refInfoLoc,GetPESInfo()->gdbDir);
-		strcat(refInfoLoc,"GDB\\referees\\");
-		strcat(refInfoLoc,refereeFolder);
-		strcat(refInfoLoc,"\\referee.txt");
-		REFEREE_INFO refInfo;
+			switch(refInfo.skinColour){
+				case 1:
+					*(WORD*)(dta[REF_START_ADDRESS] + 36) = (WORD)dta[REF_FACE_W_ID]; //face id
+					break;
+				case 2:
+					*(WORD*)(dta[REF_START_ADDRESS] + 36) = (WORD)dta[REF_FACE_Y_ID]; //face id
+					break;
+				case 3:
+					*(WORD*)(dta[REF_START_ADDRESS] + 36) = (WORD)dta[REF_FACE_R_ID]; //face id
+					break;
+				case 4:
+					*(WORD*)(dta[REF_START_ADDRESS] + 36) = (WORD)dta[REF_FACE_K_ID]; //face id
+					break;
+				default:
+					if (referees_config.debug) Log(&k_referees, "Error skin out of range");
+					*(WORD*)(dta[REF_START_ADDRESS] + 36) = 0; //face id
+					*(WORD*)(dta[REF_START_ADDRESS] + 24) = 0; //hairstyle
 
-		if (readRefInfo(&refInfo, refInfoLoc)){
-			if (referees_config.debug) LogWithString(&k_referees, "reading %s% file Sucess!!", refInfoLoc);
-			DWORD startAddress = dta[REF_START_ADDRESS] + (i * dta[REF_DATA_SIZE]);
-			DWORD faceWID;
-			DWORD faceYID;
-			DWORD faceRID;
-			DWORD faceKID;
-			DWORD hairStyleID;
-			
-			if (VirtualProtect((LPVOID)startAddress, dta[REF_DATA_SIZE], newProtection, &protection)) {
-				//LPTSTR nation = "Spain";
-				BYTE skinColour;
-				BYTE faceType = 2;
-				//BYTE height = 180;
-				//BYTE weight = 90;
-				//BYTE skinRelink = 64; // Not sure, could be kit relink
+					break;
+			}
 
-				*(BYTE*)(startAddress + 4) = GetNationalityIndex(refInfo.nationality); //Nationality
-				*(BYTE*)(startAddress + 8) = GetNationalityIndex(refInfo.nationality); //Nationality 2
-				//*(BYTE*)(dta[REF_START_ADDRESS] + 20) = skinRelink; //Skin relink
-				skinColour = refInfo.skinColour - 1;
-				*(BYTE*)(startAddress + 21) = skinColour; //Skin colour
-				*(BYTE*)(startAddress + 23) = faceType; //face type force to preset
-				// According to skin colour we set the corresponding face id number
-				switch(skinColour){
-					case 0:
-						*(WORD*)(startAddress + 36) = dta[REF_FACE_W_ID]; //face id
-						break;
-					case 1:
-						*(WORD*)(startAddress + 36) = dta[REF_FACE_Y_ID]; //face id
-						break;
-					case 2:
-						*(WORD*)(startAddress + 36) = dta[REF_FACE_R_ID]; //face id
-						break;
-					case 3:
-						*(WORD*)(startAddress + 36) = dta[REF_FACE_K_ID]; //face id
-						break;
-					default:
-						if (referees_config.debug) Log(&k_referees, "Error skin out of range");
-						break;
-				}
-				*(WORD*)(startAddress + 24) = dta[REF_HAIRFILE_ID]; //hairstyle
-				//*(BYTE*)(dta[REF_START_ADDRESS] + 26) = 2; //hair colour pattern, is really needed?
-				*(BYTE*)(startAddress + 29) = refInfo.height; //height
-				*(BYTE*)(startAddress + 30) = refInfo.weight; //weight
-				DWORD refereeStrictness = GetStrictness(refInfo.cardStrictness);
-				if (refereeStrictness == 0){
-					ApplyStrictness(refInfo.customCardStrictness);
-				}
-				else if (refereeStrictness==1){
-					// do nothing will use default options or global
-					if (referees_config.debug) Log(&k_referees, "Referee will use default strictness or global in referee.cfg file");
-				}
-				else{
-					ApplyStrictness(refereeStrictness);
-				}
+			char faceFilePath[BUFLEN] = {0};
+			strcpy(faceFilePath, GetPESInfo()->gdbDir);
+			strcat(faceFilePath, "GDB\\referees\\");
+			strcat(faceFilePath, refereeFolder);
+			strcat(faceFilePath, "\\face.bin");
 
-				if (referees_config.debug) Log(&k_referees, "Referee data loaded into memory");
-			};
-		}
-		else{
-			if (referees_config.debug) LogWithString(&k_referees, "Error reading referee txt file = %s%", refInfoLoc);
-		}
+			char hairFilePath[BUFLEN] = { 0 };
+			strcpy(hairFilePath, GetPESInfo()->gdbDir);
+			strcat(hairFilePath, "GDB\\referees\\");
+			strcat(hairFilePath, refereeFolder);
+			strcat(hairFilePath, "\\hair.bin");
+
+			if (!(FileExists(faceFilePath))) 
+			{
+				*(WORD*)(dta[REF_START_ADDRESS] + 36) = refInfo.faceID;
+			}
+			if (!(FileExists(hairFilePath)))
+			{
+				*(WORD*)(dta[REF_START_ADDRESS] + 24) = refInfo.hairstyleID;
+			}
+
+			*(BYTE*)(dta[REF_START_ADDRESS] + 26) = refInfo.hairPattern - 1; //hair colour pattern
+			*(BYTE*)(dta[REF_START_ADDRESS] + 27) = refInfo.facialHairType; //facial hair type
+			*(BYTE*)(dta[REF_START_ADDRESS] + 28) = refInfo.facialHairColour; //facial hair colour
+
+			*(BYTE*)(dta[REF_START_ADDRESS] + 29) = refInfo.height; //height
+			*(BYTE*)(dta[REF_START_ADDRESS] + 30) = refInfo.weight; //weight
+
+			DWORD refereeStrictness = GetStrictness(refInfo.cardStrictness);
+			if (refereeStrictness == 0){
+				ApplyStrictness(refInfo.customCardStrictness);
+			}
+			else if (refereeStrictness==1){
+				// do nothing will use default options or global
+				if (referees_config.debug) Log(&k_referees, "Referee will use default strictness or global in referee.cfg file");
+			}
+			else{
+				ApplyStrictness(refereeStrictness);
+			}
+
+			if (referees_config.debug) Log(&k_referees, "Referee data loaded into memory");
+		};
+	}
+	else{
+		if (referees_config.debug) LogWithString(&k_referees, "Error reading referee txt file = %s%", refInfoLoc);
 	}
 }
 
@@ -801,12 +758,12 @@ void SetRefereesGlobalStrictness()
 void ApplyStrictness(DWORD strictness)
 {
 	if (VirtualProtect((LPVOID)dta[REF_START_ADDRESS], dta[REF_DATA_SIZE], newProtection, &protection)) {
-			*(DWORD*)(dta[REF_START_ADDRESS] + 60) = strictness;
+			//*(DWORD*)(dta[REF_START_ADDRESS] + 60) = strictness;
 			*(DWORD*)(dta[REF_START_ADDRESS] + 64) = strictness;
 			*(DWORD*)(dta[REF_START_ADDRESS] + 76) = strictness;
-			LogWithNumber(&k_referees, "Card strictness: %d", *(DWORD*)(dta[REF_START_ADDRESS] + 60));
-			LogWithNumber(&k_referees, "Card strictness: %d", *(DWORD*)(dta[REF_START_ADDRESS] + 60));
-			LogWithNumber(&k_referees, "Card strictness: %d", *(DWORD*)(dta[REF_START_ADDRESS] + 60));
+			//LogWithNumber(&k_referees, "Card strictness: %d", *(DWORD*)(dta[REF_START_ADDRESS] + 60));
+			LogWithNumber(&k_referees, "Card strictness: %d", *(DWORD*)(dta[REF_START_ADDRESS] + 64));
+			LogWithNumber(&k_referees, "Card strictness: %d", *(DWORD*)(dta[REF_START_ADDRESS] + 76));
 	}
 	else {
 		Log(&k_referees, "Problem changing card strictness.");
@@ -897,8 +854,8 @@ void refereeShowMenu()
 	if (autoRandomMode)
 		color = 0xffaad0ff; // light blue for randomly selected kit
 
-	KGetTextExtent(referee1Display,16,&size);
-	KDrawText((g_bbWidth-size.cx)/2,g_bbHeight*0.75,color,16,referee1Display,true);
+	KGetTextExtent(refereeDisplay,16,&size);
+	KDrawText((g_bbWidth-size.cx)/2,g_bbHeight*0.75,color,16,refereeDisplay,true);
 
 
     //draw Referee Kit preview
@@ -930,8 +887,6 @@ void refereeEndUniSelect()
     isSelectMode=false;
 
 }
-
-
 
 
 /**
@@ -1091,21 +1046,55 @@ bool readRefInfo(REFEREE_INFO* config, char* cfgFile)
 			config->nationality = new char[strlen(buf)+1];
 			strcpy(config->nationality,buf);
 		}
-		else if (lstrcmpi(name, "height")==0) {
+		else if (lstrcmpi(name, "height")==0) 
+		{
 			if (sscanf(pValue, "%d", &value)!=1) continue;
 			if (referees_config.debug) LogWithNumber(&k_referees,"readRefInfo: height = (%d)", value);
             config->height = (BYTE)value;
         }
-		else if (lstrcmpi(name, "weight")==0) {
+		else if (lstrcmpi(name, "weight")==0) 
+		{
 			if (sscanf(pValue, "%d", &value)!=1) continue;
 			if (referees_config.debug) LogWithNumber(&k_referees,"readRefInfo: weight = (%d)", value);
             config->weight = (BYTE)value;
         }
-		else if (lstrcmpi(name, "skinColour")==0) {
+		else if (lstrcmpi(name, "skin.colour")==0) 
+		{
 			if (sscanf(pValue, "%d", &value)!=1) continue;
 			if (referees_config.debug) LogWithNumber(&k_referees,"readRefInfo: skinColour = (%d)", value);
             config->skinColour = (BYTE)value;
         }
+
+		else if (lstrcmpi(name, "face.id") == 0) 
+		{
+			if (sscanf(pValue, "%d", &value) != 1) continue;
+			if (referees_config.debug) LogWithNumber(&k_referees, "readRefInfo: face.id = (%d)", value);
+			config->faceID = (WORD)value;
+		}
+		else if (lstrcmpi(name, "hair.id") == 0) 
+		{
+			if (sscanf(pValue, "%d", &value) != 1) continue;
+			if (referees_config.debug) LogWithNumber(&k_referees, "readRefInfo: hair.id = (%d)", value);
+			config->hairstyleID = (WORD)value;
+		}
+		else if (lstrcmpi(name, "hair.colour.pattern") == 0) 
+		{
+			if (sscanf(pValue, "%d", &value) != 1) continue;
+			if (referees_config.debug) LogWithNumber(&k_referees, "readRefInfo: hair.colour.pattern = (%d)", value);
+			config->hairPattern = (BYTE)value;
+		}
+		else if (lstrcmpi(name, "facial.hair.type") == 0)
+		{
+			if (sscanf(pValue, "%d", &value) != 1) continue;
+			if (referees_config.debug) LogWithNumber(&k_referees, "readRefInfo: facial.hair.type = (%d)", value);
+			config->facialHairType = (BYTE)value;
+		}
+		else if (lstrcmpi(name, "facial.hair.colour") == 0)
+		{
+			if (sscanf(pValue, "%d", &value) != 1) continue;
+			if (referees_config.debug) LogWithNumber(&k_referees, "readRefInfo: facial.hair.colour = (%d)", value);
+			config->facialHairColour = (BYTE)value;
+		}
 		else if (strcmp(name, "cardStrictness")==0)
 		{
 			char* startQuote = strstr(pValue, "\"");
@@ -1299,7 +1288,7 @@ void DrawPreview(IDirect3DDevice8* dev)
     
     if (!g_preview_tex && g_newPrev) {
         char buf[BUFLEN];
-        sprintf(buf, "%s\\GDB\\referees\\%s\\preview.png", GetPESInfo()->gdbDir, referee1Folder);
+        sprintf(buf, "%s\\GDB\\referees\\%s\\preview.png", GetPESInfo()->gdbDir, refereeFolder);
 		LOG(&k_referees,"Trying to load preview image located at {%s}.", buf);
 
         if (FAILED(D3DXCreateTextureFromFileEx(dev, buf, 
@@ -1307,7 +1296,7 @@ void DrawPreview(IDirect3DDevice8* dev)
                     D3DX_FILTER_NONE, D3DX_FILTER_NONE,
                     0, NULL, NULL, &g_preview_tex))) {
             // try "preview.bmp"
-            sprintf(buf, "%s\\GDB\\referees\\%s\\preview.bmp", GetPESInfo()->gdbDir, referee1Folder);
+            sprintf(buf, "%s\\GDB\\referees\\%s\\preview.bmp", GetPESInfo()->gdbDir, refereeFolder);
             if (FAILED(D3DXCreateTextureFromFileEx(dev, buf, 
                         0, 0, 1, 0, D3DFMT_UNKNOWN, D3DPOOL_MANAGED,
                         D3DX_FILTER_NONE, D3DX_FILTER_NONE,

@@ -19,7 +19,7 @@ BEGIN
 		BEGIN
 			VALUE "FileDescription", "Referees Module\0"
 			VALUE "FileVersion", "5.1.0\0"
-			VALUE "LegalCopyright", "Copyright � 2021 Elaf, Marqisspes6, Ciais\0"
+			VALUE "LegalCopyright", "Copyright � 2023 Elaf, Ciais, Marqisspes6\0"
 			VALUE "Comments", "Add-on component for PES5, WE9, WE9LE:\
 various referees tweaks by adjusting strictness and other settings.\0"
 		END
