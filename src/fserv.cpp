@@ -75,14 +75,15 @@ std::deque<string> g_hairFilesSmall;
 std::map<IDirect3DTexture8*,string> g_BigHairTextures;
 std::map<IDirect3DTexture8*,string> g_SmallHairTextures;
 
-std::map<string,WORD> g_FBTexFileToTid;
-std::map<WORD,string> g_FBTexTidToFile;
-std::map<string,WORD> g_FSTexFileToTid;
-std::map<WORD,string> g_FSTexTidToFile;
-std::map<string,WORD> g_HBTexFileToTid;
-std::map<WORD,string> g_HBTexTidToFile;
-std::map<string,WORD> g_HSTexFileToTid;
-std::map<WORD,string> g_HSTexTidToFile;
+typedef struct _TEXSRC {
+	DWORD src;
+	string hdfilename;
+} TEXSRC;
+
+std::map<WORD,TEXSRC> g_FBTidToTex;
+std::map<WORD,TEXSRC> g_FSTidToTex;
+std::map<WORD,TEXSRC> g_HBTidToTex;
+std::map<WORD,TEXSRC> g_HSTidToTex;
 
 CRITICAL_SECTION _face_cs;
 
@@ -195,6 +196,21 @@ void SetHairDimensions(D3DXIMAGE_INFO *ii, UINT &w, UINT &h) {
     h = (h < HD_HAIR_MIN_HEIGHT)?HD_HAIR_MIN_HEIGHT:h;
 }
 
+void DeleteFromTexMap(std::map<WORD,TEXSRC>& m, WORD tid) {
+      EnterCriticalSection(&_face_cs);
+      m.erase(tid);
+      LeaveCriticalSection(&_face_cs);
+}
+
+void StoreInTexMap(std::map<WORD,TEXSRC>& m, WORD tid, DWORD src, string hdfilename) {
+      EnterCriticalSection(&_face_cs);
+		TEXSRC tsrc;
+		tsrc.hdfilename = hdfilename;
+		tsrc.src = src;
+		m[tid] = tsrc;
+      LeaveCriticalSection(&_face_cs);
+}
+
 void DeleteFromTexMaps(std::map<string,WORD>& s2w, std::map<WORD,string>& w2s, WORD tid, string hdfilename) {
       EnterCriticalSection(&_face_cs);
       s2w.erase(hdfilename);
@@ -230,7 +246,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                 width, height, levels, src, tid);
             string hdfilename = filename.substr(0,filename.size()-4);
             hdfilename += ".png";
-            DeleteFromTexMaps(g_FBTexFileToTid, g_FBTexTidToFile, tid, hdfilename);
+            DeleteFromTexMap(g_FBTidToTex, tid);
             ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
             if (SUCCEEDED(D3DXGetImageInfoFromFile(hdfilename.c_str(), &ii))) {
                 LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, hdfilename.c_str());
@@ -243,7 +259,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                     g_BigFaceTextures[*ppTexture] = hdfilename;
 
                     WORD tid = *(WORD*)(src + 0x0c);
-                    StoreInTexMaps(g_FBTexFileToTid, g_FBTexTidToFile, tid, hdfilename);
+                    StoreInTexMap(g_FBTidToTex, tid, src, hdfilename);
                     LOG(&k_fserv, "Storing tid=%04x (src=%08x) for (%dx%d) and filename: %s", tid, src, width, height, hdfilename.c_str());
                 }
             }
@@ -251,21 +267,27 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
         else if (src!=0) {
             WORD tid = *(WORD*)(src + 0x0c);
             //LOG(&k_fserv, "Looking up big face tid=%04x (src=%08x)", tid, src);
-            std::map<WORD,string>::iterator it = g_FBTexTidToFile.find(tid);
-            if (it != g_FBTexTidToFile.end()) {
-                LOG(&k_fserv, "Big face tex from already seen tid: %04x", tid);
-                ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
-                if (SUCCEEDED(D3DXGetImageInfoFromFile(it->second.c_str(), &ii))) {
-                      LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, it->second.c_str());
-                      UINT w,h;
-                      SetFaceDimensions(&ii, w, h);
-                      res = OrgCreateTexture(self, w, h, levels, usage, format, pool, ppTexture);
-                      if (res == D3D_OK) {
-                           LOG(&k_fserv, "Created big HD face texture: (%dx%d)", w, h);
-                           *IsProcessed = true;
-                           g_BigFaceTextures[*ppTexture] = it->second;
-                      }
-                }
+				//if (tid == 0x83c || tid == 0x835) { __asm int 3 }
+            std::map<WORD,TEXSRC>::iterator it = g_FBTidToTex.find(tid);
+            if (it != g_FBTidToTex.end()) {
+                LOG(&k_fserv, "Big face tex from already seen tid: %04x (src=%08x)", tid, src);
+					 if (it->second.src != src) {
+					     LOG(&k_fserv, "but it has different src. So clearing entry");
+						  DeleteFromTexMap(g_FBTidToTex, tid);
+                } else {
+						 ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
+						 if (SUCCEEDED(D3DXGetImageInfoFromFile(it->second.hdfilename.c_str(), &ii))) {
+								 LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, it->second.hdfilename.c_str());
+								 UINT w,h;
+								 SetFaceDimensions(&ii, w, h);
+								 res = OrgCreateTexture(self, w, h, levels, usage, format, pool, ppTexture);
+								 if (res == D3D_OK) {
+										LOG(&k_fserv, "Created big HD face texture: (%dx%d)", w, h);
+										*IsProcessed = true;
+										g_BigFaceTextures[*ppTexture] = it->second.hdfilename;
+								 }
+						 }
+					 }
             }
         }
     }
@@ -278,7 +300,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                 width, height, levels, src, tid);
             string hdfilename = filename.substr(0,filename.size()-4);
             hdfilename += ".png";
-            DeleteFromTexMaps(g_FSTexFileToTid, g_FSTexTidToFile, tid, hdfilename);
+            DeleteFromTexMap(g_FSTidToTex, tid);
             ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
             if (SUCCEEDED(D3DXGetImageInfoFromFile(hdfilename.c_str(), &ii))) {
                 LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, hdfilename.c_str());
@@ -290,8 +312,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                     *IsProcessed = true;
                     g_SmallFaceTextures[*ppTexture] = hdfilename;
 
-                          WORD tid = *(WORD*)(src + 0x0c);
-                          StoreInTexMaps(g_FSTexFileToTid, g_FSTexTidToFile, tid, hdfilename);
+                    StoreInTexMap(g_FSTidToTex, tid, src, hdfilename);
                     LOG(&k_fserv, "Storing tid=%04x (src=%08x) for (%dx%d) and filename: %s", tid, src, width, height, hdfilename.c_str());
                 }
             }
@@ -299,21 +320,27 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
         else if (src!=0) {
             WORD tid = *(WORD*)(src + 0x0c);
             //LOG(&k_fserv, "Looking up small face tid=%04x (src=%08x)", tid, src);
-            std::map<WORD,string>::iterator it = g_FSTexTidToFile.find(tid);
-            if (it != g_FSTexTidToFile.end()) {
-                LOG(&k_fserv, "Small face tex from already seen tid: %04x", tid);
-                ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
-                if (SUCCEEDED(D3DXGetImageInfoFromFile(it->second.c_str(), &ii))) {
-                      LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, it->second.c_str());
-                      UINT w,h;
-                      SetFaceDimensions(&ii, w, h);
-                      res = OrgCreateTexture(self, w/2, h/2, levels, usage, format, pool, ppTexture);
-                      if (res == D3D_OK) {
-                           LOG(&k_fserv, "Created small HD face texture: (%dx%d)", w/2, h/2);
-                           *IsProcessed = true;
-                           g_SmallFaceTextures[*ppTexture] = it->second;
-                      }
-                }
+            std::map<WORD,TEXSRC>::iterator it = g_FSTidToTex.find(tid);
+            if (it != g_FSTidToTex.end()) {
+                LOG(&k_fserv, "Small face tex from already seen tid: %04x (src=%08x)", tid, src);
+					 if (it->second.src != src) {
+					     LOG(&k_fserv, "but it has different src. So clearing entry");
+						  DeleteFromTexMap(g_FSTidToTex, tid);
+                } else {
+						 LOG(&k_fserv, "Small face tex from already seen tid: %04x", tid);
+						 ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
+						 if (SUCCEEDED(D3DXGetImageInfoFromFile(it->second.hdfilename.c_str(), &ii))) {
+								 LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, it->second.hdfilename.c_str());
+								 UINT w,h;
+								 SetFaceDimensions(&ii, w, h);
+								 res = OrgCreateTexture(self, w/2, h/2, levels, usage, format, pool, ppTexture);
+								 if (res == D3D_OK) {
+										LOG(&k_fserv, "Created small HD face texture: (%dx%d)", w/2, h/2);
+										*IsProcessed = true;
+										g_SmallFaceTextures[*ppTexture] = it->second.hdfilename;
+								 }
+						 }
+					 }
             }
         }
     }
@@ -333,7 +360,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                 width, height, levels, src, tid);
             string hdfilename = filename.substr(0,filename.size()-4);
             hdfilename += ".png";
-            DeleteFromTexMaps(g_HBTexFileToTid, g_HBTexTidToFile, tid, hdfilename);
+            DeleteFromTexMap(g_HBTidToTex, tid);
             ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
             if (SUCCEEDED(D3DXGetImageInfoFromFile(hdfilename.c_str(), &ii))) {
                 LOG(&k_fserv, "HD hair exists: (%dx%d) %s", ii.Width, ii.Height, hdfilename.c_str());
@@ -345,8 +372,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                     *IsProcessed = true;
                     g_BigHairTextures[*ppTexture] = hdfilename;
 
-                    WORD tid = *(WORD*)(src + 0x0c);
-                    StoreInTexMaps(g_HBTexFileToTid, g_HBTexTidToFile, tid, hdfilename);
+                    StoreInTexMap(g_HBTidToTex, tid, src, hdfilename);
                     LOG(&k_fserv, "Storing tid=%04x (src=%08x) for (%dx%d) and filename: %s", tid, src, width, height, hdfilename.c_str());
                 }
                 else {
@@ -357,31 +383,36 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
         else if (src!=0) {
             WORD tid = *(WORD*)((BYTE*)src+0x0c);
             //LOG(&k_fserv, "Looking up big hair tid=%04x (src=%08x)", tid, src);
-            std::map<WORD,string>::iterator it = g_HBTexTidToFile.find(tid);
+            std::map<WORD,TEXSRC>::iterator it = g_HBTidToTex.find(tid);
             string filename;
-            if (it != g_HBTexTidToFile.end()) {
-                filename = it->second;
+            if (it != g_HBTidToTex.end()) {
+                filename = it->second.hdfilename;
             }
             if (!filename.empty()) {
                 LOG(&k_fserv, "Big hair tex from already seen tid: %04x", tid);
-                ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
-                if (SUCCEEDED(D3DXGetImageInfoFromFile(filename.c_str(), &ii))) {
-                    LOG(&k_fserv, "HD hair exists: (%dx%d) %s", ii.Width, ii.Height, filename.c_str());
-                    UINT w,h;
-                    SetHairDimensions(&ii, w, h);
-                    res = OrgCreateTexture(self, w, h, levels, usage, format, pool, ppTexture);
-                    if (res == D3D_OK) {
-                        LOG(&k_fserv, "Created big HD hair texture: (%dx%d)", w, h);
-                        *IsProcessed = true;
-                        g_BigHairTextures[*ppTexture] = filename;
-                    }
-                    else {
-                        LOG(&k_fserv, "ERROR calling OrgCreateTexture (%dx%d) for big hair tex", w, h);
-                    }
-                }
-                else {
-                    LOG(&k_fserv, "ERROR calling D3DXGetImageInfoFromFile for: %s", filename.c_str());
-                }
+					 if (it->second.src != src) {
+					     LOG(&k_fserv, "but it has different src. So clearing entry");
+						  DeleteFromTexMap(g_HBTidToTex, tid);
+                } else {
+						 ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
+						 if (SUCCEEDED(D3DXGetImageInfoFromFile(filename.c_str(), &ii))) {
+							  LOG(&k_fserv, "HD hair exists: (%dx%d) %s", ii.Width, ii.Height, filename.c_str());
+							  UINT w,h;
+							  SetHairDimensions(&ii, w, h);
+							  res = OrgCreateTexture(self, w, h, levels, usage, format, pool, ppTexture);
+							  if (res == D3D_OK) {
+									LOG(&k_fserv, "Created big HD hair texture: (%dx%d)", w, h);
+									*IsProcessed = true;
+									g_BigHairTextures[*ppTexture] = filename;
+							  }
+							  else {
+									LOG(&k_fserv, "ERROR calling OrgCreateTexture (%dx%d) for big hair tex", w, h);
+							  }
+						 }
+						 else {
+							  LOG(&k_fserv, "ERROR calling D3DXGetImageInfoFromFile for: %s", filename.c_str());
+						 }
+					 }
             }
         }
     }
@@ -399,7 +430,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                 width, height, levels, src, tid);
             string hdfilename = filename.substr(0,filename.size()-4);
             hdfilename += ".png";
-            DeleteFromTexMaps(g_HSTexFileToTid, g_HSTexTidToFile, tid, hdfilename);
+            DeleteFromTexMap(g_HSTidToTex, tid);
             ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
             if (SUCCEEDED(D3DXGetImageInfoFromFile(hdfilename.c_str(), &ii))) {
                 LOG(&k_fserv, "HD hair exists: (%dx%d) %s", ii.Width, ii.Height, hdfilename.c_str());
@@ -411,8 +442,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                     *IsProcessed = true;
                     g_SmallHairTextures[*ppTexture] = hdfilename;
 
-                    WORD tid = *(WORD*)(src + 0x0c);
-                    StoreInTexMaps(g_HSTexFileToTid, g_HSTexTidToFile, tid, hdfilename);
+                    StoreInTexMap(g_HSTidToTex, tid, src, hdfilename);
                     LOG(&k_fserv, "Storing tid=%04x (src=%08x) for (%dx%d) and filename: %s", tid, src, width, height, hdfilename.c_str());
                 }
                 else {
@@ -423,31 +453,36 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
         else if (src!=0) {
             WORD tid = *(WORD*)((BYTE*)src+0x0c);
             //LOG(&k_fserv, "Looking up small hair tid=%04x (src=%08x)", tid, src);
-            std::map<WORD,string>::iterator it = g_HSTexTidToFile.find(tid);
+            std::map<WORD,TEXSRC>::iterator it = g_HSTidToTex.find(tid);
             string filename;
-            if (it != g_HSTexTidToFile.end()) {
-                filename = it->second;
+            if (it != g_HSTidToTex.end()) {
+                filename = it->second.hdfilename;
             }
             if (!filename.empty()) {
                 LOG(&k_fserv, "Small hair tex from already seen tid: %04x", tid);
-                ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
-                if (SUCCEEDED(D3DXGetImageInfoFromFile(filename.c_str(), &ii))) {
-                    LOG(&k_fserv, "HD hair exists: (%dx%d) %s", ii.Width, ii.Height, filename.c_str());
-                    UINT w,h;
-                    SetHairDimensions(&ii, w, h);
-                    res = OrgCreateTexture(self, w/2, h/2, levels, usage, format, pool, ppTexture);
-                    if (res == D3D_OK) {
-                        LOG(&k_fserv, "Created small HD hair texture: (%dx%d)", w/2, h/2);
-                        *IsProcessed = true;
-                        g_SmallHairTextures[*ppTexture] = filename;
-                    }
-                    else {
-                        LOG(&k_fserv, "ERROR calling OrgCreateTexture (%dx%d) for small hair tex", w, h);
-                    }
-                }
-                else {
-                    LOG(&k_fserv, "ERROR calling D3DXGetImageInfoFromFile for: %s", filename.c_str());
-                }
+					 if (it->second.src != src) {
+					     LOG(&k_fserv, "but it has different src. So clearing entry");
+						  DeleteFromTexMap(g_HSTidToTex, tid);
+                } else {
+						 ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
+						 if (SUCCEEDED(D3DXGetImageInfoFromFile(filename.c_str(), &ii))) {
+							  LOG(&k_fserv, "HD hair exists: (%dx%d) %s", ii.Width, ii.Height, filename.c_str());
+							  UINT w,h;
+							  SetHairDimensions(&ii, w, h);
+							  res = OrgCreateTexture(self, w/2, h/2, levels, usage, format, pool, ppTexture);
+							  if (res == D3D_OK) {
+									LOG(&k_fserv, "Created small HD hair texture: (%dx%d)", w/2, h/2);
+									*IsProcessed = true;
+									g_SmallHairTextures[*ppTexture] = filename;
+							  }
+							  else {
+									LOG(&k_fserv, "ERROR calling OrgCreateTexture (%dx%d) for small hair tex", w, h);
+							  }
+						 }
+						 else {
+							  LOG(&k_fserv, "ERROR calling D3DXGetImageInfoFromFile for: %s", filename.c_str());
+						 }
+					 }
             }
         }
     }
