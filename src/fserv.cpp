@@ -195,19 +195,15 @@ void SetHairDimensions(D3DXIMAGE_INFO *ii, UINT &w, UINT &h) {
     h = (h < HD_HAIR_MIN_HEIGHT)?HD_HAIR_MIN_HEIGHT:h;
 }
 
+void DeleteFromTexMaps(std::map<string,WORD>& s2w, std::map<WORD,string>& w2s, WORD tid, string hdfilename) {
+      EnterCriticalSection(&_face_cs);
+      s2w.erase(hdfilename);
+      w2s.erase(tid);
+      LeaveCriticalSection(&_face_cs);
+}
+
 void StoreInTexMaps(std::map<string,WORD>& s2w, std::map<WORD,string>& w2s, WORD tid, string hdfilename) {
       EnterCriticalSection(&_face_cs);
-/**
-      std::map<string,WORD>::iterator sit;
-      sit = s2w.find(hdfilename);
-      if (sit != s2w.end()) {
-            std::map<WORD,string>::iterator wit;
-           wit = w2s.find(sit->second);
-            if (wit != w2s.end()) {
-                w2s.erase(wit);
-            }
-      }
-**/
       w2s[tid] = hdfilename;
       s2w[hdfilename] = tid;
       LeaveCriticalSection(&_face_cs);
@@ -229,11 +225,12 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
         if (g_faceFilesBig.size()>0) {
             string filename = g_faceFilesBig.front();
             g_faceFilesBig.pop_front();
-            LOG(&k_fserv, ">>> Looks like a big face texture (%dx%dx%d): src=%08x",
-                width, height, levels, src);
-
+            WORD tid = *(WORD*)(src + 0x0c);
+            LOG(&k_fserv, ">>> Looks like a big face texture (%dx%dx%d): src=%08x, tid=%04x",
+                width, height, levels, src, tid);
             string hdfilename = filename.substr(0,filename.size()-4);
             hdfilename += ".png";
+            DeleteFromTexMaps(g_FBTexFileToTid, g_FBTexTidToFile, tid, hdfilename);
             ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
             if (SUCCEEDED(D3DXGetImageInfoFromFile(hdfilename.c_str(), &ii))) {
                 LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, hdfilename.c_str());
@@ -276,11 +273,12 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
         if (g_faceFilesSmall.size()>0) {
             string filename = g_faceFilesSmall.front();
             g_faceFilesSmall.pop_front();
-            LOG(&k_fserv, ">>> Looks like a small face texture (%dx%dx%d): src=%08x",
-                width, height, levels, src);
-
+            WORD tid = *(WORD*)(src+0x0c);
+            LOG(&k_fserv, ">>> Looks like a small face texture (%dx%dx%d): src=%08x, tid=%04x",
+                width, height, levels, src, tid);
             string hdfilename = filename.substr(0,filename.size()-4);
             hdfilename += ".png";
+            DeleteFromTexMaps(g_FSTexFileToTid, g_FSTexTidToFile, tid, hdfilename);
             ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
             if (SUCCEEDED(D3DXGetImageInfoFromFile(hdfilename.c_str(), &ii))) {
                 LOG(&k_fserv, "HD face exists: (%dx%d) %s", ii.Width, ii.Height, hdfilename.c_str());
@@ -330,11 +328,12 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
 
             string filename = g_hairFilesBig.front();
             g_hairFilesBig.pop_front();
-            LOG(&k_fserv, ">>> Looks like a big hair texture (%dx%dx%d): src=%08x",
-                width, height, levels, src);
-
+            WORD tid = *(WORD*)(src+0x0c);
+            LOG(&k_fserv, ">>> Looks like a big hair texture (%dx%dx%d): src=%08x, tid=%04x",
+                width, height, levels, src, tid);
             string hdfilename = filename.substr(0,filename.size()-4);
             hdfilename += ".png";
+            DeleteFromTexMaps(g_HBTexFileToTid, g_HBTexTidToFile, tid, hdfilename);
             ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
             if (SUCCEEDED(D3DXGetImageInfoFromFile(hdfilename.c_str(), &ii))) {
                 LOG(&k_fserv, "HD hair exists: (%dx%d) %s", ii.Width, ii.Height, hdfilename.c_str());
@@ -395,11 +394,12 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
 
             string filename = g_hairFilesSmall.front();
             g_hairFilesSmall.pop_front();
-            LOG(&k_fserv, ">>> Looks like a small hair texture (%dx%dx%d): src=%08x",
-                width, height, levels, src);
-
+            WORD tid = *(WORD*)(src+0x0c);
+            LOG(&k_fserv, ">>> Looks like a small hair texture (%dx%dx%d): src=%08x, tid=%04x",
+                width, height, levels, src, tid);
             string hdfilename = filename.substr(0,filename.size()-4);
             hdfilename += ".png";
+            DeleteFromTexMaps(g_HSTexFileToTid, g_HSTexTidToFile, tid, hdfilename);
             ZeroMemory(&ii, sizeof(D3DXIMAGE_INFO));
             if (SUCCEEDED(D3DXGetImageInfoFromFile(hdfilename.c_str(), &ii))) {
                 LOG(&k_fserv, "HD hair exists: (%dx%d) %s", ii.Width, ii.Height, hdfilename.c_str());
