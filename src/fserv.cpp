@@ -224,7 +224,12 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
 
     // faces
     if (width == 64 && height == 128 && levels == 1) {
-        if (g_faceFilesBig.size()>0) {
+        if (g_faceFilesBig.size()>0 && src==0) {
+            LOG(&k_fserv, ">>> Looks like a big face texture (%dx%dx%d): src=%08x (WARNING: skipping HD-face processing)",
+                width, height, levels, src);
+            g_faceFilesBig.pop_front();
+        }
+        else if (g_faceFilesBig.size()>0 && src!=0) {
             string filename = g_faceFilesBig.front();
             g_faceFilesBig.pop_front();
             WORD tid = *(WORD*)(src + 0x0c);
@@ -278,7 +283,12 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
         }
     }
     else if (width == 32 && height == 64 && levels == 1) {
-        if (g_faceFilesSmall.size()>0) {
+        if (g_faceFilesSmall.size()>0 && src==0) {
+            LOG(&k_fserv, ">>> Looks like a small face texture (%dx%dx%d): src=%08x (WARNING: skipping HD-face processing)",
+                width, height, levels, src);
+            g_faceFilesSmall.pop_front();
+        }
+        else if (g_faceFilesSmall.size()>0 && src!=0) {
             string filename = g_faceFilesSmall.front();
             g_faceFilesSmall.pop_front();
             WORD tid = *(WORD*)(src+0x0c);
@@ -333,7 +343,12 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
 
     // hair
     if (width == 128 && height == 64 && levels >= 1) {
-        if (g_hairFilesBig.size() > 0) {
+        if (g_hairFilesBig.size() > 0 && src==0) {
+            LOG(&k_fserv, ">>> Looks like a big hair texture (%dx%dx%d): src=%08x (WARNING: skipping HD-hair processing)",
+                width, height, levels, src);
+            g_hairFilesBig.pop_front();
+        }
+        else if (g_hairFilesBig.size() > 0 && src!=0) {
             //std::deque<string>::iterator qit;
             //for (qit = g_hairFilesBig.begin(); qit != g_hairFilesBig.end(); qit++) {
             //  LOG(&k_fserv, ">>> g_hairFilesBig has: %s", qit->c_str());
@@ -403,7 +418,12 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
         }
     }
     else if (width == 64 && height == 32 && levels >= 1) {
-        if (g_hairFilesSmall.size()>0) {
+        if (g_hairFilesSmall.size()>0 && src==0) {
+            LOG(&k_fserv, ">>> Looks like a small hair texture (%dx%dx%d): src=%08x (WARNING: skipping HD-hair processing)",
+                width, height, levels, src);
+            g_hairFilesSmall.pop_front();
+        }
+        else if (g_hairFilesSmall.size()>0 && src!=0) {
             //std::deque<string>::iterator qit;
             //for (qit = g_hairFilesSmall.begin(); qit != g_hairFilesSmall.end(); qit++) {
             //  LOG(&k_fserv, ">>> g_hairFilesSmall has: %s", qit->c_str());
