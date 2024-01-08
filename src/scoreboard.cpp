@@ -101,21 +101,21 @@ static char* FILE_NAMES[] = {
 	"result.txs",
 	"score_font.fnt",
 };
-
-#define SCOREBOARD_TEXTURE 0
-#define SCOREBOARD_OPD 1
-#define CHAMPION 2
-#define ENTER_TEXTURE 3
-#define ENTER_OPD 4
-#define SUBS_BOARD_MDL 5
-#define FLAGS_BIG 6
-#define FLAGS_SMALL 7
-#define FORM 8
-#define L_SCREEN_0 9
-#define L_SCREEN_1 10
-#define RESULT_TXS 11
-#define EXTRA_FONT 12
-
+enum {
+	SCOREBOARD_TEXTURE,
+	SCOREBOARD_OPD,
+	CHAMPION,
+	ENTER_TEXTURE,
+	ENTER_OPD,
+	SUBS_BOARD_MDL,
+	FLAGS_BIG,
+	FLAGS_SMALL,
+	FORM,
+	L_SCREEN_0,
+	L_SCREEN_1,
+	RESULT_TXS,
+	EXTRA_FONT,
+};
 
 
 #define VECTOR_FIND(vector,id) ((id<vector.size() || id>=0) ? vector[id] : NULL)

@@ -99,7 +99,6 @@ DWORD dtaArray[][DATALEN] = {
      0xdd1d04, 0xdd1d30},
 };
 
-// Thanks to Ciais and Kingsley for finding this address in their gameplay module
 
 #define CODELEN 1
 enum {
@@ -113,7 +112,7 @@ DWORD codeArray[][CODELEN] = {
 	},
 	// PES5
 	{
-		0x3be0f53,
+		0xa30d2b,
 	},
 	// WE9
 	{
@@ -121,7 +120,7 @@ DWORD codeArray[][CODELEN] = {
 	},
 	// WE9:LE
 	{
-		0x3b68a93,
+		0xa3407b,
 	},
 };
 
