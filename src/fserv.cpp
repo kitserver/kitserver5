@@ -138,8 +138,7 @@ static WORD getPlayerId(int pos)
     isEditMode=*(BYTE*)fIDs[ISEDITMODE];
     if (isEditMode) {
         // scenario, when random player loads and juggles the ball
-        // we do not yet know how to determine player id for him, so fail for now.
-        return 0xffff;
+        return lastPlayerNumber;
     }
 
     // quick sanity-check
@@ -739,7 +738,7 @@ void InitFserv()
         
     bEditCopyPlayerDataHooked=HookProcAtAddr(fIDs[C_EDITCOPYPLAYERDATA],fIDs[C_EDITCOPYPLAYERDATA_CS],
         (DWORD)fservEditCopyPlayerData,"C_EDITCOPYPLAYERDATA","C_EDITCOPYPLAYERDATA_CS");
-            
+
     Log(&k_fserv, "hooking done");
     
     UnhookFunction(hk_D3D_Create,(DWORD)InitFserv);
