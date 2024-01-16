@@ -58,30 +58,16 @@ std::map<DWORD,DWORD> g_PlayersAddr2;
 std::map<DWORD,DWORD> g_SpecialFaceHair;
 std::map<DWORD,DWORD>::iterator g_PlayersIterator;
 
-BYTE isInEditPlayerMode=0, isInEditPlayerList=0;
+BYTE isInEditPlayerMode=0, isInEditPlayerList=0, isEditMode=0;
 DWORD lastPlayerNumber=0, lastFaceID=0, lastSkincolor=0;
 DWORD lastHairID=0, lastGDBHairID=0, lastGDBHairRes=0;
 bool lastWasFromGDB=false, lastHairWasFromGDB=false, hasChanged=true;
 char lastPlayerNumberString[BUFLEN],lastFaceFileString[BUFLEN];
 char lastHairFileString[BUFLEN];
 
-std::map<IDirect3DTexture8*,string> g_BigFaceTextures;
-std::map<IDirect3DTexture8*,string> g_SmallFaceTextures;
-std::map<IDirect3DTexture8*,string> g_BigHairTextures;
-std::map<IDirect3DTexture8*,string> g_SmallHairTextures;
-
-typedef struct _TEXSRC {
-    DWORD src;
-    string hdfilename;
-} TEXSRC;
-
-std::map<WORD,TEXSRC> g_FBTidToTex;
-std::map<WORD,TEXSRC> g_FSTidToTex;
-std::map<WORD,TEXSRC> g_HBTidToTex;
-std::map<WORD,TEXSRC> g_HSTidToTex;
-
 std::map<WORD,string> _face_map;
 std::map<WORD,string> _hair_map;
+std::map<IDirect3DTexture8*,string> _texture_map;
 
 CRITICAL_SECTION _face_cs;
 
@@ -147,6 +133,13 @@ static WORD getPlayerId(int pos)
     isInEditPlayerList=*(BYTE*)fIDs[ISEDITPLAYERLIST];
     if (isInEditPlayerMode || isInEditPlayerList) {
         return *(WORD*)fIDs[EDITEDPLAYER];
+    }
+
+    isEditMode=*(BYTE*)fIDs[ISEDITMODE];
+    if (isEditMode) {
+        // scenario, when random player loads and juggles the ball
+        // we do not yet know how to determine player id for him, so fail for now.
+        return 0xffff;
     }
 
     // quick sanity-check
@@ -289,21 +282,6 @@ void SetHairDimensions(D3DXIMAGE_INFO *ii, UINT &w, UINT &h) {
     h = (h < HD_HAIR_MIN_HEIGHT)?HD_HAIR_MIN_HEIGHT:h;
 }
 
-void DeleteFromTexMap(std::map<WORD,TEXSRC>& m, WORD tid) {
-    EnterCriticalSection(&_face_cs);
-    m.erase(tid);
-    LeaveCriticalSection(&_face_cs);
-}
-
-void StoreInTexMap(std::map<WORD,TEXSRC>& m, WORD tid, DWORD src, string hdfilename) {
-    EnterCriticalSection(&_face_cs);
-    TEXSRC tsrc;
-    tsrc.hdfilename = hdfilename;
-    tsrc.src = src;
-    m[tid] = tsrc;
-    LeaveCriticalSection(&_face_cs);
-}
-
 HRESULT STDMETHODCALLTYPE fservCreateTexture(
         IDirect3DDevice8* self, UINT width, UINT height,UINT levels,
         DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** ppTexture,
@@ -324,7 +302,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
     if (width == 64 && height == 128 && levels == 1) {
         int pos = findPlayerPositionForBigFaceSrc(src);
         WORD player_id = getPlayerId(pos);
-        LOG(&k_fserv, ">>>BF pos=%d player_id=%d", pos, player_id);
+        LOG(&k_fserv, ">>>BF pos=%d player_id=%d (src=%p)", pos, player_id, src);
         if (player_id != 0xffff) {
             map<WORD,string>::iterator it = _face_map.find(player_id);
             if (it != _face_map.end()) {
@@ -340,18 +318,19 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                     SetFaceDimensions(&ii, w, h);
                     res = OrgCreateTexture(self, w, h, levels, usage, format, pool, ppTexture);
                     if (res == D3D_OK) {
-                        LOG(&k_fserv, "Created big HD face texture: (%dx%d)", w, h);
+                        LOG(&k_fserv, "Created big HD face texture: (%dx%d) - %p", w, h, *ppTexture);
                         *IsProcessed = true;
-                        g_BigFaceTextures[*ppTexture] = hdfilename;
+                        _texture_map[*ppTexture] = hdfilename;
                     }
                 }
             }
         }
     }
+
     else if (width == 32 && height == 64 && levels == 1) {
         int pos = findPlayerPositionForSmallFaceSrc(src);
         WORD player_id = getPlayerId(pos);
-        LOG(&k_fserv, ">>>SF pos=%d player_id=%d", pos, player_id);
+        LOG(&k_fserv, ">>>SF pos=%d player_id=%d (src=%p)", pos, player_id, src);
         if (player_id != 0xffff) {
             map<WORD,string>::iterator it = _face_map.find(player_id);
             if (it != _face_map.end()) {
@@ -367,9 +346,9 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                     SetFaceDimensions(&ii, w, h);
                     res = OrgCreateTexture(self, w/2, h/2, levels, usage, format, pool, ppTexture);
                     if (res == D3D_OK) {
-                        LOG(&k_fserv, "Created small HD face texture: (%dx%d)", w/2, h/2);
+                        LOG(&k_fserv, "Created small HD face texture: (%dx%d) - %p", w/2, h/2, *ppTexture);
                         *IsProcessed = true;
-                        g_SmallFaceTextures[*ppTexture] = hdfilename;
+                        _texture_map[*ppTexture] = hdfilename;
                     }
                 }
             }
@@ -377,7 +356,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
     }
 
     // hair
-    if (width == 128 && height == 64 && levels >= 1) {
+    else if (width == 128 && height == 64 && levels >= 1) {
         int pos = findPlayerPositionForBigHairSrc(src);
         WORD player_id = getPlayerId(pos);
         LOG(&k_fserv, ">>>BH pos=%d player_id=%d (src=%p)", pos, player_id, src);
@@ -399,14 +378,15 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                     SetHairDimensions(&ii, w, h);
                     res = OrgCreateTexture(self, w, h, levels, usage, format, pool, ppTexture);
                     if (res == D3D_OK) {
-                        LOG(&k_fserv, "Created big HD hair texture: (%dx%d)", w, h);
+                        LOG(&k_fserv, "Created big HD hair texture: (%dx%d) - %p", w, h, *ppTexture);
                         *IsProcessed = true;
-                        g_BigHairTextures[*ppTexture] = hdfilename;
+                        _texture_map[*ppTexture] = hdfilename;
                     }
                 }
             }
         }
     }
+
     else if (width == 64 && height == 32 && levels >= 1) {
         int pos = findPlayerPositionForSmallHairSrc(src);
         WORD player_id = getPlayerId(pos);
@@ -426,9 +406,9 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
                     SetHairDimensions(&ii, w, h);
                     res = OrgCreateTexture(self, w/2, h/2, levels, usage, format, pool, ppTexture);
                     if (res == D3D_OK) {
-                        LOG(&k_fserv, "Created small HD hair texture: (%dx%d)", w/2, h/2);
+                        LOG(&k_fserv, "Created small HD hair texture: (%dx%d) - %p", w/2, h/2, *ppTexture);
                         *IsProcessed = true;
-                        g_SmallHairTextures[*ppTexture] = hdfilename;
+                        _texture_map[*ppTexture] = hdfilename;
                     }
                 }
             }
@@ -440,7 +420,7 @@ HRESULT STDMETHODCALLTYPE fservCreateTexture(
 void fservLoadTextureFromFile(IDirect3DTexture8* tex, const char *filename)
 {
     IDirect3DSurface8* surf;
-    LOG(&k_fserv, "fservLoadTextureFromFile: [%08x] %s", (DWORD)tex, filename);
+    LOG(&k_fserv, "fservLoadTextureFromFile: [%p] %s", (DWORD)tex, filename);
     HRESULT res = tex->GetSurfaceLevel(0, &surf);
     if (SUCCEEDED(res))
     {
@@ -458,24 +438,26 @@ void fservLoadTextureFromFile(IDirect3DTexture8* tex, const char *filename)
         surf->Release();
     }
     else {
-        LOG(&k_fserv, "FAILED tex->GetSurfaceLevel for: [%08x] %s", (DWORD)tex, filename);
+        LOG(&k_fserv, "FAILED tex->GetSurfaceLevel for: [%p] %s", (DWORD)tex, filename);
     }
 }
 
 void fservUnlockRect(IDirect3DTexture8* self,UINT Level) {
     static int count = 1;
 
-    // check faces
     std::map<IDirect3DTexture8*,string>::iterator it;
-    it = g_BigFaceTextures.find(self);
-    if (it != g_BigFaceTextures.end()) {
-        // replace with HD texture
-        fservLoadTextureFromFile(self, it->second.c_str());
+    EnterCriticalSection(&_face_cs);
+    it = _texture_map.find(self);
+    if (it != _texture_map.end()) {
+        // load bitmap into the HD texture
+        string filename = it->second.c_str();
+        LeaveCriticalSection(&_face_cs);
+        fservLoadTextureFromFile(self, filename.c_str());
 
         if (g_config->dump_textures) {
             char buf[BUFLEN];
-            string fname = it->second.substr(it->second.rfind("\\")+1);
-            sprintf(buf,"%s\\%03d - face - %s.bmp", GetPESInfo()->mydir, count, fname.c_str());
+            string fname = filename.substr(filename.rfind("\\")+1);
+            sprintf(buf,"%s\\%03d-fserv-%s.bmp", GetPESInfo()->mydir, count, fname.c_str());
             if (SUCCEEDED(D3DXSaveTextureToFile(buf, D3DXIFF_BMP, self, NULL))) {
                 LOG(&k_fserv, "Saved texture to: %s", buf);
             }
@@ -485,70 +467,12 @@ void fservUnlockRect(IDirect3DTexture8* self,UINT Level) {
         }
 
         count++;
-        g_BigFaceTextures.erase(it);
+        EnterCriticalSection(&_face_cs);
+        _texture_map.erase(it);
+        LeaveCriticalSection(&_face_cs);
+        return;
     }
-    it = g_SmallFaceTextures.find(self);
-    if (it != g_SmallFaceTextures.end()) {
-        // replace with HD texture
-        fservLoadTextureFromFile(self, it->second.c_str());
-
-        if (g_config->dump_textures) {
-            char buf[BUFLEN];
-            string fname = it->second.substr(it->second.rfind("\\")+1);
-            sprintf(buf,"%s\\%03d - face - %s.bmp", GetPESInfo()->mydir, count, fname.c_str());
-            if (SUCCEEDED(D3DXSaveTextureToFile(buf, D3DXIFF_BMP, self, NULL))) {
-                LOG(&k_fserv, "Saved texture to: %s", buf);
-            }
-            else {
-                LOG(&k_fserv, "FAILED to save texture to: %s", buf);
-            }
-        }
-
-        count++;
-        g_SmallFaceTextures.erase(it);
-    }
-
-    // check hairs
-    it = g_BigHairTextures.find(self);
-    if (it != g_BigHairTextures.end()) {
-        // replace with HD texture
-        fservLoadTextureFromFile(self, it->second.c_str());
-
-        if (g_config->dump_textures) {
-            char buf[BUFLEN];
-            string fname = it->second.substr(it->second.rfind("\\")+1);
-            sprintf(buf,"%s\\%03d - hair - %s.bmp", GetPESInfo()->mydir, count, fname.c_str());
-            if (SUCCEEDED(D3DXSaveTextureToFile(buf, D3DXIFF_BMP, self, NULL))) {
-                LOG(&k_fserv, "Saved texture to: %s", buf);
-            }
-            else {
-                LOG(&k_fserv, "FAILED to save texture to: %s", buf);
-            }
-        }
-
-        count++;
-        g_BigHairTextures.erase(it);
-    }
-    it = g_SmallHairTextures.find(self);
-    if (it != g_SmallHairTextures.end()) {
-        // replace with HD texture
-        fservLoadTextureFromFile(self, it->second.c_str());
-
-        if (g_config->dump_textures) {
-            char buf[BUFLEN];
-            string fname = it->second.substr(it->second.rfind("\\")+1);
-            sprintf(buf,"%s\\%03d - hair - %s.bmp", GetPESInfo()->mydir, count, fname.c_str());
-            if (SUCCEEDED(D3DXSaveTextureToFile(buf, D3DXIFF_BMP, self, NULL))) {
-                LOG(&k_fserv, "Saved texture to: %s", buf);
-            }
-            else {
-                LOG(&k_fserv, "FAILED to save texture to: %s", buf);
-            }
-        }
-
-        count++;
-        g_SmallHairTextures.erase(it);
-    }
+    LeaveCriticalSection(&_face_cs);
 }
 
 bool HookProcAtAddr(DWORD proc, DWORD proc_cs, DWORD newproc, char* sproc, char* sproc_cs)
@@ -648,14 +572,8 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 
         DeleteCriticalSection(&_face_cs);
 
-        // log face textures
-        std::map<IDirect3DTexture8*,string>::iterator it;
-        for (it = g_BigFaceTextures.begin(); it != g_BigFaceTextures.end(); it++) {
-            LOG(&k_fserv,"Big face tex: %08x --> %s", (DWORD)it->first, it->second.c_str());
-        }
-        for (it = g_SmallFaceTextures.begin(); it != g_SmallFaceTextures.end(); it++) {
-            LOG(&k_fserv,"Small face tex: %08x --> %s", (DWORD)it->first, it->second.c_str());
-        }
+        // log texture count
+        LOG(&k_fserv, "_texture_map.size() = %d", _texture_map.size());
         
         UnhookFunction(hk_FileFromAFS,(DWORD)fservFileFromAFS);
         UnhookFunction(hk_BeforeFreeMemory,(DWORD)fservFreeMemory);
