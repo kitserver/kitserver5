@@ -358,8 +358,7 @@ enum {
 	TEAM_IDS, TEAM_STRIPS, KIT_SLOTS, 
 	ANOTHER_KIT_SLOTS, MLDATA_PTRS, TEAM_COLLARS_PTR,
 	KIT_CHECK_TRIGGER, FIRST_ID, LAST_ID, 
-    NATIONAL_TEAMS_ADDR, CLUB_TEAMS_ADDR, 
-	ML_HOME_AREA, ML_AWAY_AREA,
+    NATIONAL_TEAMS_ADDR, CLUB_TEAMS_ADDR, ML_HOME_AREA, ML_AWAY_AREA,
 	SINGLEPLAYER, KITSELECTSIDE, PLAYERSIDE,	
     RADARCOLOR_HOME, RADARCOLOR_AWAY,
     EDITMODE_FLAG, EDITPLAYER_ID, EDITTEAM_KIT_ID, EDITPLAYER_NUMBER,
@@ -379,7 +378,7 @@ DWORD dataArray[][DATALEN] = {
     // PES5
     { 0x3be0f40, 0x3b7f2c6, 0,
       0, 0, 0,
-      0, 4576, 8935, // was 8615: added All-Star teams
+      0, 4576, 8995, // was 8615: added All-Star teams
       0x38b77dc, 0x38b77e0, 0x38b77a4, 0x38b77a8,
       0x3be10a0, 0xfdeefc, 0xc0e4d0,
       0x3be1c6c, 0x3be1c70,
@@ -388,7 +387,7 @@ DWORD dataArray[][DATALEN] = {
     // WE9
     { 0x3be0f60, 0x3b7f2e6, 0,
       0, 0, 0,
-      0, 4576, 8935, // was 8615: added All-Star teams
+      0, 4576, 8995, // was 8615: added All-Star teams
       0x38b77dc, 0x38b77e0, 0x38b77a4, 0x38b77a8,
       0x3be10c0, 0xfdef04, 0xc0e4d0,
       0x3be1c8c, 0x3be1c90,
@@ -397,7 +396,7 @@ DWORD dataArray[][DATALEN] = {
     // WE9:LE
     { 0x3b68a80, 0x3adb606, 0, 
       0, 0, 0, 
-      0, 4583, 8942,
+      0, 4583, 9002, // was 8942
       0x37f20ec, 0x37f20f0, 0x37f20b4, 0x37f20b8,
       0x3b68be0, 0xf18e94, 0xb4d548,
       0x3b697ac, 0x3b697b0,
@@ -1878,6 +1877,11 @@ WORD GetTeamId(int which)
                 id = *((DWORD*)(mlData + 0x6c)) & 0xffff; // 3rd byte is a flag of "edited" kit
                 break;
         }
+    }
+
+    // if still 0xf2/0xf3 - has to be ML original team
+    if (id==0xf2 || id==0xf3) {
+        id = 218;
     }
     return id;
 }
@@ -6480,6 +6484,11 @@ void JuceGetClubTeamInfo(DWORD id,DWORD result)
 		BYTE* mlData = *((BYTE**)data[ML_AWAY_AREA]);
 		id = *((DWORD*)(mlData + 0x6c)) & 0xffff; // 3rd byte is a flag of "edited" kit
 	}
+
+    // if still 0xf2/0xf3 - has to be ML original team
+    if (id==0xf2 || id==0xf3) {
+        id = 218;
+    }
 
 	if (id >= 64 && id < 255 && TeamDirExists(id)) {
 		// check if we need to store it in the hash-map
