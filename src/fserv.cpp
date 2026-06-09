@@ -1188,7 +1188,7 @@ void fservFileFromAFS(DWORD infoBlock)
         LogWithNumber(&k_fserv,"Copying data with size of %d bytes...",dataOfMemory->size);
         FileBuffer=HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,dataOfMemory->size);
         g_Buffers[(DWORD)FileBuffer]=FileBuffer;
-        memcpy(FileBuffer,dataOfMemory->data,dataOfMemory->size);
+        memcpy(FileBuffer,dataOfMemory->dta,dataOfMemory->size);
                 
         ib->src=(DWORD)FileBuffer;
         sgf->FreeBuffer(requestedData);

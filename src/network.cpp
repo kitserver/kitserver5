@@ -43,7 +43,7 @@ enum {
     CODE_READ_CRED_FLAG, CODE_WRITE_CRED_FLAG,
 };
 
-static DWORD dataArray[][DATALEN] = {
+static DWORD dtaArray[][DATALEN] = {
     // PES5 DEMO 2
     {
         0, 0,
@@ -82,7 +82,7 @@ static DWORD dataArray[][DATALEN] = {
     },
 };
 
-static DWORD data[DATALEN];
+static DWORD dta[DATALEN];
 
 enum {
     ROSTER_URL,
@@ -138,7 +138,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 void initModule();
 bool readConfig(network_config_t& config);
 size_t HeaderFunction( void *ptr, size_t size, size_t nmemb, void *stream);
-size_t WriteChunkCallback(void *ptr, size_t size, size_t nmemb, void *data);
+size_t WriteChunkCallback(void *ptr, size_t size, size_t nmemb, void *dta);
 bool rosterReadNumPages(DWORD afsId, DWORD fileId, 
         DWORD orgNumPages, DWORD* numPages);
 bool rosterAfterReadFile(HANDLE hFile, 
@@ -244,10 +244,10 @@ size_t HeaderFunction( void *ptr, size_t size, size_t nmemb, void *stream)
     return dataSize;
 }
 
-size_t WriteChunkCallback(void *ptr, size_t size, size_t nmemb, void *data)
+size_t WriteChunkCallback(void *ptr, size_t size, size_t nmemb, void *dta)
 {
 	size_t realsize = size * nmemb;
-	CHUNK_READ* pChunkRead = (CHUNK_READ*)data;
+	CHUNK_READ* pChunkRead = (CHUNK_READ*)dta;
 	DWORD bytesWritten = 0;
 	WriteFile(pChunkRead->hFile,ptr,realsize,&bytesWritten,NULL);
 	// update total fetch-count
@@ -281,7 +281,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		RegisterKModule(&k_network);
 
         // initialize addresses
-        memcpy(data, dataArray[v], sizeof(data));
+        memcpy(dta, dtaArray[v], sizeof(dta));
 		
 		HookFunction(hk_D3D_Create,(DWORD)initModule);
 	}
@@ -364,13 +364,13 @@ bool readConfig(network_config_t& config)
 		{
             string value(pValue);
             string_strip(value);
-            config.stunServer = value.substr(0, data[STUN_SERVER_BUFLEN]-1);
+            config.stunServer = value.substr(0, dta[STUN_SERVER_BUFLEN]-1);
 		}
 		else if (strcmp(name, "network.server")==0)
 		{
             string value(pValue);
             string_strip(value);
-            config.server = value.substr(0, data[GAME_SERVER_BUFLEN]-1);
+            config.server = value.substr(0, dta[GAME_SERVER_BUFLEN]-1);
 		}
         else if (strcmp(name, "network.remember.login")==0)
 		{
@@ -387,11 +387,11 @@ void initModule()
     HookFunction(hk_GetNumPages,(DWORD)rosterReadNumPages);
     HookFunction(hk_AfterReadFile,(DWORD)rosterAfterReadFile);
     HookFunction(hk_CreateOption,(DWORD)rosterCreateOption);
-    HookCallPoint(data[CODE_READ_VERSION_STRING], 
+    HookCallPoint(dta[CODE_READ_VERSION_STRING], 
             rosterVersionReadCallPoint, 6, 3, false);
-    HookCallPoint(data[CODE_READ_CRED_FLAG], 
+    HookCallPoint(dta[CODE_READ_CRED_FLAG], 
             loginReadCallPoint, 6, 2, false);
-    HookCallPoint(data[CODE_WRITE_CRED_FLAG], 
+    HookCallPoint(dta[CODE_WRITE_CRED_FLAG], 
             loginWriteCallPoint, 6, 2, false);
 
 	curl_global_init(CURL_GLOBAL_ALL);
@@ -418,11 +418,11 @@ void initModule()
     DWORD newProtection = PAGE_EXECUTE_READWRITE;
 
     if (!_config.server.empty()) {
-        char* gameServerString = (char*)data[GAME_SERVER];
-	    if (VirtualProtect(gameServerString, data[GAME_SERVER_BUFLEN], 
+        char* gameServerString = (char*)dta[GAME_SERVER];
+	    if (VirtualProtect(gameServerString, dta[GAME_SERVER_BUFLEN], 
                     newProtection, &protection)) {
             strncpy(gameServerString, 
-                    _config.server.c_str(), data[GAME_SERVER_BUFLEN]);
+                    _config.server.c_str(), dta[GAME_SERVER_BUFLEN]);
         }
         else {
             LOG(&k_network, "ERROR: cannot set game server host");
@@ -430,23 +430,23 @@ void initModule()
 
     }
     if (!_config.stunServer.empty()) {
-        char* stunServerString = (char*)data[STUN_SERVER];
-        if (VirtualProtect(stunServerString, data[STUN_SERVER_BUFLEN],
+        char* stunServerString = (char*)dta[STUN_SERVER];
+        if (VirtualProtect(stunServerString, dta[STUN_SERVER_BUFLEN],
                     newProtection, &protection)) {
             strncpy(stunServerString, 
-                    _config.stunServer.c_str(), data[STUN_SERVER_BUFLEN]);
+                    _config.stunServer.c_str(), dta[STUN_SERVER_BUFLEN]);
         }
         else {
             LOG(&k_network, "ERROR: cannot set stun server host");
         }
     }
 
-    _login_credentials = data[CREDENTIALS];
+    _login_credentials = dta[CREDENTIALS];
 }
 
 void setPerformanceFrequency(float factor)
 {
-    LARGE_INTEGER* freq = (LARGE_INTEGER*)data[CLOCK_FREQUENCY];
+    LARGE_INTEGER* freq = (LARGE_INTEGER*)dta[CLOCK_FREQUENCY];
     _nonOnlineFrequency.LowPart = freq->LowPart;
     _nonOnlineFrequency.HighPart = freq->HighPart;
 
@@ -465,7 +465,7 @@ void setPerformanceFrequency(float factor)
 void restorePerformanceFrequency()
 {
     if (_nonOnlineFrequency.LowPart || _nonOnlineFrequency.HighPart) {
-        LARGE_INTEGER* freq = (LARGE_INTEGER*)data[CLOCK_FREQUENCY];
+        LARGE_INTEGER* freq = (LARGE_INTEGER*)dta[CLOCK_FREQUENCY];
         freq->LowPart = _nonOnlineFrequency.LowPart;
         freq->HighPart = _nonOnlineFrequency.HighPart;
         LOG(&k_network, "restored: hi=%08x, lo=%08x", 
@@ -479,11 +479,11 @@ bool rosterReadNumPages(DWORD afsId, DWORD fileId,
     DWORD fileSize = 0;
 
     if (afsId == 1 
-            && ((fileId >= data[DB_FILE1] && fileId <= data[DB_FILE3])
-                || (fileId >= data[ROSTER_FILEID] && fileId <= data[DB_FILE7]))
-            && *(DWORD*)data[MAIN_MENU_MODE] == 7) {
+            && ((fileId >= dta[DB_FILE1] && fileId <= dta[DB_FILE3])
+                || (fileId >= dta[ROSTER_FILEID] && fileId <= dta[DB_FILE7]))
+            && *(DWORD*)dta[MAIN_MENU_MODE] == 7) {
 
-        if (fileId == data[DB_FILE3]) {
+        if (fileId == dta[DB_FILE3]) {
             _networkMode = !_networkMode;
             if (_networkMode) {
                 LOG(&k_network,"Loading online db ...");
@@ -636,10 +636,10 @@ bool rosterAfterReadFile(HANDLE hFile,
             - (*lpNumberOfBytesRead);
         DWORD fileId = GetProbableFileIdForHandle(afsId, offset, hFile);
 
-        if ((fileId >= data[DB_FILE1] && fileId <= data[DB_FILE3] 
-                    || (fileId >= data[ROSTER_FILEID] 
-                        && fileId <= data[DB_FILE7]))
-                && *(DWORD*)data[MAIN_MENU_MODE] == 7 && _networkMode) {
+        if ((fileId >= dta[DB_FILE1] && fileId <= dta[DB_FILE3] 
+                    || (fileId >= dta[ROSTER_FILEID] 
+                        && fileId <= dta[DB_FILE7]))
+                && *(DWORD*)dta[MAIN_MENU_MODE] == 7 && _networkMode) {
             LOG(&k_network, 
                     "--> READING ONLINE DB (%d): offset:%08x, bytes:%08x <--",
                     fileId, offset, *lpNumberOfBytesRead);
@@ -650,7 +650,7 @@ bool rosterAfterReadFile(HANDLE hFile,
 
             // if enabled, check for db-update
             if (_config.updateEnabled && !_config.updateBaseURI.empty()) {
-                if (fileId == data[DB_FILE3]) {
+                if (fileId == dta[DB_FILE3]) {
                     META_INFO metaInfo;
                     memset(metaInfo.etag,0,sizeof(metaInfo.etag));
 
@@ -728,7 +728,7 @@ bool rosterAfterReadFile(HANDLE hFile,
 
                 // calculate roster hash
                 if (_config.doRosterHash) {
-                    if (fileId == data[ROSTER_FILEID]) {
+                    if (fileId == dta[ROSTER_FILEID]) {
                         md5_init(&state);
                         md5_append(&state, 
                                 (const md5_byte_t *)lpBuffer, 
@@ -1218,7 +1218,7 @@ void loginWriteCallPoint()
 
 void loginRead()
 {
-    LOGIN_CREDENTIALS* lc = (LOGIN_CREDENTIALS*)data[CREDENTIALS];
+    LOGIN_CREDENTIALS* lc = (LOGIN_CREDENTIALS*)dta[CREDENTIALS];
     if (_config.rememberLogin && lc) {
         // read registry key
         HKEY handle;
@@ -1244,7 +1244,7 @@ void loginRead()
 
 void loginWrite()
 {
-    LOGIN_CREDENTIALS* lc = (LOGIN_CREDENTIALS*)data[CREDENTIALS];
+    LOGIN_CREDENTIALS* lc = (LOGIN_CREDENTIALS*)dta[CREDENTIALS];
     if (_config.rememberLogin && lc) {
         lc->initialized = 1;
 

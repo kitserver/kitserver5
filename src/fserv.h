@@ -84,7 +84,7 @@ typedef struct _DATAOFID {
 typedef struct _DATAOFMEMORY {
 	BYTE type;
 	DWORD size;
-	BYTE data[];
+	BYTE dta[];
 } DATAOFMEMORY;
 	
 #define FACESET_NONE 0

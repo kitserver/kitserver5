@@ -8,7 +8,7 @@ DWORD Sign(BYTE* encBuffer)
 {
 	ENCBUFFERHEADER* header = (ENCBUFFERHEADER*)encBuffer;
 	DWORD len = header->dwEncSize;
-	BYTE* data = encBuffer + sizeof(ENCBUFFERHEADER);
+	BYTE* dta = encBuffer + sizeof(ENCBUFFERHEADER);
 
     DWORD result;
     int i,j;
@@ -18,7 +18,7 @@ DWORD Sign(BYTE* encBuffer)
     
     for (i=0; i<len; i++)
     {
-        octet = *(data++);
+        octet = *(dta++);
         for (j=0; j<8; j++)
         {
             if ((octet >> 7) ^ (result >> 31))
@@ -36,7 +36,7 @@ DWORD Sign(BYTE* encBuffer)
     return ~result; // The complement of the remainder
 }
 
-DWORD GetCRC(BYTE* data, DWORD len)
+DWORD GetCRC(BYTE* dta, DWORD len)
 {
     DWORD result;
     int i,j;
@@ -46,7 +46,7 @@ DWORD GetCRC(BYTE* data, DWORD len)
     
     for (i=0; i<len; i++)
     {
-        octet = *(data++);
+        octet = *(dta++);
         for (j=0; j<8; j++)
         {
             if ((octet >> 7) ^ (result >> 31))

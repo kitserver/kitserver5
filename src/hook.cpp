@@ -964,7 +964,8 @@ KEXPORT DWORD AFSMemUnpack(DWORD FileID, DWORD Buffer)
 DWORD NewUniDecode(DWORD addr, DWORD size)
 {
 	CUNIDECODE NextCall=NULL;
-	for (int i=0;i<(l_BeforeUniDecode.num);i++)
+	int i;
+	for (i=0;i<(l_BeforeUniDecode.num);i++)
 	if (l_BeforeUniDecode.addr[i]!=0) {
 		NextCall=(CUNIDECODE)l_BeforeUniDecode.addr[i];
 		NextCall(addr,size,0);
@@ -1087,7 +1088,8 @@ DWORD NewGetPlayerInfo()
 	DWORD result=GetPlayerInfo(PlayerNumber,Mode);
 	
 	//Find out who's calling
-	for (int i=0;i<GPILEN;i++)
+	int i;
+	for (i=0;i<GPILEN;i++)
 		if (Caller==gpi[i]+5) {
 			Caller=i;
 			break;
@@ -1175,8 +1177,8 @@ BOOL STDMETHODCALLTYPE NewReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberO
   LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped)
 {
 	PFNREADFILE NextCall=NULL;
-	
-	for (int i=0;i<(l_ReadFile.num);i++)
+	int i;
+	for (i=0;i<(l_ReadFile.num);i++)
 	if (l_ReadFile.addr[i]!=0) {
 		NextCall=(PFNREADFILE)l_ReadFile.addr[i];
 		if (NextCall(hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped)) 
@@ -1343,13 +1345,13 @@ HRESULT STDMETHODCALLTYPE NewGetDeviceCaps(IDirect3D8* self, UINT Adapter,
     return result;
 }
 
-void write_dword(DWORD addr, BYTE* data)
+void write_dword(DWORD addr, BYTE* dta)
 {
 	DWORD protection = 0;
 	DWORD newProtection = PAGE_EXECUTE_READWRITE;
     if (VirtualProtect((BYTE*)addr, 8, newProtection, &protection))
     {
-        memcpy((BYTE*)addr, &data, sizeof(DWORD));
+        memcpy((BYTE*)addr, &dta, sizeof(DWORD));
     }
 }
    
@@ -1647,7 +1649,8 @@ UINT levels, DWORD usage, D3DFORMAT format, D3DPOOL pool, IDirect3DTexture8** pp
 			src=0;
 	};
 	
-	for (int i=0;i<(l_D3D_CreateTexture.num);i++)
+	int i;
+	for (i=0;i<(l_D3D_CreateTexture.num);i++)
 	if (l_D3D_CreateTexture.addr[i]!=0) {
 		NextCall=(CCREATETEXTURE)l_D3D_CreateTexture.addr[i];
 		res=NextCall(self, width, height, levels, usage, format, pool, ppTexture, src, &IsProcessed);
@@ -2239,7 +2242,7 @@ KEXPORT HANDLE WINAPI Override_CreateFileA(
                              dwFlagsAndAttributes,
                              hTemplateFile);
 
-        char* shortName = strrchr(lpFileName,'_');
+        char* shortName = strrchr(const_cast<char*>(lpFileName),'_');
         if (shortName && lpFileName!=shortName) shortName--;
         if (shortName) {
             if (_strnicmp(shortName,"0_so",4)==0)
@@ -2298,7 +2301,7 @@ KEXPORT HANDLE WINAPI Override_CreateFileW(
                              dwFlagsAndAttributes,
                              hTemplateFile);
 
-        wchar_t* shortName = wcsrchr(lpFileName,'_');
+        wchar_t* shortName = wcsrchr(const_cast<wchar_t*>(lpFileName),'_');
         if (shortName && lpFileName!=shortName) shortName--;
         if (shortName) {
             if (_wcsnicmp(shortName,L"0_so",4)==0)

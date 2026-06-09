@@ -50,7 +50,7 @@ typedef struct _SG_PLAYERSECT_ID {
 typedef struct _SG_PLAYERSECT_DATA {
 	DWORD type;	//PDSECT_???
 	DWORD size;
-	BYTE data[];
+	BYTE dta[];
 } SG_PLAYERSECT_DATA;
 
 
@@ -62,5 +62,5 @@ typedef struct _DATAOFID {
 typedef struct _DATAOFMEMORY {
 	BYTE type;
 	DWORD size;
-	BYTE data[];
+	BYTE dta[];
 } DATAOFMEMORY;

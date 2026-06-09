@@ -117,7 +117,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReser
 		HookFunction(hk_D3D_Create,(DWORD)InitSavegames);
 		
 		memcpy(code,codeArray[v-1],sizeof(code));
-		memcpy(data,dataArray[v-1],sizeof(data));
+		memcpy(dta,dtaArray[v-1],sizeof(dta));
 		
 		sgf.RequestReplayPlayerData=(REQUESTREPLAYPLAYERDATA)RequestReplayPlayerData;
 		sgf.RequestMLPlayerData=(REQUESTMLPLAYERDATA)RequestMLPlayerData;
@@ -205,8 +205,8 @@ void InitSavegames()
 
 void sgCopyPlayerData()
 {
-	BYTE* playerData=(BYTE*)(data[PLAYERDATA_BASE]);
-	WORD* currPlayerIDs=(WORD*)(data[CPD_PLAYERIDS]);
+	BYTE* playerData=(BYTE*)(dta[PLAYERDATA_BASE]);
+	WORD* currPlayerIDs=(WORD*)(dta[CPD_PLAYERIDS]);
 	WORD orgPlayerIDs[64];
 	int i,j;
 	
@@ -270,7 +270,7 @@ DWORD sgAsyncWriteFile(DWORD p1, DWORD p2, DWORD p3, DWORD p4, DWORD p5, DWORD p
 	BYTE folder=((p2 & 0xff)*4) + ((p2>>16) & 0xff) + 1;
 	ZeroMemory(buf,128);
 	memcpy(buf,(BYTE*)p1,20);
-	sprintf(filename,"%s\\folder%d\\%s",(char*)(*(DWORD*)(data[SAVEDDATAFOLDER])),folder,buf);
+	sprintf(filename,"%s\\folder%d\\%s",(char*)(*(DWORD*)(dta[SAVEDDATAFOLDER])),folder,buf);
 
 	//MessageBox(0,buf,"WRITE",0);
 	
@@ -581,7 +581,7 @@ void sgFinishAsyncRead()
 		return;
 	};
 	
-	BYTE currMLfile=*(BYTE*)(data[CURR_MLFILE]);
+	BYTE currMLfile=*(BYTE*)(dta[CURR_MLFILE]);
 	
 	switch (fileType) {
 	case PESTYPE_REPLAY:
@@ -622,7 +622,7 @@ void sgFinishAsyncRead()
 
 void sgAsyncOpFinished()
 {
-	if (isAsyncReadStarted && *(DWORD*)(data[CURRENT_ASYNCOP])==0) {
+	if (isAsyncReadStarted && *(DWORD*)(dta[CURRENT_ASYNCOP])==0) {
 		sgFinishAsyncRead();
 		isAsyncReadStarted=false;
 		readBuffer=0;
@@ -757,7 +757,7 @@ BYTE* RequestReplayPlayerData(BYTE type, DWORD player)
 		
 		dataOfMemory->type=1;
 		dataOfMemory->size=sgPlayerSectData->size;
-		memcpy(dataOfMemory->data,sgPlayerSectData->data,sgPlayerSectData->size);
+		memcpy(dataOfMemory->dta,sgPlayerSectData->dta,sgPlayerSectData->size);
 		
 		break;
 		
@@ -935,7 +935,7 @@ BYTE* RequestMLPlayerData(BYTE type, DWORD player)
 		
 		dataOfMemory->type=1;
 		dataOfMemory->size=sgPlayerSectData->size;
-		memcpy(dataOfMemory->data,sgPlayerSectData->data,sgPlayerSectData->size);
+		memcpy(dataOfMemory->dta,sgPlayerSectData->dta,sgPlayerSectData->size);
 		
 		break;
 		

@@ -17,7 +17,7 @@ enum {
     LINEUP_RECORD_SIZE, LINEUP_BLOCKSIZE, PLAYERDATA_SIZE,
     BOOTTYPE_OFFSET, BOOTTYPE_RESET_MASK, BOOTTYPE_TEST_MASK,
 };
-DWORD dataArray[][DATALEN] = {
+DWORD dtaArray[][DATALEN] = {
     // PES5 DEMO 2
     {
         0, 0, 0,
@@ -67,7 +67,7 @@ DWORD dataArray[][DATALEN] = {
         0x1c, 0x0f, 0xf0,
     },
 };
-DWORD data[DATALEN];
+DWORD dta[DATALEN];
 
 #define CODELEN 2
 enum {
@@ -229,7 +229,7 @@ void bootInit(IDirect3D8* self, UINT Adapter,
 {
     Log(&k_boot, "Initializing bootserver...");
     memcpy(code, codeArray[GetPESInfo()->GameVersion], sizeof(code));
-    memcpy(data, dataArray[GetPESInfo()->GameVersion], sizeof(data));
+    memcpy(dta, dtaArray[GetPESInfo()->GameVersion], sizeof(dta));
 
     HookFunction(hk_D3D_UnlockRect,(DWORD)bootUnlockRect);
     HookFunction(hk_BeginUniSelect,(DWORD)bootBeginUniSelect);
@@ -372,7 +372,8 @@ void populateTextureFilesVector(vector<string>& vec, string& currDir)
 void releaseBootTextures()
 {
     // release the boot textures, so that we don't consume too much memory for boots
-    for (map<WORD,TexturePack>::iterator it = g_bootTexturePacks.begin();
+	map<WORD,TexturePack>::iterator it;
+    for (it = g_bootTexturePacks.begin();
             it != g_bootTexturePacks.end();
             it++) {
         if (it->second._big) {
@@ -601,17 +602,17 @@ IDirect3DTexture8* getBootTexture(WORD playerId, bool big, UINT levels)
 
 bool isEditMode()
 {
-    return *(BYTE*)data[EDITMODE_FLAG] == 1;
+    return *(BYTE*)dta[EDITMODE_FLAG] == 1;
 }
 
 bool isEditPlayerMode()
 {
-    return *(BYTE*)data[EDITPLAYERMODE_FLAG] == 1;
+    return *(BYTE*)dta[EDITPLAYERMODE_FLAG] == 1;
 }
 
 bool isEditBootsMode()
 {
-    return *(BYTE*)data[EDITBOOTS_FLAG] == 1;
+    return *(BYTE*)dta[EDITBOOTS_FLAG] == 1;
 }
 
 DWORD bootCopyPlayerData(DWORD p0, DWORD p1, DWORD p2)
@@ -623,7 +624,7 @@ DWORD bootCopyPlayerData(DWORD p0, DWORD p1, DWORD p2)
     DWORD result = MasterCallNext(p0,p1,p2);
 
     bool needBootTypeReset = false;
-    BYTE* pBootType = (BYTE*)(addr-data[BOOTTYPE_OFFSET]+1);
+    BYTE* pBootType = (BYTE*)(addr-dta[BOOTTYPE_OFFSET]+1);
     if (g_config._randomBootsEnabled) {
         needBootTypeReset = true;
     } else {
@@ -632,7 +633,7 @@ DWORD bootCopyPlayerData(DWORD p0, DWORD p1, DWORD p2)
     }
 
     if (needBootTypeReset) {
-        *pBootType &= data[BOOTTYPE_RESET_MASK];
+        *pBootType &= dta[BOOTTYPE_RESET_MASK];
         LogWithTwoNumbers(&k_boot,"setting boot-type to 0 at %08x -> player %d",
                 (DWORD)pBootType, playerNumber);
     }
@@ -655,9 +656,9 @@ WORD getPlayerId(int pos)
     }
 
     LINEUP_RECORD* lineupRecord =
-        (LINEUP_RECORD*)(data[PLAYERS_LINEUP] + data[LINEUP_RECORD_SIZE]*pos);
-    WORD playerId = *(WORD*)(data[PLAYERID_IN_PLAYERDATA]
-            + (lineupRecord->isRight*0x20 + lineupRecord->playerOrdinal)*data[PLAYERDATA_SIZE]);
+        (LINEUP_RECORD*)(dta[PLAYERS_LINEUP] + dta[LINEUP_RECORD_SIZE]*pos);
+    WORD playerId = *(WORD*)(dta[PLAYERID_IN_PLAYERDATA]
+            + (lineupRecord->isRight*0x20 + lineupRecord->playerOrdinal)*dta[PLAYERDATA_SIZE]);
     return playerId;
 }
 
@@ -685,19 +686,19 @@ KEXPORT void bootUnlockRect(IDirect3DTexture8* self, UINT Level)
                 }
                 // edit player
                 if (desc.Width==512) {
-                    playerId = *(WORD*)data[EDITPLAYER_ID];
+                    playerId = *(WORD*)dta[EDITPLAYER_ID];
                     // check boot-type: don't replace the texture if boot-type
                     // is not "editable". That may have some undesirable effects later
                     // if the texture becomes cached.
-                    if (data[EDITMODE_CURRPLAYER_MOD]) { //PES6
-                        DWORD* pBaseCopy = (DWORD*)data[EDITMODE_CURRPLAYER_MOD];
+                    if (dta[EDITMODE_CURRPLAYER_MOD]) { //PES6
+                        DWORD* pBaseCopy = (DWORD*)dta[EDITMODE_CURRPLAYER_MOD];
                         if (*pBaseCopy) {
-                            BYTE bootType = *(BYTE*)(*pBaseCopy + 0x61) & data[BOOTTYPE_TEST_MASK];
+                            BYTE bootType = *(BYTE*)(*pBaseCopy + 0x61) & dta[BOOTTYPE_TEST_MASK];
                             if (bootType!=0) return;
                         }
-                    } else if (data[EDITMODE_CURRPLAYER_MOD_DIRECT]) {  //PES5/WE9/WE9LE
-                        DWORD pBaseCopy = data[EDITMODE_CURRPLAYER_MOD_DIRECT];
-                        BYTE bootType = *(BYTE*)(pBaseCopy + 0x63) & data[BOOTTYPE_TEST_MASK];
+                    } else if (dta[EDITMODE_CURRPLAYER_MOD_DIRECT]) {  //PES5/WE9/WE9LE
+                        DWORD pBaseCopy = dta[EDITMODE_CURRPLAYER_MOD_DIRECT];
+                        BYTE bootType = *(BYTE*)(pBaseCopy + 0x63) & dta[BOOTTYPE_TEST_MASK];
                         if (bootType!=0) return;
                     }
                 }

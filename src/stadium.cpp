@@ -190,7 +190,7 @@ enum {
     STADIUM_TEXT_TABLE, STADIUM_TEXT_LEN, RANDOM_STADIUM_FLAG,
     ISVIEWSTADIUMMODE,
 };
-static DWORD dataArray[][DATALEN] = {
+static DWORD dtaArray[][DATALEN] = {
 	// PES5 DEMO 2
 	{0, 0, 0, 0, 0, 
      0, 0, 0,
@@ -321,13 +321,13 @@ static char* WEATHER_NAMES[] = {
 };
 
 static DWORD code[CODELEN];
-static DWORD data[DATALEN];
+static DWORD dta[DATALEN];
 
 static std::map<DWORD,bool> g_AFS_idMap;
 static std::map<DWORD,MEMITEMINFO*> g_AFS_offsetMap;
 static std::map<WORD,std::string*> g_HomeStadiumMap;
 static std::map<std::string*,STADINFO*,ltstr> g_stadiumMap;
-static std::map<std::string*,STADINFO*,ltstr>::iterator g_stadiumMapIterator = NULL;
+static std::map<std::string*,STADINFO*,ltstr>::iterator g_stadiumMapIterator;
 
 static bool hasGdbStadiums = false;
 static char g_stadiumText[61];
@@ -584,18 +584,18 @@ static void InitStadiumMaps()
 static WORD GetTeamId(int which)
 {
     BYTE* mlData;
-    if (data[TEAM_IDS]==0) return 0xffff;
-    WORD id = ((WORD*)data[TEAM_IDS])[which];
+    if (dta[TEAM_IDS]==0) return 0xffff;
+    WORD id = ((WORD*)dta[TEAM_IDS])[which];
     if (id==0xf2 || id==0xf3) {
         switch (id) {
             case 0xf2:
                 // master league team (home)
-                mlData = *((BYTE**)data[ML_HOME_AREA]);
+                mlData = *((BYTE**)dta[ML_HOME_AREA]);
                 id = *((DWORD*)(mlData + 0x6c)) & 0xffff; // 3rd byte is a flag of "edited" kit
                 break;
             case 0xf3:
                 // master league team (away)
-                mlData = *((BYTE**)data[ML_AWAY_AREA]);
+                mlData = *((BYTE**)dta[ML_AWAY_AREA]);
                 id = *((DWORD*)(mlData + 0x6c)) & 0xffff; // 3rd byte is a flag of "edited" kit
                 break;
         }
@@ -680,7 +680,7 @@ void InitStadiumServer()
     int i,j;
 
 	memcpy(code, codeArray[GetPESInfo()->GameVersion], sizeof(code));
-	memcpy(data, dataArray[GetPESInfo()->GameVersion], sizeof(data));
+	memcpy(dta, dtaArray[GetPESInfo()->GameVersion], sizeof(dta));
 
     HookCallPoint(code[C_EXIT_VIEW_STADIUMS], 
             stadExitViewStadiumsCallPoint, 6, 5, false);
@@ -697,10 +697,10 @@ void InitStadiumServer()
     }
 
     // read offsets for stadium files
-	for (i=0; i<data[NUM_STADS]; i++) {
-        for (j=0; j<data[NUM_FILES]; j++) {
-            DWORD id = data[STAD_FIRST] + i*data[NUM_FILES] + j;
-            id = (id > data[NOU_CAMP_SHIFT_ID])?(id + data[SHIFT]):id;
+	for (i=0; i<dta[NUM_STADS]; i++) {
+        for (j=0; j<dta[NUM_FILES]; j++) {
+            DWORD id = dta[STAD_FIRST] + i*dta[NUM_FILES] + j;
+            id = (id > dta[NOU_CAMP_SHIFT_ID])?(id + dta[SHIFT]):id;
             // store id in id-map
             g_AFS_idMap[id] = true;
 
@@ -721,8 +721,8 @@ void InitStadiumServer()
     }
 
     // read offsets for adboard textures
-	for (i=0; i<data[NUM_ADBOARD_TEX]; i++) {
-        DWORD id = data[ADBOARD_TEX_FIRST] + i;
+	for (i=0; i<dta[NUM_ADBOARD_TEX]; i++) {
+        DWORD id = dta[ADBOARD_TEX_FIRST] + i;
         // store id in id-map
         g_AFS_idMap[id] = true;
 
@@ -757,31 +757,31 @@ void InitStadiumServer()
 
 int GetStadId(DWORD id)
 {
-    int sid = id - data[STAD_FIRST];
-    sid = (id > data[NOU_CAMP_SHIFT_ID])?(sid - data[SHIFT]):sid;
-    return sid / data[NUM_FILES];
+    int sid = id - dta[STAD_FIRST];
+    sid = (id > dta[NOU_CAMP_SHIFT_ID])?(sid - dta[SHIFT]):sid;
+    return sid / dta[NUM_FILES];
 }
 
 int GetFileId(DWORD id)
 {
-    int sid = id - data[STAD_FIRST];
-    sid = (id > data[NOU_CAMP_SHIFT_ID])?(sid - data[SHIFT]):sid;
-    return sid % data[NUM_FILES];
+    int sid = id - dta[STAD_FIRST];
+    sid = (id > dta[NOU_CAMP_SHIFT_ID])?(sid - dta[SHIFT]):sid;
+    return sid % dta[NUM_FILES];
 }
 
 int GetStadiumBase(DWORD stadId)
 {
-    int base = data[STAD_FIRST] + stadId * data[NUM_FILES];
-    base = (base > data[NOU_CAMP_SHIFT_ID])?(base + data[SHIFT]):base;
+    int base = dta[STAD_FIRST] + stadId * dta[NUM_FILES];
+    base = (base > dta[NOU_CAMP_SHIFT_ID])?(base + dta[SHIFT]):base;
     LogWithTwoNumbers(&k_stadium, "GetStadiumBase(%d): base = %d", stadId, base);
     return base;
 }
 
 DWORD FindAdboardsFile(char* filename)
 {
-	LCM* lcm=(LCM*)data[TEAM_IDS];
+	LCM* lcm=(LCM*)dta[TEAM_IDS];
     // force full stadium reload next time
-    BYTE* randomStad = (BYTE*)data[RANDOM_STADIUM_FLAG];
+    BYTE* randomStad = (BYTE*)dta[RANDOM_STADIUM_FLAG];
     if ((*randomStad & 0x01) == 0) {
         *randomStad = *randomStad | 0x01;
         Log(&k_stadium, "Flag set for full stadium reload.");
@@ -931,7 +931,7 @@ bool stadAfterReadFile(HANDLE hFile,
     char filename[512] = {0};
     DWORD fileSize = 0;
 
-    if (fileId < data[STAD_FIRST]) {
+    if (fileId < dta[STAD_FIRST]) {
         // adboard textures
         fileSize = FindAdboardsFile(filename);
 
@@ -1014,7 +1014,7 @@ void stadBeginUniSelect()
             g_homeTeamChoice = true;
             g_gameChoice = false;
 
-            std::map<std::string*,STADINFO*,ltstr>::iterator it = NULL;
+            std::map<std::string*,STADINFO*,ltstr>::iterator it;
             it = g_stadiumMap.find(folderString);
             if (it != g_stadiumMap.end()) {
                 g_stadiumMapIterator = it;
@@ -1161,7 +1161,7 @@ void stadKeyboardProc(int code1, WPARAM wParam, LPARAM lParam)
                     g_homeTeamChoice = true;
                     g_gameChoice = false;
 
-                    std::map<std::string*,STADINFO*,ltstr>::iterator it = NULL;
+                    std::map<std::string*,STADINFO*,ltstr>::iterator it;
                     it = g_stadiumMap.find(folderString);
                     if (it != g_stadiumMap.end()) {
                         g_stadiumMapIterator = it;
@@ -1319,8 +1319,8 @@ void stadPresent(IDirect3DDevice8* self, CONST RECT* src, CONST RECT* dest, HWND
 
 bool IsStadiumText(char* text) 
 {
-    DWORD base = *((DWORD*)data[STADIUM_TEXT_TABLE]);
-    for (int i=0; i<data[NUM_STADS]; i++) {
+    DWORD base = *((DWORD*)dta[STADIUM_TEXT_TABLE]);
+    for (int i=0; i<dta[NUM_STADS]; i++) {
         if (base + STADIUM_TEXT_LEN*i == (DWORD)text) return true;
     }
     return false;
@@ -1700,7 +1700,7 @@ DWORD stadWriteCapacity(char* dest, char* format, DWORD num)
 
 void CheckViewStadiumMode()
 {	
-	if (data[ISVIEWSTADIUMMODE]!=0 && *(BYTE*)data[ISVIEWSTADIUMMODE] != 0) {
+	if (dta[ISVIEWSTADIUMMODE]!=0 && *(BYTE*)dta[ISVIEWSTADIUMMODE] != 0) {
 		if (!isViewStadiumMode) {
 			//reset parameters if reentering View Stadium mode
 			viewGdbStadiums=false;
@@ -1718,7 +1718,7 @@ DWORD stadSetLCM(DWORD p1)
 {
 	stadEndUniSelect();
 	
-	LCM* lcm=(LCM*)data[TEAM_IDS];
+	LCM* lcm=(LCM*)dta[TEAM_IDS];
 	
     DWORD result = MasterCallNext(p1);
  	
@@ -1778,7 +1778,7 @@ bool stadReadNumPages(DWORD afsId, DWORD fileId,
     if (afsId == 1) { // 0_text.afs
         if (MAP_CONTAINS(g_AFS_idMap, fileId)) {
             LogWithTwoNumbers(&k_stadium,"stadReadNumPages: afsId=%d, fileId=%d", afsId, fileId);
-            if (fileId < data[STAD_FIRST]) {
+            if (fileId < dta[STAD_FIRST]) {
                 // adboard textures
                 fileSize = FindAdboardsFile(filename);
 
@@ -1838,7 +1838,7 @@ void stadExitViewStadiumsCallPoint()
 
 void stadExitViewStadiums()
 {
-    *(DWORD*)data[ISVIEWSTADIUMMODE] = 0;
+    *(DWORD*)dta[ISVIEWSTADIUMMODE] = 0;
     //UnhookFunction(hk_Input,(DWORD)stadKeyboardProc);
     UnhookFunction(hk_D3D_Present,(DWORD)stadPresent);
     CheckViewStadiumMode();
